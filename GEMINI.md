@@ -44,5 +44,10 @@ We do not bundle the Go CLI binary into the IDE plugin bundles (to avoid giganti
 - **Rule:** Developers should not be forced to manually click "Initialize" for every project. Plugins actively monitor repo discovery events (e.g., `StartupActivity` in IntelliJ) and passively prompt to inject hooks if they are missing.
 
 ### 5. Strict Code Quality Gates
-- **Go Linter:** The Go CLI must strictly pass `golangci-lint run` (e.g., explicitly ignoring `deferred` error returns by wrapping them).
+- **Go Linter:** The Go CLI must strictly pass `golangci-lint run` (e.g., explicitly ignoring `deferred` error returns by wrapping them). Implementations must be validated locally *before* code is submitted.
 - **Cross-Platform Compatibility:** Changes to terminal output, paths, or execution must be tested against macOS, Linux, and Windows conventions.
+
+### 6. AI Agent Workflow Constraints
+**Issue:** The user requires full control over Git history and project versioning.
+**Rule:** When solving issues or generating code, the AI/Assistant **MUST NOT** execute `git commit` or `git push` autonomously. All fixes and optimizations must be left in the working tree for the user to manually review, test, and commit.
+
