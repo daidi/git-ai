@@ -1,6 +1,6 @@
 {
   "name": "git-ai",
-  "displayName": "git-ai",
+  "displayName": "Git AI - Async Commit Polisher",
   "description": "AI-powered Git commit message enhancer — status, controls, and logs directly in VS Code",
   "version": "0.2.0",
   "publisher": "git-ai-async-commit-polisher",

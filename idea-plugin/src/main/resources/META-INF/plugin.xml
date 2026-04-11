@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.daidi.gitai</id>
-    <name>git-ai</name>
+    <name>Git AI - Async Commit Polisher</name>
     <vendor email="daidi@users.noreply.github.com" url="https://github.com/daidi/git-ai">daidi</vendor>
 
     <description><![CDATA[
