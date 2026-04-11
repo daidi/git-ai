@@ -29,6 +29,9 @@ var configSetCmd = &cobra.Command{
 		if configGlobal {
 			path = config.GlobalConfigPath()
 		} else {
+			if GetGitRoot() == "" {
+				return fmt.Errorf("not inside a git repository, cannot set local config. Use --global to set globally")
+			}
 			path = config.ProjectConfigPath(GetGitRoot())
 		}
 

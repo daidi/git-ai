@@ -3,6 +3,7 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -103,7 +104,7 @@ func (m *Manager) Save(s *State) error {
 
 // Lock acquires the file lock with timeout.
 func (m *Manager) Lock() error {
-	locked, err := m.fileLock.TryLockContext(nil, 100*time.Millisecond)
+	locked, err := m.fileLock.TryLockContext(context.Background(), 100*time.Millisecond)
 	if err != nil {
 		return fmt.Errorf("acquire lock: %w", err)
 	}
@@ -134,7 +135,7 @@ func (m *Manager) WithLock(fn func() error) error {
 	if err := m.Lock(); err != nil {
 		return err
 	}
-	defer m.Unlock()
+	defer func() { _ = m.Unlock() }()
 	return fn()
 }
 

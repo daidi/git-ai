@@ -64,7 +64,7 @@ func RunPostCommit(isDaemon bool) error {
 		logger.Printf("lock error: %v", err)
 		return err
 	}
-	defer mgr.Unlock()
+	defer func() { _ = mgr.Unlock() }()
 
 	// Read current commit.
 	sha, err := git.GetLastCommitSHA()

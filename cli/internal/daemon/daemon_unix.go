@@ -36,13 +36,13 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 	fullArgs := append([]string{gitAiBinary}, args...)
 	proc, err := os.StartProcess(gitAiBinary, fullArgs, attr)
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return 0, fmt.Errorf("start daemon: %w", err)
 	}
 
 	// Release the process — we don't wait for it.
 	_ = proc.Release()
-	f.Close()
+	_ = f.Close()
 
 	return proc.Pid, nil
 }
