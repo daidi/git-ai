@@ -1,21 +1,54 @@
-# git-ai
+<p align="center">
+  <img src="assets/icon.png" width="120" alt="git-ai logo" />
+</p>
 
-> 🤖 AI-powered Git commit message enhancer — async polish + deferred push.
+<h1 align="center">git-ai</h1>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.23+-00ADD8.svg)](https://go.dev)
+<p align="center">
+  <strong>Commit first, think later.</strong><br/>
+  <sub>AI-powered Git commit messages — async, invisible, zero-friction.</sub>
+</p>
 
-`git-ai` automatically rewrites your commit messages using AI. It runs in the background (async), so your workflow is never blocked. If you push while polishing is in progress, the push is queued and auto-executed when ready.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
+  <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
+  <a href="README_zh.md">📖 中文文档</a>
+</p>
+
+---
+
+You write `git commit -m "fix bug"`. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
+
+**git-ai** hooks into your normal Git workflow and uses LLMs to rewrite your commit messages into clean, [Conventional Commits](https://www.conventionalcommits.org/)-style messages. It does this *after* you commit, so you're never waiting. If you push while polishing is in progress, the push is queued and fires automatically when ready.
+
+## 💡 Why "Commit First"?
+
+Most AI commit tools make you *wait* before committing. We take the opposite approach:
+
+| | Traditional AI Commit Tools | git-ai |
+|:---|:---|:---|
+| **Workflow** | Generate → review → commit | Commit → polish in background |
+| **Latency** | 2–5s blocking wait | Zero. You keep coding. |
+| **If AI fails?** | No commit happens | Your commit is safe regardless |
+| **Habit change?** | New commands to learn | `git commit` — same as always |
+
+Three reasons this is better:
+
+1. **Instant snapshot** — Your code enters Git's version history *immediately*. Even if the AI service goes down, your work is safe.
+2. **Zero friction** — No waiting, no confirmation dialogs. You commit and move on. The message gets polished behind the scenes.
+3. **No new habits** — Use `git commit -m` from terminal, your IDE's commit UI, or any Git client you already love. git-ai is invisible.
 
 ## ✨ Features
 
-- **Async AI polishing** — commit messages are enhanced in the background
-- **Deferred push** — pushes are queued if AI is still working
-- **4 message formats** — plain, conventional, gitmoji, subject+body
-- **Multi-provider** — OpenAI, DeepSeek, Ollama, and any OpenAI-compatible API
-- **Smart diff trimming** — handles large diffs without token overflow
-- **System notifications** — toast notifications for polish/push completion
-- **Undo & retry** — restore original message or re-generate
+- 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook
+- 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
+- 📝 **4 message formats** — `plain`, `conventional`, `gitmoji`, `subject+body`
+- 🤖 **Multi-provider** — OpenAI, DeepSeek, Ollama, and any OpenAI-compatible API
+- ✂️ **Smart diff trimming** — handles large diffs with three-tier token truncation
+- 🔔 **System notifications** — OS-native toast when polish/push finishes
+- ⏪ **Undo & retry** — restore original message or re-generate at any time
+- 🖥️ **IDE plugins** — first-class VS Code extension and IntelliJ IDEA plugin
 
 ## 📦 Install
 
@@ -33,11 +66,11 @@ cd cli && make install
 ## 🚀 Quick Start
 
 ```bash
-# 1. Initialize in your repo
+# 1. Initialize in your repo (installs Git hooks)
 cd your-project
 git-ai init
 
-# 2. Set your API key (one-time)
+# 2. Configure your API key (one-time)
 git-ai config set api_key sk-your-key --global
 
 # 3. Commit as usual — AI polishes in background
@@ -49,40 +82,73 @@ git push
 # ⏳ git-ai: AI is polishing. Push queued — will auto-push when ready.
 ```
 
+That's it. Your commit message is now a clean, descriptive, spec-compliant message — and you didn't have to think about it.
+
+## 🏗️ How It Works
+
+```
+git commit -m "fix bug"
+        │
+        ▼
+   [post-commit hook]
+        │
+        ├── Fork background daemon (non-blocking)
+        │    │
+        │    ├── Read diff + original message
+        │    ├── Call LLM (DeepSeek / OpenAI / Ollama)
+        │    ├── git commit --amend -m "fix(auth): ..."
+        │    ├── If pending_push → auto push
+        │    └── Send OS notification 🔔
+        │
+        └── Exit immediately → you keep coding
+
+git push
+        │
+        ▼
+   [pre-push hook]
+        │
+        ├── If polishing → queue push, exit 1
+        └── If idle → allow push, exit 0
+```
+
 ## ⚙️ Configuration
 
-### Config Locations
-| Level | Path | Purpose |
+git-ai uses a layered config system. Values are resolved in order: **env vars → project → global → defaults**.
+
+### Config Files
+
+| Scope | Path | Description |
 |:---|:---|:---|
-| Global | `~/.config/git-ai/config.json` | Default settings |
-| Project | `<repo>/.git-ai.json` | Per-project overrides |
+| Global | `~/.config/git-ai/config.json` | Shared across all repos |
+| Project | `<repo>/.git-ai.json` | Per-repo overrides |
 | Env vars | `GIT_AI_API_KEY`, `GIT_AI_MODEL`, etc. | Runtime overrides |
 
-### Config Keys
-| Key | Default | Options |
+### Options
+
+| Key | Default | Description |
 |:---|:---|:---|
 | `api_key` | — | Your LLM API key |
-| `model` | `deepseek-chat` | Any model name |
+| `model` | `deepseek-chat` | Model name |
 | `base_url` | `https://api.deepseek.com/v1` | API endpoint |
-| `provider` | `openai` | `openai`, `ollama` |
-| `language` | `en` | `en`, `zh-CN`, `ja`, `ko`, etc. |
-| `push_policy` | `queue` | `queue` (auto-push) or `block` (manual) |
+| `provider` | `openai` | `openai` or `ollama` |
+| `language` | `en` | Output language (`en`, `zh-CN`, `ja`, `ko`, ...) |
+| `push_policy` | `queue` | `queue` = auto-push after polish, `block` = manual |
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body` |
-| `max_diff_tokens` | `4000` | Max tokens for diff context |
+| `max_diff_tokens` | `4000` | Max tokens of diff context sent to LLM |
 
-### Message Format Examples
+### Message Formats
 
 ```bash
-# Plain
+# plain
 Fix the login timeout bug on mobile
 
-# Conventional (default)
+# conventional (default)
 fix(auth): resolve login timeout on mobile devices
 
-# Gitmoji
+# gitmoji
 🐛 fix(auth): resolve login timeout on mobile devices
 
-# Subject+Body
+# subject-body
 Fix login timeout on mobile
 
 The session cookie was not being refreshed when the user
@@ -93,100 +159,89 @@ switched between mobile and desktop views.
 
 ```bash
 # DeepSeek (default)
-git-ai config set base_url https://api.deepseek.com/v1 --global
+git-ai config set api_key sk-xxx --global
 git-ai config set model deepseek-chat --global
-
-# Ollama (local)
-git-ai config set provider ollama
-git-ai config set model llama3
-git-ai config set base_url http://localhost:11434
 
 # OpenAI
 git-ai config set base_url https://api.openai.com/v1 --global
 git-ai config set model gpt-4o --global
+
+# Ollama (local, no API key needed)
+git-ai config set provider ollama
+git-ai config set model llama3
+git-ai config set base_url http://localhost:11434
 ```
 
-## 🛠️ Commands
+## 🛠️ CLI Commands
 
 | Command | Description |
 |:---|:---|
-| `git-ai init` | Initialize hooks and state in current repo |
-| `git-ai config set <key> <value>` | Set a config value (`--global` for global) |
-| `git-ai config get <key>` | Get a config value |
-| `git-ai config list` | Show merged config |
-| `git-ai retry` | Re-generate AI message for last commit |
-| `git-ai undo` | Restore original pre-AI message |
+| `git-ai init` | Install hooks and state directory in current repo |
+| `git-ai config set <key> <val>` | Set a config value (`--global` for global) |
+| `git-ai config get <key>` | Read a config value (merged) |
+| `git-ai config list` | Show full merged configuration |
+| `git-ai retry` | Re-generate AI message for the last commit |
+| `git-ai undo` | Restore the original pre-AI message |
 
-## 🏗️ How It Works
+## 🖥️ IDE Plugins
 
-```
-git commit -m "fix bug"
-        │
-        ▼
-   [post-commit hook]
-        │
-        ├─ Fork background daemon
-        │   │
-        │   ├─ Read diff + original message
-        │   ├─ Call LLM (DeepSeek/Ollama/OpenAI)
-        │   ├─ git commit --amend -m "fix(auth): ..."
-        │   ├─ Check pending_push → auto push if queued
-        │   └─ Send notification 🔔
-        │
-        └─ Exit immediately (non-blocking)
-
-git push
-        │
-        ▼
-   [pre-push hook]
-        │
-        ├─ If polishing → queue push, exit 1
-        └─ If idle → allow push, exit 0
-```
-
-## 🖥️ IDE Extensions
+Both plugins provide native integration — status display, one-click actions, and a Settings UI with i18n support (English + 中文).
 
 ### VS Code Extension
 
-The VS Code extension provides a seamless IDE experience:
+<table><tr>
+<td width="50%">
 
-- **Status Bar** — Shows `✨ AI 润色中...` / `⏳ 待推送...` / `✓ git-ai` in real-time
-- **Sidebar Panel** — Activity bar with status tree view and actions webview
-- **Action Buttons** — Retry, Undo, Cancel, Force Push directly from the UI
-- **Log Viewer** — Real-time daemon log tailing in the output channel
-- **Config Editor** — Quick pick between project/global config files
-- **Notifications** — VS Code notifications on polish/push completion
+- **Status Bar** — real-time polishing / push / idle status
+- **Sidebar Panel** — status tree + actions webview
+- **Settings UI** — Global + Project config with Codicons
+- **i18n** — auto-detects VS Code language (en / zh-CN)
+- **Notifications** — toast on polish/push completion
+
+</td>
+<td>
 
 ```bash
 cd vscode-extension
 npm install && npm run compile
-# Install: Cmd+Shift+P → "Developer: Install Extension from Location..."
+# Cmd+Shift+P → "Install Extension from Location..."
 ```
+
+</td>
+</tr></table>
 
 ### IntelliJ IDEA Plugin
 
-The IntelliJ plugin integrates with the IDE's native UI:
+<table><tr>
+<td width="50%">
 
-- **Status Bar Widget** — Live polishing/push status in the bottom bar
-- **Tool Window** — Two tabs: Status (with action buttons) and Logs (auto-tailing)
-- **VCS Menu Actions** — Retry, Undo, Cancel, Force Push, Init, Open Config
-- **VFS-Based Watching** — Uses IntelliJ's Virtual File System for instant state updates
-- **IDE Notifications** — Balloon notifications on state transitions
+- **Status Bar Widget** — live status in the bottom bar
+- **Tool Window** — Status + Logs tabs with auto-tailing
+- **Native Settings** — `Settings → Tools → git-ai` with i18n
+- **VCS Menu** — Retry, Undo, Cancel, Force Push, Config
+- **IDE Notifications** — balloon alerts on state changes
+
+</td>
+<td>
 
 ```bash
 cd idea-plugin
 ./gradlew buildPlugin
-# Output: build/distributions/git-ai-0.1.0.zip
+# → build/distributions/git-ai-0.1.0.zip
+# Settings → Plugins → ⚙️ → Install from Disk...
 ```
 
-> **Note:** Both extensions require the `git-ai` CLI to be installed on PATH. They contain no business logic — they only observe `state.json` and delegate to the CLI.
+</td>
+</tr></table>
+
+> **Note:** Both plugins are UI-only — they observe `state.json` and delegate to the `git-ai` CLI. The CLI must be installed on PATH.
 
 ## 📝 License
 
-MIT
+[MIT](LICENSE)
 
 ---
 
 <p align="center">
-  <sub>Optimized by <code>git-ai</code> 🤖</sub>
+  <sub>This commit message was optimized by <code>git-ai</code> 🤖</sub>
 </p>
