@@ -37,11 +37,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	Printf("🔧 Initializing git-ai in %s\n\n", repoRoot)
 
-	// 1. Check that git-ai is on PATH.
-	if _, err := exec.LookPath("git-ai"); err != nil {
-		Printf("⚠️  Warning: 'git-ai' not found on PATH.\n")
-		Printf("   Hooks will fail unless the binary is accessible.\n\n")
-	}
+
 
 	// 2. Create state directory.
 	mgr := state.NewManager(gitDir)
