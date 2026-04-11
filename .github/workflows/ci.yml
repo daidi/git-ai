@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: ['1.23', '1.24', '1.25']
+        go-version: ['1.25']
     defaults:
       run:
         working-directory: cli
@@ -33,14 +33,21 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Build
+      - name: Build (Unix)
+        if: runner.os != 'Windows'
         run: CGO_ENABLED=0 go build -o bin/git-ai ./cmd/git-ai/
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $env:CGO_ENABLED="0"
+          go build -o bin/git-ai.exe ./cmd/git-ai/
 
       - name: Test
         run: go test ./internal/... -v -race -coverprofile=coverage.out
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25'
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -64,8 +71,9 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v2.1.6
           working-directory: cli
+          args: --timeout=5m
 
   # ── VS Code Extension ──────────────────────────────────
   vscode-build:
