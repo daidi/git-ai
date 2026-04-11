@@ -62,6 +62,21 @@ object GitAiCli {
             }
         } catch (_: Exception) {}
 
+        // 3. Fallback manually to common macOS/Linux paths for GUI apps that lack PATH
+        val commonPaths = listOf(
+            "/opt/homebrew/bin/$exeName",
+            "/usr/local/bin/$exeName",
+            "$homeDir/go/bin/$exeName",
+            "$homeDir/.cargo/bin/$exeName",
+            "/usr/bin/$exeName"
+        )
+        for (p in commonPaths) {
+            val f = File(p)
+            if (f.exists() && f.canExecute()) {
+                return f.absolutePath
+            }
+        }
+
         return null
     }
 

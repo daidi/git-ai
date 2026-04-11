@@ -1,5 +1,6 @@
 #!/bin/sh
 # git-ai post-commit hook
 # Installed by `git-ai init`. Do not edit — re-run `git-ai init` to reinstall.
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
 [ "$GIT_AI_INTERNAL" = "true" ] && exit 0
 git-ai hook post-commit
