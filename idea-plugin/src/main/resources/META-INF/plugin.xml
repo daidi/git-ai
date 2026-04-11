@@ -45,6 +45,13 @@
                 id="git-ai.notifications"
                 displayType="BALLOON"
                 toolWindowId="git-ai"/>
+
+        <!-- Settings page: Settings → Tools → git-ai -->
+        <projectConfigurable
+                parentId="tools"
+                id="com.daidi.gitai.settings"
+                displayName="git-ai"
+                instance="com.daidi.gitai.settings.GitAiSettingsConfigurable"/>
     </extensions>
 
     <actions>

@@ -189,36 +189,8 @@ class InitAction : AnAction() {
 class OpenConfigAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val basePath = project.basePath ?: return
-
-        // Ask which config to open.
-        val options = arrayOf("Project (.git-ai.json)", "Global (~/.config/git-ai/config.json)")
-        val choice = Messages.showDialog(
-            project,
-            "Which configuration file to open?",
-            "git-ai: Configuration",
-            options,
-            0,
-            Messages.getQuestionIcon()
-        )
-
-        val filePath = when (choice) {
-            0 -> "$basePath/.git-ai.json"
-            1 -> "${System.getProperty("user.home")}/.config/git-ai/config.json"
-            else -> return
-        }
-
-        val file = java.io.File(filePath)
-        if (!file.exists()) {
-            file.parentFile?.mkdirs()
-            file.writeText("{\n  \n}\n")
-        }
-
-        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance()
-            .refreshAndFindFileByPath(filePath)
-        if (virtualFile != null) {
-            com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project)
-                .openFile(virtualFile, true)
-        }
+        // Open IDE Settings directly to the git-ai page.
+        com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+            .showSettingsDialog(project, "com.daidi.gitai.settings")
     }
 }

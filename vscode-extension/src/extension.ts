@@ -5,6 +5,7 @@ import { CommandManager } from './commands';
 import { LogViewer } from './logViewer';
 import { StatusTreeProvider } from './statusTree';
 import { ActionsWebviewProvider } from './actionsWebview';
+import { SettingsPanel } from './settingsPanel';
 
 let stateWatcher: StateWatcher | undefined;
 let statusBar: StatusBarManager | undefined;
@@ -42,7 +43,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('git-ai.cancel', () => commands.cancel()),
         vscode.commands.registerCommand('git-ai.forcePush', () => commands.forcePush()),
         vscode.commands.registerCommand('git-ai.showLogs', () => commands.showLogs()),
-        vscode.commands.registerCommand('git-ai.openConfig', () => commands.openConfig()),
+        vscode.commands.registerCommand('git-ai.openConfig', () => {
+            SettingsPanel.show(context.extensionUri, workspaceRoot);
+        }),
     );
 
     // Listen for state changes.
