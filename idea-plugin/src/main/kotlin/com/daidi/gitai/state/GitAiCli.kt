@@ -25,7 +25,12 @@ object GitAiCli {
      */
     fun run(project: Project, vararg args: String): Result {
         val basePath = project.basePath ?: return Result(false, "", "No project base path")
-        return execute(basePath, "git-ai", *args)
+        val exe = getExecutablePath() 
+        if (exe == null) {
+            GitAiInstaller.notifyMissingCli(project)
+            return Result(false, "", "git-ai CLI missing")
+        }
+        return execute(basePath, exe, *args)
     }
 
     /**
@@ -33,7 +38,31 @@ object GitAiCli {
      */
     fun runGitInternal(project: Project, vararg args: String): Result {
         val basePath = project.basePath ?: return Result(false, "", "No project base path")
+        // git doesn't need resolution but the underlying hook will need git-ai.
         return execute(basePath, "git", *args, env = mapOf("GIT_AI_INTERNAL" to "true"))
+    }
+
+    private fun getExecutablePath(): String? {
+        val isWin = System.getProperty("os.name").lowercase().contains("win")
+        val exeName = if (isWin) "git-ai.exe" else "git-ai"
+        
+        // 1. Check local download path
+        val homeDir = System.getProperty("user.home")
+        val localBin = File(homeDir, ".git-ai/bin/$exeName")
+        if (localBin.exists() && localBin.canExecute()) {
+            return localBin.absolutePath
+        }
+
+        // 2. Check if available in PATH
+        try {
+            val pb = ProcessBuilder(exeName, "--version")
+            val process = pb.start()
+            if (process.waitFor(5, TimeUnit.SECONDS)) {
+                return exeName
+            }
+        } catch (_: Exception) {}
+
+        return null
     }
 
     private fun execute(
