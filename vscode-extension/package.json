@@ -32,37 +32,37 @@
     "commands": [
       {
         "command": "git-ai.init",
-        "title": "Initialize git-ai",
+        "title": "%command.init%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.retry",
-        "title": "Retry AI polishing",
+        "title": "%command.retry%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.undo",
-        "title": "Undo AI polishing",
+        "title": "%command.undo%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.cancel",
-        "title": "Cancel AI polishing",
+        "title": "%command.cancel%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.forcePush",
-        "title": "Force push now",
+        "title": "%command.forcePush%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.showLogs",
-        "title": "Show Logs",
+        "title": "%command.showLogs%",
         "category": "git-ai"
       },
       {
         "command": "git-ai.openConfig",
-        "title": "Open Configuration",
+        "title": "%command.openConfig%",
         "category": "git-ai"
       }
     ],
@@ -79,7 +79,7 @@
       "activitybar": [
         {
           "id": "git-ai",
-          "title": "git-ai",
+          "title": "Git AI",
           "icon": "resources/icon.svg"
         }
       ]
@@ -98,7 +98,7 @@
       ]
     },
     "configuration": {
-      "title": "git-ai",
+      "title": "Git AI",
       "properties": {
         "git-ai.pollingInterval": {
           "type": "number",
@@ -125,7 +125,7 @@
     "submenus": [
       {
         "id": "git-ai.scmMenu",
-        "label": "git-ai",
+        "label": "%submenu.gitai%",
         "icon": "$(zap)"
       }
     ],

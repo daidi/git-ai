@@ -1,0 +1,14 @@
+{
+  "command.init": "初始化 git-ai",
+  "command.retry": "重试 AI 润色",
+  "command.undo": "撤销 AI 润色",
+  "command.cancel": "终止当前润色",
+  "command.forcePush": "马上推送到远端",
+  "command.showLogs": "查看日志",
+  "command.openConfig": "前往配置页面",
+  "category.gitai": "git-ai",
+  "submenu.gitai": "git-ai",
+  "config.pollingInterval": "状态文件轮询间隔（毫秒）",
+  "config.binaryPath": "git-ai 可执行文件路径",
+  "config.notificationMode": "通知显示方式"
+}

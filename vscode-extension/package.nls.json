@@ -1,0 +1,14 @@
+{
+  "command.init": "Initialize git-ai",
+  "command.retry": "Retry AI polishing",
+  "command.undo": "Undo AI polishing",
+  "command.cancel": "Cancel AI polishing",
+  "command.forcePush": "Force push now",
+  "command.showLogs": "Show Logs",
+  "command.openConfig": "Open Configuration",
+  "category.gitai": "git-ai",
+  "submenu.gitai": "git-ai",
+  "config.pollingInterval": "State file polling interval in milliseconds",
+  "config.binaryPath": "Path to the git-ai binary",
+  "config.notificationMode": "How notifications are displayed"
+}

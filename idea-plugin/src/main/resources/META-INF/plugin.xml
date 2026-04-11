@@ -18,6 +18,8 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>
 
+    <resource-bundle>messages.GitAiBundle</resource-bundle>
+
     <extensions defaultExtensionNs="com.intellij">
         <!-- Startup activity to begin state watching -->
         <postStartupActivity
@@ -50,12 +52,12 @@
         <projectConfigurable
                 parentId="tools"
                 id="com.daidi.gitai.settings"
-                displayName="git-ai"
+                displayName="Git AI"
                 instance="com.daidi.gitai.settings.GitAiSettingsConfigurable"/>
     </extensions>
 
     <actions>
-        <group id="GitAi.ActionGroup" text="git-ai" popup="true"
+        <group id="GitAi.ActionGroup" text="Git AI" popup="true"
                icon="AllIcons.Actions.Lightning">
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
