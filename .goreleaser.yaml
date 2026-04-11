@@ -51,6 +51,7 @@ brews:
   - repository:
       owner: daidi
       name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/daidi/git-ai"
     description: "AI-powered Git commit message enhancer"
     license: MIT
@@ -61,6 +62,7 @@ scoops:
   - repository:
       owner: daidi
       name: scoop-bucket
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/daidi/git-ai"
     description: "AI-powered Git commit message enhancer"
     license: MIT
