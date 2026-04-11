@@ -58,6 +58,7 @@
         <group id="GitAi.ActionGroup" text="git-ai" popup="true"
                icon="AllIcons.Actions.Lightning">
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
 
             <action id="GitAi.Retry"
                     class="com.daidi.gitai.actions.RetryAction"
