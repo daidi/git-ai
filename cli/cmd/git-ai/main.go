@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
+	err := cmd.Execute()
+	cmd.PostExecuteUpdateCheck()
+	
+	if err != nil {
 		cmd.Errorf("%v\n", err)
 		os.Exit(1)
 	}

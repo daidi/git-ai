@@ -87,6 +87,12 @@ var configListCmd = &cobra.Command{
 			Printf("%-16s %s\n", "prompt_template", "(custom)")
 		}
 		Printf("%-16s %d\n", "max_diff_tokens", cfg.MaxDiffTokens)
+		
+		chk := false
+		if cfg.CheckUpdate != nil {
+			chk = *cfg.CheckUpdate
+		}
+		Printf("%-16s %v\n", "check_update", chk)
 		return nil
 	},
 }

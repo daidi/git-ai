@@ -7,7 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/daidi/git-ai/internal/config"
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/update"
 )
 
 var (
@@ -47,6 +49,14 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 			return fmt.Errorf("not inside a git repository: %w", err)
 		}
 		gitRoot = root
+
+		cfg, _ := config.Load(gitRoot)
+		enabled := true
+		if cfg != nil && cfg.CheckUpdate != nil {
+			enabled = *cfg.CheckUpdate
+		}
+		update.BackgroundCheck(enabled)
+
 		return nil
 	},
 	// Root command with no subcommand prints usage.
@@ -61,6 +71,17 @@ func init() {
 	rootCmd.SetVersionTemplate("\033[1;36m✨ Git-AI CLI v{{.Version}}\033[0m\n")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable colored output")
+}
+
+// PostExecuteUpdateCheck checks if an update is available and prints a notice to stderr if so.
+func PostExecuteUpdateCheck() {
+	cfg, err := config.Load(gitRoot)
+	if err == nil && cfg.CheckUpdate != nil && !*cfg.CheckUpdate {
+		return
+	}
+	if msg := update.CheckUpdate(version); msg != "" {
+		fmt.Fprint(os.Stderr, msg)
+	}
 }
 
 // Execute runs the root command.

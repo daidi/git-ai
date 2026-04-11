@@ -19,10 +19,12 @@ type Config struct {
 	MessageFormat  string `json:"message_format,omitempty"`
 	PromptTemplate string `json:"prompt_template,omitempty"`
 	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
+	CheckUpdate    *bool  `json:"check_update,omitempty"`
 }
 
 // Defaults returns a Config with default values.
 func Defaults() *Config {
+	tru := true
 	return &Config{
 		Model:         "deepseek-chat",
 		BaseURL:       "https://api.deepseek.com/v1",
@@ -31,6 +33,7 @@ func Defaults() *Config {
 		PushPolicy:    "queue",
 		MessageFormat: "conventional",
 		MaxDiffTokens: 4000,
+		CheckUpdate:   &tru,
 	}
 }
 
@@ -122,6 +125,9 @@ func Set(path, key, value string) error {
 		cfg.MessageFormat = value
 	case "prompt_template":
 		cfg.PromptTemplate = value
+	case "check_update":
+		b := value == "true"
+		cfg.CheckUpdate = &b
 	default:
 		return &UnknownKeyError{Key: key}
 	}
@@ -148,6 +154,11 @@ func Get(cfg *Config, key string) (string, error) {
 		return cfg.MessageFormat, nil
 	case "prompt_template":
 		return cfg.PromptTemplate, nil
+	case "check_update":
+		if cfg.CheckUpdate != nil && *cfg.CheckUpdate {
+			return "true", nil
+		}
+		return "false", nil
 	default:
 		return "", &UnknownKeyError{Key: key}
 	}
@@ -157,7 +168,7 @@ func Get(cfg *Config, key string) (string, error) {
 func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider",
-		"language", "push_policy", "message_format", "prompt_template",
+		"language", "push_policy", "message_format", "prompt_template", "check_update",
 	}
 }
 
@@ -198,6 +209,9 @@ func mergeConfig(dst, src *Config) {
 	}
 	if src.MaxDiffTokens > 0 {
 		dst.MaxDiffTokens = src.MaxDiffTokens
+	}
+	if src.CheckUpdate != nil {
+		dst.CheckUpdate = src.CheckUpdate
 	}
 }
 
