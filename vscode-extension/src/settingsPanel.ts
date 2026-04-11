@@ -241,10 +241,7 @@ export class SettingsPanel {
                         if (isInstallHook && !installed) {
                             vscode.commands.executeCommand('git-ai.init');
                         } else if (!isInstallHook && installed) {
-                            // Run uninstall
-                            const terminal = vscode.window.createTerminal('git-ai uninstall');
-                            terminal.sendText('git-ai uninstall');
-                            terminal.show();
+                            vscode.commands.executeCommand('git-ai.uninstall');
                         }
                     }
                 }

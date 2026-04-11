@@ -6,6 +6,7 @@
   "command.forcePush": "Force push now",
   "command.showLogs": "Show Logs",
   "command.openConfig": "Open Configuration",
+  "command.uninstall": "Uninstall Hooks",
   "category.gitai": "git-ai",
   "submenu.gitai": "git-ai",
   "config.pollingInterval": "State file polling interval in milliseconds",

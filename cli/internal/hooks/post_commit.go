@@ -48,6 +48,7 @@ func RunPostCommit(isDaemon bool) error {
 	}
 
 	// === Daemon mode: run the polishing logic ===
+	startTime := time.Now()
 	logger := log.New(os.Stdout, "[git-ai] ", log.LstdFlags)
 	logger.Println("daemon started")
 
@@ -141,7 +142,7 @@ func RunPostCommit(isDaemon bool) error {
 		LastSHA:       sha,
 	})
 
-	logger.Printf("done (elapsed: %v)", time.Since(time.Now()))
+	logger.Printf("done (elapsed: %v)", time.Since(startTime))
 	return nil
 }
 

@@ -64,6 +64,11 @@
         "command": "git-ai.openConfig",
         "title": "%command.openConfig%",
         "category": "git-ai"
+      },
+      {
+        "command": "git-ai.uninstall",
+        "title": "%command.uninstall%",
+        "category": "git-ai"
       }
     ],
     "icons": {

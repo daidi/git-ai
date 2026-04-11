@@ -28,6 +28,18 @@ export class CommandManager {
     }
 
     /**
+     * Uninstall git-ai hooks from the current workspace.
+     */
+    async uninstall(): Promise<void> {
+        const result = await this.runGitAi(['uninstall']);
+        if (result.success) {
+            notifyInfo('🗑️ git-ai hooks uninstalled.');
+        } else {
+            notifyError(`git-ai uninstall failed: ${result.error}`);
+        }
+    }
+
+    /**
      * Retry AI polishing for the last commit.
      */
     async retry(): Promise<void> {
