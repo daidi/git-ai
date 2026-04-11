@@ -6,8 +6,7 @@ project_name: git-ai
 
 before:
   hooks:
-    - dir: cli
-      cmd: go mod tidy
+    - go mod tidy -C cli
 
 builds:
   - id: git-ai
