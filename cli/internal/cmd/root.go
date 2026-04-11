@@ -22,17 +22,11 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "git-ai",
 	Short: "AI-powered Git commit message enhancer",
-	Long: "\033[1;36m" + `
-   ____ _ __           _ 
-  / __/(_) /_  ___ _  (_)
- / _/ / / __/ / _ \/ / / 
-/_/  /_/\__/  \_,_/ /_/  
-` + "\033[0m" + `
-✨ Git AI - Async Commit Polisher
-
-Never wait for AI. Polish your commits in the background while you code.
+	Long: "\033[1;36m✨ Git AI - Async Commit Polisher\033[0m\n\n" +
+`Never wait for AI. Polish your commits in the background while you code.
 git-ai automatically enhances your commit messages using LLMs.
 It works asynchronously via post-commit hooks and supports deferred push.`,
+
 	Version: version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip git root detection for commands that don't need it.
