@@ -72,9 +72,9 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
             // Install / Uninstall hook logic
             val installed = isHookInstalled(basePath)
             if (comp.pEnabled.isSelected && !installed) {
-                com.daidi.gitai.state.GitAiCli.execute(project, "init")
+                com.daidi.gitai.state.GitAiCli.run(project, "init")
             } else if (!comp.pEnabled.isSelected && installed) {
-                com.daidi.gitai.state.GitAiCli.execute(project, "uninstall")
+                com.daidi.gitai.state.GitAiCli.run(project, "uninstall")
             }
         }
     }
