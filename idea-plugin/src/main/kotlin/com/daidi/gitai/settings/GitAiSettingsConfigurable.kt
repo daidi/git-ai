@@ -2,6 +2,7 @@ package com.daidi.gitai.settings
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
+import com.daidi.gitai.GitAiBundle
 import javax.swing.JComponent
 
 /**
@@ -13,7 +14,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
 
     private var component: GitAiSettingsComponent? = null
 
-    override fun getDisplayName(): String = "git-ai"
+    override fun getDisplayName(): String = GitAiBundle.message("settings.title")
 
     override fun createComponent(): JComponent {
         component = GitAiSettingsComponent(project.basePath)

@@ -27,21 +27,125 @@ const DEFAULTS: Required<GitAiConfig> = {
     max_diff_tokens: 4000,
 };
 
+// ── I18N ──────────────────────────────────────────────
+
+const TRANSLATIONS: Record<string, Record<string, string>> = {
+    en: {
+        'settings.title': 'git-ai Settings',
+        'settings.subtitle': 'Configure AI commit message polishing. Project settings override Global.',
+        'settings.tab.global': 'Global',
+        'settings.tab.project': 'Project',
+        'settings.badge.shared': 'shared',
+        'settings.badge.override': 'override',
+        
+        'settings.section.auth': 'Authentication & Provider',
+        'settings.section.format': 'Commit Format',
+        'settings.section.behavior': 'Push Behavior',
+        
+        'settings.field.apiKey': 'API Key',
+        'settings.field.provider': 'Provider',
+        'settings.field.baseUrl': 'Base URL',
+        'settings.field.model': 'Model',
+        'settings.field.messageFormat': 'Message Format',
+        'settings.field.language': 'Language',
+        'settings.field.promptTemplate': 'Custom Prompt',
+        'settings.field.pushPolicy': 'Push Policy',
+        'settings.field.maxDiffTokens': 'Max Diff Tokens',
+        
+        'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
+        'settings.hint.projectNote': 'Project settings override Global for this repo only. Leave fields empty to inherit.',
+        'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
+        'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
+        'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
+        
+        'settings.inherit.label': '\u2190 Inherited from Global',
+        'settings.inherit.val': '(inherit: {0})',
+        
+        'settings.btn.saveGlobal': 'Save Global',
+        'settings.btn.saveProject': 'Save Project',
+        'settings.btn.reset': 'Reset',
+        'settings.msg.saved': '✅ git-ai: {0} config saved',
+        'settings.msg.reset': '🗑️ git-ai: {0} config reset',
+        'settings.confirm.reset': 'Reset all {0} settings? This cannot be undone.'
+    },
+    'zh-cn': {
+        'settings.title': 'git-ai 偏好设置',
+        'settings.subtitle': '配置 AI 提交润色行为。项目级设定将覆盖全局设定。',
+        'settings.tab.global': '全局',
+        'settings.tab.project': '当前项目',
+        'settings.badge.shared': '全域共享',
+        'settings.badge.override': '项目覆盖',
+        
+        'settings.section.auth': '鉴权与大模型供应商',
+        'settings.section.format': 'Commit 格式化规范',
+        'settings.section.behavior': '自动推送行为',
+        
+        'settings.field.apiKey': 'API 密钥 (API Key)',
+        'settings.field.provider': '接口通道 (Provider)',
+        'settings.field.baseUrl': '服务基址 (Base URL)',
+        'settings.field.model': '模型标识 (Model)',
+        'settings.field.messageFormat': '消息结构 (Format)',
+        'settings.field.language': '生成语言 (Language)',
+        'settings.field.promptTemplate': '自定义提示词 (Prompt)',
+        'settings.field.pushPolicy': '推送时机 (Push Policy)',
+        'settings.field.maxDiffTokens': 'Diff 截断阈值 (Tokens)',
+        
+        'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
+        'settings.hint.projectNote': '项目级设定仅对当前代码库生效。留空将自动继承全局设定。',
+        'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
+        'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
+        'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
+        
+        'settings.inherit.label': '\u2190 继承自全局设定',
+        'settings.inherit.val': '(继承: {0})',
+        
+        'settings.btn.saveGlobal': '保存全局配置',
+        'settings.btn.saveProject': '保存项目配置',
+        'settings.btn.reset': '重置',
+        'settings.msg.saved': '✅ git-ai: {0} 配置已保存',
+        'settings.msg.reset': '🗑️ git-ai: {0} 配置已被清空',
+        'settings.confirm.reset': '确定要清空并重置所有 {0} 的设置吗？此操作不可撤销。'
+    }
+};
+
+function getBaseLang(): string {
+    const lang = vscode.env.language.toLowerCase();
+    if (lang === 'zh-cn' || lang === 'zh-tw' || lang === 'zh-hk') {
+        return 'zh-cn';
+    }
+    return 'en';
+}
+
+function t(key: string, ...args: string[]): string {
+    const lang = getBaseLang();
+    const dictionary = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+    let str = dictionary[key] || TRANSLATIONS['en'][key] || key;
+    args.forEach((arg, i) => {
+        str = str.replace(`{${i}}`, arg);
+    });
+    return str;
+}
+
 /**
  * Full-screen webview panel for editing git-ai configuration.
- * Supports switching between Global and Project scope with live inheritance preview.
+ * Professional native VS Code settings layout with i18n and Codicons.
  */
 export class SettingsPanel {
     private static currentPanel: SettingsPanel | undefined;
     private readonly panel: vscode.WebviewPanel;
     private readonly workspaceRoot: string;
+    private readonly extensionUri: vscode.Uri;
     private disposables: vscode.Disposable[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, workspaceRoot: string) {
+    private constructor(panel: vscode.WebviewPanel, workspaceRoot: string, extensionUri: vscode.Uri) {
         this.panel = panel;
         this.workspaceRoot = workspaceRoot;
+        this.extensionUri = extensionUri;
 
-        this.panel.webview.options = { enableScripts: true };
+        this.panel.webview.options = { 
+            enableScripts: true,
+            localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')]
+        };
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
         this.panel.webview.onDidReceiveMessage(
             (msg) => this.handleMessage(msg),
@@ -61,12 +165,12 @@ export class SettingsPanel {
 
         const panel = vscode.window.createWebviewPanel(
             'gitAiSettings',
-            'git-ai Settings',
+            t('settings.title'),
             vscode.ViewColumn.One,
             { enableScripts: true, retainContextWhenHidden: true },
         );
 
-        SettingsPanel.currentPanel = new SettingsPanel(panel, workspaceRoot);
+        SettingsPanel.currentPanel = new SettingsPanel(panel, workspaceRoot, extensionUri);
     }
 
     private dispose(): void {
@@ -95,7 +199,6 @@ export class SettingsPanel {
     }
 
     private writeConfig(filePath: string, cfg: GitAiConfig): void {
-        // Strip empty strings and zero values so they don't override lower layers.
         const clean: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(cfg)) {
             if (v !== '' && v !== 0 && v !== undefined && v !== null) {
@@ -103,12 +206,19 @@ export class SettingsPanel {
             }
         }
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, JSON.stringify(clean, null, 2) + '\n');
+        
+        if (Object.keys(clean).length === 0) {
+            if (fs.existsSync(filePath)) { fs.unlinkSync(filePath); }
+        } else {
+            fs.writeFileSync(filePath, JSON.stringify(clean, null, 2) + '\n');
+        }
     }
 
     // ── Messages ──────────────────────────────────────────
 
     private handleMessage(msg: { command: string; scope?: string; data?: GitAiConfig }): void {
+        const scopeName = msg.scope === 'project' ? t('settings.tab.project') : t('settings.tab.global');
+        
         switch (msg.command) {
             case 'load':
                 this.refresh();
@@ -118,9 +228,7 @@ export class SettingsPanel {
                 if (msg.data) {
                     this.writeConfig(filePath, msg.data);
                 }
-                vscode.window.showInformationMessage(
-                    `✅ git-ai: ${msg.scope === 'project' ? 'Project' : 'Global'} config saved`,
-                );
+                vscode.window.showInformationMessage(t('settings.msg.saved', scopeName));
                 this.refresh();
                 break;
             }
@@ -129,9 +237,7 @@ export class SettingsPanel {
                 if (fs.existsSync(filePath)) {
                     fs.unlinkSync(filePath);
                 }
-                vscode.window.showInformationMessage(
-                    `🗑️ git-ai: ${msg.scope === 'project' ? 'Project' : 'Global'} config reset`,
-                );
+                vscode.window.showInformationMessage(t('settings.msg.reset', scopeName));
                 this.refresh();
                 break;
             }
@@ -149,154 +255,218 @@ export class SettingsPanel {
     // ── HTML ──────────────────────────────────────────────
 
     private getHtml(global: GitAiConfig, project: GitAiConfig, merged: Required<GitAiConfig>): string {
+        const codiconsUri = this.panel.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+        );
+
         return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="${codiconsUri}" rel="stylesheet" />
 <style>
+    :root {
+        --animation-fast: 0.15s ease-in-out;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
         font-family: var(--vscode-font-family);
         font-size: var(--vscode-font-size);
         color: var(--vscode-foreground);
         background: var(--vscode-editor-background);
-        padding: 24px 32px;
-        max-width: 680px;
+        padding: 32px 40px;
+        max-width: 800px;
+        margin: 0 auto;
     }
-    h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-    .subtitle { color: var(--vscode-descriptionForeground); font-size: 13px; margin-bottom: 20px; }
+    
+    .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .header-icon {
+        font-size: 24px;
+        margin-right: 12px;
+        color: var(--vscode-textLink-foreground);
+    }
+    h1 { font-size: 22px; font-weight: 300; letter-spacing: 0.5px; }
+    .subtitle { color: var(--vscode-descriptionForeground); font-size: 13px; margin-bottom: 28px; line-height: 1.5; }
 
-    /* Tab bar */
-    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--vscode-panel-border); margin-bottom: 20px; }
+    /* Modern Tab bar */
+    .tabs { 
+        display: flex; gap: 0; 
+        border-bottom: 1px solid var(--vscode-panel-border); 
+        margin-bottom: 28px; 
+    }
     .tab {
-        padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer;
+        padding: 10px 24px; font-size: 13px; font-weight: 500; cursor: pointer;
         border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0;
         color: var(--vscode-descriptionForeground);
-        background: transparent; transition: all 0.15s;
+        background: transparent; transition: all var(--animation-fast);
+        display: flex; align-items: center; gap: 8px;
     }
     .tab:hover { color: var(--vscode-foreground); }
     .tab.active {
         color: var(--vscode-foreground);
-        background: var(--vscode-editor-background);
         border-color: var(--vscode-panel-border);
-        position: relative; top: 1px;
+        border-bottom-color: var(--vscode-editor-background);
+        margin-bottom: -1px;
     }
     .tab-badge {
-        display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 10px;
-        margin-left: 6px; vertical-align: middle;
+        display: inline-flex; padding: 2px 6px; border-radius: 10px; font-size: 10px; line-height: 1;
+        font-weight: 600; text-transform: uppercase;
     }
     .tab-badge.global { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
-    .tab-badge.project { background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); }
+    .tab-badge.project { background: var(--vscode-terminal-ansiYellow); color: var(--vscode-editor-background); }
 
-    .scope-pane { display: none; }
-    .scope-pane.active { display: block; }
+    .scope-pane { display: none; margin-bottom: 40px; }
+    .scope-pane.active { display: block; animation: fade-in var(--animation-fast); }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Form */
-    .field { margin-bottom: 16px; }
-    .field label {
-        display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;
+    /* Field Layout */
+    .section-title {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 16px; font-weight: 300; margin: 32px 0 16px;
         color: var(--vscode-foreground);
     }
+    .section-title .codicon {
+        color: var(--vscode-textLink-foreground);
+    }
+    .divider {
+        height: 1px; background: var(--vscode-panel-border);
+        margin: 0 0 16px; width: 100%;
+    }
+
+    .field { margin-bottom: 24px; display: grid; gap: 6px; }
+    .field label {
+        font-size: 13px; font-weight: 600; color: var(--vscode-foreground);
+    }
     .field .hint {
-        font-size: 11px; color: var(--vscode-descriptionForeground); margin-bottom: 4px;
+        font-size: 12px; color: var(--vscode-descriptionForeground); line-height: 1.4;
     }
     .field .inherited {
-        font-size: 11px; color: var(--vscode-textLink-foreground); margin-top: 2px;
-        font-style: italic;
+        font-size: 12px; color: var(--vscode-textLink-foreground); margin-top: 4px;
     }
+
     input, select {
-        width: 100%; padding: 6px 10px; font-size: 13px; font-family: inherit;
+        width: 100%; max-width: 480px; padding: 6px 10px; font-size: 13px; font-family: inherit;
         border: 1px solid var(--vscode-input-border);
         background: var(--vscode-input-background);
         color: var(--vscode-input-foreground);
-        border-radius: 4px; outline: none;
+        border-radius: 2px; outline: none; transition: border var(--animation-fast);
     }
-    input:focus, select:focus { border-color: var(--vscode-focusBorder); }
-    input::placeholder { color: var(--vscode-input-placeholderForeground); }
+    input:focus, select:focus { 
+        border-color: var(--vscode-focusBorder);
+    }
+    input::placeholder { color: var(--vscode-input-placeholderForeground); font-style: italic; }
     select { cursor: pointer; }
 
-    .actions { display: flex; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--vscode-panel-border); }
+    /* Actions Bottom Bar */
+    .actions { 
+        position: sticky; bottom: 0; background: var(--vscode-editor-background);
+        display: flex; gap: 12px; padding: 16px 0; 
+        border-top: 1px solid var(--vscode-panel-border); z-index: 10;
+        margin-top: 32px;
+    }
     .btn {
-        padding: 8px 20px; font-size: 13px; border: none; border-radius: 4px; cursor: pointer;
-        font-family: inherit; font-weight: 500;
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; font-size: 13px; border: none; border-radius: 2px; cursor: pointer;
+        font-family: inherit; font-weight: 500; transition: background var(--animation-fast);
     }
     .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
     .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
-    .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
-    .btn-secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
     .btn-danger { background: transparent; color: var(--vscode-errorForeground); border: 1px solid var(--vscode-errorForeground); }
-    .btn-danger:hover { background: var(--vscode-inputValidation-errorBackground); }
+    .btn-danger:hover { background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-foreground); }
     .spacer { flex: 1; }
 
-    .section-title {
-        font-size: 13px; font-weight: 600; margin: 20px 0 12px;
-        padding-bottom: 6px; border-bottom: 1px solid var(--vscode-panel-border);
+    .project-note {
+        padding: 12px 16px; background: var(--vscode-textBlockQuote-background);
+        border-left: 4px solid var(--vscode-textLink-foreground);
+        font-size: 13px; color: var(--vscode-foreground); margin-bottom: 24px;
+        display: flex; align-items: flex-start; gap: 8px;
     }
 </style>
+<script>
+    const i18n = {
+        confirmReset: "${t('settings.confirm.reset', '{0}')}"
+    };
+</script>
 </head>
 <body>
-    <h1>⚙️ git-ai Settings</h1>
-    <p class="subtitle">Configure AI commit message polishing. Project settings override Global.</p>
+    <div class="header">
+        <i class="codicon codicon-settings-gear header-icon"></i>
+        <h1>${t('settings.title')}</h1>
+    </div>
+    <p class="subtitle">${t('settings.subtitle')}</p>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('global')">
-            🌍 Global<span class="tab-badge global">shared</span>
+            <i class="codicon codicon-globe"></i>
+            ${t('settings.tab.global')}<span class="tab-badge global">${t('settings.badge.shared')}</span>
         </div>
         <div class="tab" onclick="switchTab('project')">
-            📁 Project<span class="tab-badge project">override</span>
+            <i class="codicon codicon-folder"></i>
+            ${t('settings.tab.project')}<span class="tab-badge project">${t('settings.badge.override')}</span>
         </div>
     </div>
 
     <!-- ═══ GLOBAL ═══ -->
     <div id="pane-global" class="scope-pane active">
-        <div class="section-title">🔑 Provider</div>
-        ${this.renderField('g', 'api_key', 'API Key', 'password', DEFAULTS.api_key, global.api_key, '', 'Your LLM API key (stored in ~/.config/git-ai/config.json)')}
-        ${this.renderSelect('g', 'provider', 'Provider', ['openai', 'ollama'], DEFAULTS.provider, global.provider, '')}
-        ${this.renderField('g', 'base_url', 'Base URL', 'text', DEFAULTS.base_url, global.base_url, '', 'API endpoint URL')}
-        ${this.renderField('g', 'model', 'Model', 'text', DEFAULTS.model, global.model, '', 'LLM model name')}
+        <div class="section-title"><i class="codicon codicon-key"></i>${t('settings.section.auth')}</div>
+        <div class="divider"></div>
+        ${this.renderField('g', 'api_key', t('settings.field.apiKey'), 'password', DEFAULTS.api_key, global.api_key, '', t('settings.hint.apiKey'))}
+        ${this.renderSelect('g', 'provider', t('settings.field.provider'), ['openai', 'ollama'], DEFAULTS.provider, global.provider, '')}
+        ${this.renderField('g', 'base_url', t('settings.field.baseUrl'), 'text', DEFAULTS.base_url, global.base_url, '')}
+        ${this.renderField('g', 'model', t('settings.field.model'), 'text', DEFAULTS.model, global.model, '')}
 
-        <div class="section-title">📝 Commit Format</div>
-        ${this.renderSelect('g', 'message_format', 'Message Format', ['conventional', 'plain', 'gitmoji', 'subject-body'], DEFAULTS.message_format, global.message_format, '')}
-        ${this.renderSelect('g', 'language', 'Language', ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], DEFAULTS.language, global.language, '')}
-        ${this.renderField('g', 'prompt_template', 'Custom Prompt', 'text', '', global.prompt_template, '', 'Override the system prompt (leave empty for default)')}
+        <div class="section-title"><i class="codicon codicon-edit"></i>${t('settings.section.format')}</div>
+        <div class="divider"></div>
+        ${this.renderSelect('g', 'message_format', t('settings.field.messageFormat'), ['conventional', 'plain', 'gitmoji', 'subject-body'], DEFAULTS.message_format, global.message_format, '')}
+        ${this.renderSelect('g', 'language', t('settings.field.language'), ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], DEFAULTS.language, global.language, '')}
+        ${this.renderField('g', 'prompt_template', t('settings.field.promptTemplate'), 'text', '', global.prompt_template, '', t('settings.hint.promptTemplate'))}
 
-        <div class="section-title">🚀 Push Behavior</div>
-        ${this.renderSelect('g', 'push_policy', 'Push Policy', ['queue', 'block'], DEFAULTS.push_policy, global.push_policy, '', 'queue = auto-push after polish, block = manual push')}
-        ${this.renderField('g', 'max_diff_tokens', 'Max Diff Tokens', 'number', String(DEFAULTS.max_diff_tokens), global.max_diff_tokens !== undefined ? String(global.max_diff_tokens) : '', '', 'Max tokens for diff context sent to LLM')}
+        <div class="section-title"><i class="codicon codicon-rocket"></i>${t('settings.section.behavior')}</div>
+        <div class="divider"></div>
+        ${this.renderSelect('g', 'push_policy', t('settings.field.pushPolicy'), ['queue', 'block'], DEFAULTS.push_policy, global.push_policy, '', t('settings.hint.pushPolicy'))}
+        ${this.renderField('g', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', String(DEFAULTS.max_diff_tokens), global.max_diff_tokens !== undefined ? String(global.max_diff_tokens) : '', '', t('settings.hint.maxDiffTokens'))}
 
         <div class="actions">
-            <button class="btn btn-primary" onclick="save('global')">💾 Save Global</button>
+            <button class="btn btn-primary" onclick="save('global')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveGlobal')}</button>
             <span class="spacer"></span>
-            <button class="btn btn-danger" onclick="resetScope('global')">Reset</button>
+            <button class="btn btn-danger" onclick="resetScope('global')">${t('settings.btn.reset')}</button>
         </div>
     </div>
 
     <!-- ═══ PROJECT ═══ -->
     <div id="pane-project" class="scope-pane">
-        <p class="hint" style="margin-bottom:16px">
-            Project settings override Global for this repo only. Leave fields empty to inherit from Global.
-        </p>
+        <div class="project-note">
+            <i class="codicon codicon-info" style="color: var(--vscode-textLink-foreground); font-size: 16px; line-height: 1.2;"></i>
+            <span>${t('settings.hint.projectNote')}</span>
+        </div>
 
-        <div class="section-title">🔑 Provider</div>
-        ${this.renderField('p', 'api_key', 'API Key', 'password', '', project.api_key, merged.api_key, 'Override API key for this repo')}
-        ${this.renderSelect('p', 'provider', 'Provider', ['', 'openai', 'ollama'], '', project.provider, merged.provider)}
-        ${this.renderField('p', 'base_url', 'Base URL', 'text', '', project.base_url, merged.base_url)}
-        ${this.renderField('p', 'model', 'Model', 'text', '', project.model, merged.model)}
+        <div class="section-title"><i class="codicon codicon-key"></i>${t('settings.section.auth')}</div>
+        <div class="divider"></div>
+        ${this.renderField('p', 'api_key', t('settings.field.apiKey'), 'password', '', project.api_key, merged.api_key, '')}
+        ${this.renderSelect('p', 'provider', t('settings.field.provider'), ['', 'openai', 'ollama'], '', project.provider, merged.provider)}
+        ${this.renderField('p', 'base_url', t('settings.field.baseUrl'), 'text', '', project.base_url, merged.base_url)}
+        ${this.renderField('p', 'model', t('settings.field.model'), 'text', '', project.model, merged.model)}
 
-        <div class="section-title">📝 Commit Format</div>
-        ${this.renderSelect('p', 'message_format', 'Message Format', ['', 'conventional', 'plain', 'gitmoji', 'subject-body'], '', project.message_format, merged.message_format)}
-        ${this.renderSelect('p', 'language', 'Language', ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], '', project.language, merged.language)}
-        ${this.renderField('p', 'prompt_template', 'Custom Prompt', 'text', '', project.prompt_template, merged.prompt_template)}
+        <div class="section-title"><i class="codicon codicon-edit"></i>${t('settings.section.format')}</div>
+        <div class="divider"></div>
+        ${this.renderSelect('p', 'message_format', t('settings.field.messageFormat'), ['', 'conventional', 'plain', 'gitmoji', 'subject-body'], '', project.message_format, merged.message_format)}
+        ${this.renderSelect('p', 'language', t('settings.field.language'), ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], '', project.language, merged.language)}
+        ${this.renderField('p', 'prompt_template', t('settings.field.promptTemplate'), 'text', '', project.prompt_template, merged.prompt_template)}
 
-        <div class="section-title">🚀 Push Behavior</div>
-        ${this.renderSelect('p', 'push_policy', 'Push Policy', ['', 'queue', 'block'], '', project.push_policy, merged.push_policy)}
-        ${this.renderField('p', 'max_diff_tokens', 'Max Diff Tokens', 'number', '', project.max_diff_tokens !== undefined ? String(project.max_diff_tokens) : '', String(merged.max_diff_tokens))}
+        <div class="section-title"><i class="codicon codicon-rocket"></i>${t('settings.section.behavior')}</div>
+        <div class="divider"></div>
+        ${this.renderSelect('p', 'push_policy', t('settings.field.pushPolicy'), ['', 'queue', 'block'], '', project.push_policy, merged.push_policy)}
+        ${this.renderField('p', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', '', project.max_diff_tokens !== undefined ? String(project.max_diff_tokens) : '', String(merged.max_diff_tokens))}
 
         <div class="actions">
-            <button class="btn btn-primary" onclick="save('project')">💾 Save Project</button>
+            <button class="btn btn-primary" onclick="save('project')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveProject')}</button>
             <span class="spacer"></span>
-            <button class="btn btn-danger" onclick="resetScope('project')">Reset</button>
+            <button class="btn btn-danger" onclick="resetScope('project')">${t('settings.btn.reset')}</button>
         </div>
     </div>
 
@@ -309,15 +479,16 @@ export class SettingsPanel {
             });
             document.querySelectorAll('.scope-pane').forEach(p => p.classList.remove('active'));
             document.getElementById('pane-' + scope).classList.add('active');
+            window.scrollTo(0, 0);
         }
 
         function gatherFields(prefix) {
             const data = {};
             document.querySelectorAll('[data-scope="' + prefix + '"]').forEach(el => {
                 const key = el.dataset.key;
-                let val = el.value;
+                let val = el.value.trim();
                 if (el.type === 'number' && val !== '') { val = parseInt(val, 10); }
-                if (val !== '' && val !== 0) { data[key] = val; }
+                if (val !== '' && val !== 0 && !Number.isNaN(val)) { data[key] = val; }
             });
             return data;
         }
@@ -328,7 +499,8 @@ export class SettingsPanel {
         }
 
         function resetScope(scope) {
-            if (!confirm('Reset all ' + scope + ' settings? This cannot be undone.')) return;
+            const msg = i18n.confirmReset.replace('{0}', scope === 'global' ? 'Global' : 'Project');
+            if (!confirm(msg)) return;
             vscode.postMessage({ command: 'reset', scope });
         }
     </script>
@@ -343,15 +515,15 @@ export class SettingsPanel {
     ): string {
         const val = currentVal ?? '';
         const placeholder = prefix === 'p' && inheritedVal
-            ? `inherited: ${type === 'password' ? '••••' : inheritedVal}`
+            ? `\u2190 ${type === 'password' ? '\u2022\u2022\u2022\u2022' : inheritedVal}`
             : (defaultVal || '');
 
         return `<div class="field">
             <label>${label}</label>
             ${hint ? `<div class="hint">${hint}</div>` : ''}
             <input type="${type}" data-scope="${prefix}" data-key="${key}"
-                   value="${this.escapeAttr(val)}" placeholder="${this.escapeAttr(placeholder)}" />
-            ${prefix === 'p' && inheritedVal && !val ? `<div class="inherited">← inherited from Global</div>` : ''}
+                   value="${this.escapeAttr(String(val))}" placeholder="${this.escapeAttr(placeholder)}" />
+            ${prefix === 'p' && inheritedVal && !val ? `<div class="inherited">${t('settings.inherit.label')}</div>` : ''}
         </div>`;
     }
 
@@ -362,15 +534,15 @@ export class SettingsPanel {
     ): string {
         const val = currentVal ?? '';
         const optionsHtml = options.map(o => {
-            const display = o === '' ? (inheritedVal ? `(inherit: ${inheritedVal})` : '(inherit)') : o;
-            return `<option value="${o}" ${val === o ? 'selected' : ''}>${display}</option>`;
+            const display = o === '' ? (inheritedVal ? t('settings.inherit.val', inheritedVal) : '(inherit)') : o;
+            return `<option value="${this.escapeAttr(o)}" ${val === o ? 'selected' : ''}>${this.escapeAttr(display)}</option>`;
         }).join('');
 
         return `<div class="field">
             <label>${label}</label>
             ${hint ? `<div class="hint">${hint}</div>` : ''}
             <select data-scope="${prefix}" data-key="${key}">${optionsHtml}</select>
-            ${prefix === 'p' && !val && inheritedVal ? `<div class="inherited">← inherited from Global</div>` : ''}
+            ${prefix === 'p' && !val && inheritedVal ? `<div class="inherited">${t('settings.inherit.label')}</div>` : ''}
         </div>`;
     }
 

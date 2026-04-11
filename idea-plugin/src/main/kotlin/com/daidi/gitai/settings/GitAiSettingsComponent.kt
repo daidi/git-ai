@@ -1,20 +1,23 @@
 package com.daidi.gitai.settings
 
+import com.daidi.gitai.GitAiBundle
+import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
-import javax.swing.*
-import javax.swing.border.EmptyBorder
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
+import javax.swing.*
+import javax.swing.border.EmptyBorder
 
 /**
  * Swing component for the git-ai settings form.
  * Supports dual-scope editing (Global / Project) with a tab switcher.
- * In Project scope, placeholders show inherited values from Global.
+ * Uses FormBuilder and GitAiBundle for i18n support.
  */
 class GitAiSettingsComponent(private val basePath: String?) {
 
@@ -56,16 +59,17 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
         // Tab bar
         val tabBar = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
-        val globalTab = JToggleButton("🌍 Global").apply {
+        val globalTab = JToggleButton(GitAiBundle.message("settings.tab.global")).apply {
             isSelected = true
             addActionListener {
                 isSelected = true
                 cardLayout.show(contentPanel, "global")
             }
         }
-        val projectTab = JToggleButton("📁 Project").apply {
+        val projectTab = JToggleButton(GitAiBundle.message("settings.tab.project")).apply {
             isEnabled = basePath != null
-            toolTipText = if (basePath == null) "Open a project first" else "Override settings for this project"
+            toolTipText = if (basePath == null) GitAiBundle.message("settings.project.tooltip.disabled") 
+                          else GitAiBundle.message("settings.project.tooltip")
             addActionListener {
                 isSelected = true
                 cardLayout.show(contentPanel, "project")
@@ -81,11 +85,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
         // Header
         val header = JPanel(BorderLayout()).apply {
             border = EmptyBorder(0, 0, 8, 0)
-            val title = JLabel("git-ai Settings").apply {
+            val title = JLabel(GitAiBundle.message("settings.title")).apply {
                 font = getFont().deriveFont(Font.BOLD, 16f)
             }
             add(title, BorderLayout.NORTH)
-            val subtitle = JLabel("Project settings override Global. Leave empty to inherit.").apply {
+            val subtitle = JLabel(GitAiBundle.message("settings.subtitle")).apply {
                 font = getFont().deriveFont(Font.PLAIN, 12f)
                 foreground = java.awt.Color.GRAY
             }
@@ -107,38 +111,58 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     private fun buildGlobalForm(): JPanel {
         return FormBuilder.createFormBuilder()
-            .addSeparator()
-            .addLabeledComponent("API Key:", gApiKey.apply { columns = 40 }, true)
-            .addLabeledComponent("Provider:", gProvider, true)
-            .addLabeledComponent("Base URL:", gBaseUrl, true)
-            .addLabeledComponent("Model:", gModel, true)
-            .addSeparator()
-            .addLabeledComponent("Message Format:", gMessageFormat, true)
-            .addLabeledComponent("Language:", gLanguage, true)
-            .addLabeledComponent("Custom Prompt:", gPromptTemplate, true)
-            .addSeparator()
-            .addLabeledComponent("Push Policy:", gPushPolicy, true)
-            .addLabeledComponent("Max Diff Tokens:", gMaxDiffTokens.apply { columns = 10 }, true)
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.auth")))
+            .addLabeledComponent(createLabelWithHelp("settings.field.apiKey", "settings.hint.apiKey"), gApiKey.apply { columns = 40 })
+            .addLabeledComponent(GitAiBundle.message("settings.field.provider"), gProvider)
+            .addLabeledComponent(GitAiBundle.message("settings.field.baseUrl"), gBaseUrl)
+            .addLabeledComponent(GitAiBundle.message("settings.field.model"), gModel)
+            
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.format")))
+            .addLabeledComponent(GitAiBundle.message("settings.field.messageFormat"), gMessageFormat)
+            .addLabeledComponent(GitAiBundle.message("settings.field.language"), gLanguage)
+            .addLabeledComponent(createLabelWithHelp("settings.field.promptTemplate", "settings.hint.promptTemplate"), gPromptTemplate)
+            
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
+            .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), gPushPolicy)
+            .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), gMaxDiffTokens.apply { columns = 10 })
+            
             .addComponentFillVertically(JPanel(), 0)
-            .panel
+            .panel.apply { border = EmptyBorder(10, 0, 0, 0) }
     }
 
     private fun buildProjectForm(): JPanel {
         return FormBuilder.createFormBuilder()
-            .addSeparator()
-            .addLabeledComponent("API Key:", pApiKey.apply { columns = 40 }, true)
-            .addLabeledComponent("Provider:", pProvider, true)
-            .addLabeledComponent("Base URL:", pBaseUrl, true)
-            .addLabeledComponent("Model:", pModel, true)
-            .addSeparator()
-            .addLabeledComponent("Message Format:", pMessageFormat, true)
-            .addLabeledComponent("Language:", pLanguage, true)
-            .addLabeledComponent("Custom Prompt:", pPromptTemplate, true)
-            .addSeparator()
-            .addLabeledComponent("Push Policy:", pPushPolicy, true)
-            .addLabeledComponent("Max Diff Tokens:", pMaxDiffTokens.apply { columns = 10 }, true)
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.auth")))
+            .addLabeledComponent(createLabelWithHelp("settings.field.apiKey", "settings.hint.apiKey"), pApiKey.apply { columns = 40 })
+            .addLabeledComponent(GitAiBundle.message("settings.field.provider"), pProvider)
+            .addLabeledComponent(GitAiBundle.message("settings.field.baseUrl"), pBaseUrl)
+            .addLabeledComponent(GitAiBundle.message("settings.field.model"), pModel)
+            
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.format")))
+            .addLabeledComponent(GitAiBundle.message("settings.field.messageFormat"), pMessageFormat)
+            .addLabeledComponent(GitAiBundle.message("settings.field.language"), pLanguage)
+            .addLabeledComponent(createLabelWithHelp("settings.field.promptTemplate", "settings.hint.promptTemplate"), pPromptTemplate)
+            
+            .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
+            .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), pPushPolicy)
+            .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), pMaxDiffTokens.apply { columns = 10 })
+            
             .addComponentFillVertically(JPanel(), 0)
-            .panel
+            .panel.apply { border = EmptyBorder(10, 0, 0, 0) }
+    }
+
+    private fun createSectionLabel(text: String): JPanel {
+        val panel = JPanel(BorderLayout())
+        panel.border = IdeBorderFactory.createTitledBorder(text, true)
+        panel.add(Box.createVerticalStrut(10), BorderLayout.CENTER)
+        return panel
+    }
+
+    private fun createLabelWithHelp(keyLabel: String, keyHint: String): JPanel {
+        val panel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0))
+        panel.add(JLabel(GitAiBundle.message(keyLabel)))
+        panel.add(ContextHelpLabel.create(GitAiBundle.message(keyHint)))
+        return panel
     }
 
     // ── Get / Set ──
@@ -189,16 +213,26 @@ class GitAiSettingsComponent(private val basePath: String?) {
     fun setProjectConfig(cfg: GitAiConfig, inherited: GitAiConfig) {
         pApiKey.text = cfg.apiKey ?: ""
         pProvider.selectedItem = cfg.provider ?: ""
+        
         pBaseUrl.text = cfg.baseUrl ?: ""
-        pBaseUrl.emptyText.setText("← ${inherited.baseUrl ?: ""}")
+        pBaseUrl.emptyText.setText(inheritedVal(inherited.baseUrl ?: ""))
+        
         pModel.text = cfg.model ?: ""
-        pModel.emptyText.setText("← ${inherited.model ?: ""}")
+        pModel.emptyText.setText(inheritedVal(inherited.model ?: ""))
+        
         pMessageFormat.selectedItem = cfg.messageFormat ?: ""
         pLanguage.selectedItem = cfg.language ?: ""
         pPushPolicy.selectedItem = cfg.pushPolicy ?: ""
+        
         pPromptTemplate.text = cfg.promptTemplate ?: ""
-        pPromptTemplate.emptyText.setText("← ${inherited.promptTemplate ?: "(default)"}")
+        pPromptTemplate.emptyText.setText(inheritedVal(inherited.promptTemplate ?: ""))
+        
         pMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
-        pMaxDiffTokens.emptyText.setText("← ${inherited.maxDiffTokens ?: 4000}")
+        pMaxDiffTokens.emptyText.setText(inheritedVal((inherited.maxDiffTokens ?: 4000).toString()))
+    }
+
+    private fun inheritedVal(v: String): String {
+        if (v.isEmpty()) return GitAiBundle.message("settings.inherit.label")
+        return GitAiBundle.message("settings.inherit.value", v)
     }
 }
