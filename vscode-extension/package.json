@@ -2,7 +2,7 @@
   "name": "git-ai",
   "displayName": "Git AI - Async Commit Polisher",
   "description": "AI-powered Git commit message enhancer — status, controls, and logs directly in VS Code",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "git-ai-async-commit-polisher",
   "license": "MIT",
   "repository": {
@@ -103,7 +103,11 @@
         },
         "git-ai.notificationMode": {
           "type": "string",
-          "enum": ["sound", "silentToast", "silentStatus"],
+          "enum": [
+            "sound",
+            "silentToast",
+            "silentStatus"
+          ],
           "default": "sound",
           "description": "How notifications are displayed"
         }
