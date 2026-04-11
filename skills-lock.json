@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "intellij-platform-sdk": {
+      "source": "gadfly3173/intellij-platform-sdk-skills",
+      "sourceType": "github",
+      "computedHash": "3a0494b282416b56f58aa8f6386b7e580233b97261a4670867585ccd15c117f8"
+    },
+    "vscode-extension-guide": {
+      "source": "aktsmm/agent-skills",
+      "sourceType": "github",
+      "computedHash": "5d019ba026942f0e2a365a65bf1e3ec6bf2b7f16a75d2666bd7e25a0363cb741"
+    }
+  }
+}
