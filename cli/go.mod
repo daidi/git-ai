@@ -1,6 +1,6 @@
 module github.com/daidi/git-ai
 
-go 1.24
+go 1.24.4
 
 require (
 	github.com/gen2brain/beeep v0.11.2

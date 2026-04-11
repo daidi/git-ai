@@ -2,7 +2,7 @@
   "name": "git-ai",
   "displayName": "git-ai",
   "description": "AI-powered Git commit message enhancer — status, controls, and logs directly in VS Code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "daidi",
   "license": "MIT",
   "repository": {

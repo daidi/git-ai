@@ -56,3 +56,23 @@ brews:
     license: MIT
     install: |
       bin.install "git-ai"
+
+scoops:
+  - repository:
+      owner: daidi
+      name: scoop-bucket
+    homepage: "https://github.com/daidi/git-ai"
+    description: "AI-powered Git commit message enhancer"
+    license: MIT
+
+nfpms:
+  - id: packages
+    package_name: git-ai
+    homepage: "https://github.com/daidi/git-ai"
+    description: "AI-powered Git commit message enhancer"
+    maintainer: "daidi"
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin

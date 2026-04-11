@@ -2,6 +2,7 @@ package com.daidi.gitai.actions
 
 import com.daidi.gitai.state.GitAiCli
 import com.daidi.gitai.state.GitAiStateService
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
@@ -12,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
 class RetryAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         execute(project)
@@ -48,6 +50,8 @@ class RetryAction : AnAction() {
 }
 
 class UndoAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         execute(project)
@@ -81,6 +85,8 @@ class UndoAction : AnAction() {
 }
 
 class CancelAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         execute(project)
@@ -128,6 +134,8 @@ class CancelAction : AnAction() {
 }
 
 class ForcePushAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         execute(project)
@@ -175,6 +183,8 @@ class ForcePushAction : AnAction() {
 }
 
 class InitAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val result = GitAiCli.run(project, "init")
@@ -187,6 +197,8 @@ class InitAction : AnAction() {
 }
 
 class OpenConfigAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         // Open IDE Settings directly to the git-ai page.
