@@ -19,9 +19,11 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 		return 0, fmt.Errorf("open log file: %w", err)
 	}
 
+	wd, _ := os.Getwd()
+
 	// Spawn detached process.
 	attr := &os.ProcAttr{
-		Dir: "/",
+		Dir: wd,
 		Env: os.Environ(),
 		Files: []*os.File{
 			os.Stdin,  // stdin  — not used but required
@@ -40,9 +42,10 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 		return 0, fmt.Errorf("start daemon: %w", err)
 	}
 
+	pid := proc.Pid
 	// Release the process — we don't wait for it.
 	_ = proc.Release()
 	_ = f.Close()
 
-	return proc.Pid, nil
+	return pid, nil
 }
