@@ -27,7 +27,7 @@ kotlin {
 
 tasks {
     patchPluginXml {
-        version.set(property("pluginVersion").toString())
+        version.set(project.property("pluginVersion").toString())
         sinceBuild.set("241")
         untilBuild.set("261.*")
     }
@@ -37,12 +37,16 @@ tasks {
     }
 
     signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+        val cert = System.getenv("CERTIFICATE_CHAIN")
+        if (cert != null) certificateChain.set(cert)
+        val key = System.getenv("PRIVATE_KEY")
+        if (key != null) privateKey.set(key)
+        val pass = System.getenv("PRIVATE_KEY_PASSWORD")
+        if (pass != null) password.set(pass)
     }
 
     publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        val pubToken = System.getenv("PUBLISH_TOKEN")
+        if (pubToken != null) token.set(pubToken)
     }
 }

@@ -15,7 +15,8 @@ import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
 import java.io.File
-import java.util.*
+import java.util.Timer
+import java.util.TimerTask
 import javax.swing.*
 import javax.swing.border.EmptyBorder
 
