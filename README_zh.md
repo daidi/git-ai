@@ -52,6 +52,11 @@
 
 ## 📦 安装
 
+### GitHub Releases (推荐)
+从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新免安装二进制文件。
+
+### 包管理器
+
 ```bash
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai

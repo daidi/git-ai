@@ -52,6 +52,11 @@ Three reasons this is better:
 
 ## 📦 Install
 
+### GitHub Releases (Recommended)
+Download the latest pre-compiled binary for macOS, Linux, or Windows directly from the [GitHub Releases](https://github.com/daidi/git-ai/releases) page.
+
+### Package Managers
+
 ```bash
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai
