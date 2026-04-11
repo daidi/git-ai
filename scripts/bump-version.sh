@@ -30,9 +30,9 @@ if [ -f "idea-plugin/gradle.properties" ]; then
   echo "➡️  Updating IntelliJ plugin..."
   # Use sed to replace pluginVersion=...
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' -e "s/^pluginVersion = .*/pluginVersion = $VERSION/" idea-plugin/gradle.properties
+    sed -i '' -e "s/^pluginVersion[[:space:]]*=.*/pluginVersion=$VERSION/" idea-plugin/gradle.properties
   else
-    sed -i -e "s/^pluginVersion = .*/pluginVersion = $VERSION/" idea-plugin/gradle.properties
+    sed -i -e "s/^pluginVersion[[:space:]]*=.*/pluginVersion=$VERSION/" idea-plugin/gradle.properties
   fi
 fi
 
