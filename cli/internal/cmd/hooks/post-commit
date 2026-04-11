@@ -1,0 +1,5 @@
+#!/bin/sh
+# git-ai post-commit hook
+# Installed by `git-ai init`. Do not edit — re-run `git-ai init` to reinstall.
+[ "$GIT_AI_INTERNAL" = "true" ] && exit 0
+git-ai hook post-commit

@@ -1,0 +1,119 @@
+{
+  "name": "git-ai",
+  "displayName": "git-ai",
+  "description": "AI-powered Git commit message enhancer — status, controls, and logs directly in VS Code",
+  "version": "0.1.0",
+  "publisher": "daidi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daidi/git-ai"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "ai",
+    "commit",
+    "conventional-commits",
+    "gitmoji"
+  ],
+  "icon": "resources/icon.png",
+  "activationEvents": [
+    "workspaceContains:.git"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "git-ai.init",
+        "title": "Initialize git-ai",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.retry",
+        "title": "Retry AI polishing",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.undo",
+        "title": "Undo AI polishing",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.cancel",
+        "title": "Cancel AI polishing",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.forcePush",
+        "title": "Force push now",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.showLogs",
+        "title": "Show Logs",
+        "category": "git-ai"
+      },
+      {
+        "command": "git-ai.openConfig",
+        "title": "Open Configuration",
+        "category": "git-ai"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "git-ai",
+          "title": "git-ai",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "git-ai": [
+        {
+          "id": "git-ai.status",
+          "name": "Status"
+        },
+        {
+          "id": "git-ai.actions",
+          "name": "Actions",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "git-ai",
+      "properties": {
+        "git-ai.pollingInterval": {
+          "type": "number",
+          "default": 1000,
+          "description": "State file polling interval in milliseconds"
+        },
+        "git-ai.binaryPath": {
+          "type": "string",
+          "default": "git-ai",
+          "description": "Path to the git-ai binary"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

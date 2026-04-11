@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+project_name: git-ai
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: git-ai
+    dir: cli
+    main: ./cmd/git-ai/
+    binary: git-ai
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/daidi/git-ai/internal/cmd.version={{.Version}}
+      - -X github.com/daidi/git-ai/internal/cmd.commit={{.Commit}}
+
+archives:
+  - id: default
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+brews:
+  - repository:
+      owner: daidi
+      name: homebrew-tap
+    homepage: "https://github.com/daidi/git-ai"
+    description: "AI-powered Git commit message enhancer"
+    license: MIT
+    install: |
+      bin.install "git-ai"

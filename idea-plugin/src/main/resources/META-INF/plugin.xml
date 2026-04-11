@@ -1,0 +1,92 @@
+<idea-plugin>
+    <id>com.daidi.gitai</id>
+    <name>git-ai</name>
+    <vendor email="daidi@users.noreply.github.com" url="https://github.com/daidi/git-ai">daidi</vendor>
+
+    <description><![CDATA[
+    <p>AI-powered Git commit message enhancer — status, controls, and logs directly in your IDE.</p>
+    <p>This plugin integrates with the <code>git-ai</code> CLI tool to provide:</p>
+    <ul>
+        <li><b>Status widget</b> — Shows polishing / pending push / idle status in the status bar</li>
+        <li><b>Tool window</b> — Real-time daemon logs and state details</li>
+        <li><b>Actions</b> — Retry, undo, cancel polishing, and force push from the IDE</li>
+        <li><b>Notifications</b> — IDE notifications when polishing completes or push finishes</li>
+    </ul>
+    <p>Requires the <code>git-ai</code> CLI to be installed. See <a href="https://github.com/daidi/git-ai">GitHub</a> for installation.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Startup activity to begin state watching -->
+        <postStartupActivity
+                implementation="com.daidi.gitai.GitAiStartupActivity"/>
+
+        <!-- Status bar widget -->
+        <statusBarWidgetFactory
+                id="GitAiStatusWidget"
+                implementation="com.daidi.gitai.ui.GitAiStatusWidgetFactory"
+                order="after positionWidget"/>
+
+        <!-- Tool window for logs and state -->
+        <toolWindow
+                id="git-ai"
+                anchor="bottom"
+                icon="AllIcons.Actions.Lightning"
+                factoryClass="com.daidi.gitai.ui.GitAiToolWindowFactory"/>
+
+        <!-- Project-level service for state management -->
+        <projectService
+                serviceImplementation="com.daidi.gitai.state.GitAiStateService"/>
+
+        <!-- Notification group -->
+        <notificationGroup
+                id="git-ai.notifications"
+                displayType="BALLOON"
+                toolWindowId="git-ai"/>
+    </extensions>
+
+    <actions>
+        <group id="GitAi.ActionGroup" text="git-ai" popup="true"
+               icon="AllIcons.Actions.Lightning">
+            <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
+
+            <action id="GitAi.Retry"
+                    class="com.daidi.gitai.actions.RetryAction"
+                    text="Retry AI Polish"
+                    description="Re-generate AI commit message"
+                    icon="AllIcons.Actions.Refresh"/>
+
+            <action id="GitAi.Undo"
+                    class="com.daidi.gitai.actions.UndoAction"
+                    text="Undo AI Polish"
+                    description="Restore original commit message"
+                    icon="AllIcons.Actions.Undo"/>
+
+            <action id="GitAi.Cancel"
+                    class="com.daidi.gitai.actions.CancelAction"
+                    text="Cancel Polishing"
+                    description="Kill the background polishing daemon"
+                    icon="AllIcons.Actions.Cancel"/>
+
+            <action id="GitAi.ForcePush"
+                    class="com.daidi.gitai.actions.ForcePushAction"
+                    text="Force Push Now"
+                    description="Push immediately, bypassing deferred push"
+                    icon="AllIcons.Vcs.Push"/>
+
+            <action id="GitAi.Init"
+                    class="com.daidi.gitai.actions.InitAction"
+                    text="Initialize git-ai"
+                    description="Set up git-ai hooks in this repository"
+                    icon="AllIcons.General.Add"/>
+
+            <action id="GitAi.OpenConfig"
+                    class="com.daidi.gitai.actions.OpenConfigAction"
+                    text="Open Configuration"
+                    description="Open git-ai configuration file"
+                    icon="AllIcons.General.Settings"/>
+        </group>
+    </actions>
+</idea-plugin>

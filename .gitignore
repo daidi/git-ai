@@ -1,0 +1,36 @@
+# Binaries
+cli/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+vendor/
+
+# Node
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
+
+# IntelliJ
+idea-plugin/.gradle/
+idea-plugin/build/
+idea-plugin/.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# GoReleaser
+dist/
+
+# State (never commit runtime state)
+.git/git-ai/
