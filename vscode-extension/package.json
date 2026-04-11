@@ -100,6 +100,12 @@
           "type": "string",
           "default": "git-ai",
           "description": "Path to the git-ai binary"
+        },
+        "git-ai.notificationMode": {
+          "type": "string",
+          "enum": ["sound", "silentToast", "silentStatus"],
+          "default": "sound",
+          "description": "How notifications are displayed"
         }
       }
     }
@@ -109,6 +115,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "package": "vsce package",
+    "publish": "vsce publish",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {

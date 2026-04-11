@@ -13,6 +13,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
   <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
+  <a href="https://goreportcard.com/report/github.com/daidi/git-ai"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai" alt="Go Report Card" /></a>
+  <a href="https://github.com/daidi/git-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/release.yml?logo=github&label=Build" alt="Build Status" /></a>
+  <br/>
+  <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/daidi.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
+  <img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" />
+  <br/>
   <a href="README.md">📖 English</a>
 </p>
 

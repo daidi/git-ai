@@ -3,6 +3,7 @@ import * as cp from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { LogViewer } from './logViewer';
+import { notifyInfo, notifyError, notifyWarning } from './notifications';
 
 /**
  * Manages all git-ai commands callable from the command palette.
@@ -19,9 +20,9 @@ export class CommandManager {
     async init(): Promise<void> {
         const result = await this.runGitAi(['init']);
         if (result.success) {
-            vscode.window.showInformationMessage('🎉 git-ai initialized!');
+            notifyInfo('🎉 git-ai initialized!');
         } else {
-            vscode.window.showErrorMessage(`git-ai init failed: ${result.error}`);
+            notifyError(`git-ai init failed: ${result.error}`);
         }
     }
 
@@ -40,9 +41,9 @@ export class CommandManager {
             async () => {
                 const result = await this.runGitAi(['retry']);
                 if (result.success) {
-                    vscode.window.showInformationMessage('✨ git-ai: Commit message re-generated!');
+                    notifyInfo('✨ git-ai: Commit message re-generated!');
                 } else {
-                    vscode.window.showErrorMessage(`git-ai retry failed: ${result.error}`);
+                    notifyError(`git-ai retry failed: ${result.error}`);
                 }
             }
         );
@@ -60,9 +61,9 @@ export class CommandManager {
 
         const result = await this.runGitAi(['undo']);
         if (result.success) {
-            vscode.window.showInformationMessage('⏪ git-ai: Original message restored');
+            notifyInfo('⏪ git-ai: Original message restored');
         } else {
-            vscode.window.showErrorMessage(`git-ai undo failed: ${result.error}`);
+            notifyError(`git-ai undo failed: ${result.error}`);
         }
     }
 
@@ -73,7 +74,7 @@ export class CommandManager {
         try {
             const statePath = path.join(this.workspaceRoot, '.git', 'git-ai', 'state.json');
             if (!fs.existsSync(statePath)) {
-                vscode.window.showWarningMessage('git-ai: No active state found');
+                notifyWarning('git-ai: No active state found');
                 return;
             }
 
@@ -89,12 +90,12 @@ export class CommandManager {
                 const resetState = { current_status: 'idle', original_msg: state.original_msg, last_sha: state.last_sha };
                 fs.writeFileSync(statePath, JSON.stringify(resetState, null, 2));
 
-                vscode.window.showInformationMessage('🛑 git-ai: Polishing cancelled');
+                notifyInfo('🛑 git-ai: Polishing cancelled');
             } else {
-                vscode.window.showInformationMessage('git-ai: No polishing in progress');
+                notifyInfo('git-ai: No polishing in progress');
             }
         } catch (err) {
-            vscode.window.showErrorMessage(`git-ai cancel failed: ${err}`);
+            notifyError(`git-ai cancel failed: ${err}`);
         }
     }
 
@@ -127,9 +128,9 @@ export class CommandManager {
                         }
                     } catch { /* ignore */ }
 
-                    vscode.window.showInformationMessage('🚀 git-ai: Push completed!');
+                    notifyInfo('🚀 git-ai: Push completed!');
                 } else {
-                    vscode.window.showErrorMessage(`Push failed: ${result.error}`);
+                    notifyError(`Push failed: ${result.error}`);
                 }
             }
         );
@@ -141,36 +142,6 @@ export class CommandManager {
     async showLogs(): Promise<void> {
         const logDir = path.join(this.workspaceRoot, '.git', 'git-ai', 'logs');
         this.logViewer.showLatest(logDir);
-    }
-
-    /**
-     * Open the git-ai configuration file.
-     */
-    async openConfig(): Promise<void> {
-        // Try project config first, then global.
-        const projectConfig = path.join(this.workspaceRoot, '.git-ai.json');
-        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-        const globalConfig = path.join(homeDir, '.config', 'git-ai', 'config.json');
-
-        const items: vscode.QuickPickItem[] = [
-            { label: '$(file) Project Config', description: '.git-ai.json', detail: projectConfig },
-            { label: '$(home) Global Config', description: '~/.config/git-ai/config.json', detail: globalConfig },
-        ];
-
-        const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Select config file to edit',
-        });
-
-        if (selected) {
-            const filePath = selected.detail!;
-            // Create if doesn't exist.
-            if (!fs.existsSync(filePath)) {
-                fs.mkdirSync(path.dirname(filePath), { recursive: true });
-                fs.writeFileSync(filePath, '{\n  \n}\n');
-            }
-            const doc = await vscode.workspace.openTextDocument(filePath);
-            await vscode.window.showTextDocument(doc);
-        }
     }
 
     /**

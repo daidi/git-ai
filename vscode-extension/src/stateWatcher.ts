@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { notifyInfo } from './notifications';
 
 /**
  * Represents the git-ai runtime state from state.json.
@@ -136,10 +137,10 @@ export class StateWatcher {
 
         // Show VS Code notifications for important transitions.
         if (prevStatus === 'polishing' && newState.current_status === 'idle') {
-            vscode.window.showInformationMessage('✨ git-ai: Commit message polished!');
+            notifyInfo('✨ git-ai: Commit message polished!');
         }
         if (prevStatus === 'pushing' && newState.current_status === 'idle') {
-            vscode.window.showInformationMessage('🚀 git-ai: Push completed!');
+            notifyInfo('🚀 git-ai: Push completed!');
         }
     }
 }

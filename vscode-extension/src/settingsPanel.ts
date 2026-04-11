@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { notifyInfo } from './notifications';
 
 /** Shape of config.json / .git-ai.json. */
 interface GitAiConfig {
@@ -228,7 +229,7 @@ export class SettingsPanel {
                 if (msg.data) {
                     this.writeConfig(filePath, msg.data);
                 }
-                vscode.window.showInformationMessage(t('settings.msg.saved', scopeName));
+                notifyInfo(t('settings.msg.saved', scopeName));
                 this.refresh();
                 break;
             }
@@ -237,7 +238,7 @@ export class SettingsPanel {
                 if (fs.existsSync(filePath)) {
                     fs.unlinkSync(filePath);
                 }
-                vscode.window.showInformationMessage(t('settings.msg.reset', scopeName));
+                notifyInfo(t('settings.msg.reset', scopeName));
                 this.refresh();
                 break;
             }
