@@ -31,10 +31,7 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip git root detection for commands that don't need it.
 		// Including the root command itself if run with no args (which shows help).
-		skipGit := false
-		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai" {
-			skipGit = true
-		}
+		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai"
 		for c := cmd; c != nil; c = c.Parent() {
 			if c.Name() == "config" {
 				skipGit = true
