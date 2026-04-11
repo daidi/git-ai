@@ -1,6 +1,7 @@
 package com.daidi.gitai.settings
 
 import com.intellij.ui.components.JBPasswordField
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
 import javax.swing.*
@@ -92,8 +93,13 @@ class GitAiSettingsComponent(private val basePath: String?) {
             add(tabBar, BorderLayout.SOUTH)
         }
 
+        val scrollPane = JBScrollPane(contentPanel).apply {
+            border = null
+            verticalScrollBar.unitIncrement = 16
+        }
+
         mainPanel.add(header, BorderLayout.NORTH)
-        mainPanel.add(contentPanel, BorderLayout.CENTER)
+        mainPanel.add(scrollPane, BorderLayout.CENTER)
         mainPanel.preferredSize = Dimension(600, 520)
     }
 
