@@ -154,3 +154,29 @@ function downloadFile(url: string, dest: string): Promise<void> {
         req.end();
     });
 }
+
+export async function autoInitialize(workspaceRoot: string): Promise<void> {
+    const gitDir = path.join(workspaceRoot, '.git');
+    if (!fs.existsSync(gitDir)) { return; }
+
+    const hookPath = path.join(gitDir, 'hooks', 'post-commit');
+    let isHooked = false;
+    
+    if (fs.existsSync(hookPath)) {
+        const content = fs.readFileSync(hookPath, 'utf8');
+        if (content.includes('git-ai hook post-commit')) {
+            isHooked = true;
+        }
+    }
+    
+    if (!isHooked) {
+        const confirm = await vscode.window.showInformationMessage(
+            "git-ai is not initialized for this repository. Enable AI commit polishing?",
+            "Enable git-ai",
+            "Not now"
+        );
+        if (confirm === "Enable git-ai") {
+            vscode.commands.executeCommand('git-ai.init');
+        }
+    }
+}

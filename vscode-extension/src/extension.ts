@@ -6,7 +6,7 @@ import { LogViewer } from './logViewer';
 import { StatusTreeProvider } from './statusTree';
 import { ActionsWebviewProvider } from './actionsWebview';
 import { SettingsPanel } from './settingsPanel';
-import { checkAndPromptInstall } from './installer';
+import { checkAndPromptInstall, autoInitialize } from './installer';
 
 let stateWatcher: StateWatcher | undefined;
 let statusBar: StatusBarManager | undefined;
@@ -22,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    autoInitialize(workspaceRoot);
 
     // Initialize components.
     statusBar = new StatusBarManager();
