@@ -247,6 +247,25 @@ cd idea-plugin
 
 > **Note:** Both plugins are UI-only — they observe `state.json` and delegate to the `git-ai` CLI. The CLI must be installed on PATH.
 
+## 🛠️ For Maintainers / Releasing
+
+A unified script is provided to automate version bumping across all ecosystem components (CLI, VS Code, IntelliJ) and prepare for the automated GitHub distribution pipeline.
+
+1. Ensure your working tree is clean. Run the cross-ecosystem bump script:
+   ```bash
+   ./scripts/bump-version.sh 0.3.0
+   ```
+2. The script explicitly updates `vscode-extension/package.json` and `idea-plugin/gradle.properties`.
+3. Follow the CLI prompt output to commit and push the updated Tag:
+   ```bash
+   git add vscode-extension/package.json idea-plugin/gradle.properties
+   git commit -m "chore(release): bump version to 0.3.0"
+   git tag v0.3.0
+   git push origin main v0.3.0
+   ```
+
+GoReleaser will automatically trigger via GitHub Actions to package and distribute to Homebrew, Scoop, and GitHub Releases seamlessly.
+
 ## 📝 License
 
 [MIT](LICENSE)

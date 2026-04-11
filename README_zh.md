@@ -2,9 +2,10 @@
   <img src="assets/icon.png" width="120" alt="git-ai logo" />
 </p>
 
-<h1 align="center">git-ai</h1>
+<h1 align="center">Git AI - Async Commit Polisher</h1>
 
 <p align="center">
+  <strong>Never wait for AI. Polish your commits in the background while you code.</strong><br/>
   <strong>Commit first, think later.</strong><br/>
   <sub>AI 驱动的 Git 提交信息增强工具 —— 异步、无感、零负担。</sub>
 </p>
@@ -246,6 +247,25 @@ cd idea-plugin
 </tr></table>
 
 > **注意：** 两款插件仅负责 UI 展示 —— 它们观察 `state.json` 并委托给 `git-ai` CLI 执行。CLI 需要安装在系统 PATH 中。
+
+## 🛠️ 项目维护与发版
+
+项目中提供了一个统一的版本跨生态管理脚本，用于在此项目发版时，自动同步修改 CLI、VS Code 和 IntelliJ 的版本号，从而无缝衔接 GitHub Actions 自动化分发流水线。
+
+1. 请确保当前工作区干净没有未提交的改动。运行跨生态升版脚本：
+   ```bash
+   ./scripts/bump-version.sh 0.3.0
+   ```
+2. 这个脚本会自动把新的版本号同步到 `vscode-extension/package.json` 以及 `idea-plugin/gradle.properties` 里。
+3. 随后你可以直接参考命令行输出完成发版提交并 Push Tag：
+   ```bash
+   git add vscode-extension/package.json idea-plugin/gradle.properties
+   git commit -m "chore(release): bump version to 0.3.0"
+   git tag v0.3.0
+   git push origin main v0.3.0
+   ```
+
+接下来，触发的 Tag 流水线就会带着自动更新好版本的跨生态源码，驱动 GoReleaser 把内容分发向 Homebrew、Scoop 以及 GitHub Releases 啦！
 
 ## 📝 开源协议
 
