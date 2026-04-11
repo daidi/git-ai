@@ -17,7 +17,7 @@
   <a href="https://github.com/daidi/git-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/release.yml?logo=github&label=Build" alt="Build Status" /></a>
   <br/>
   <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/daidi.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
-  <img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" />
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
   <br/>
   <a href="README_zh.md">📖 中文文档</a>
 </p>
