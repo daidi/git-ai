@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { LogViewer } from './logViewer';
 import { notifyInfo, notifyError, notifyWarning } from './notifications';
+import { getExecutablePath } from './installer';
 
 /**
  * Manages all git-ai commands callable from the command palette.
@@ -149,7 +150,8 @@ export class CommandManager {
      */
     private runGitAi(args: string[]): Promise<{ success: boolean; output: string; error: string }> {
         const config = vscode.workspace.getConfiguration('git-ai');
-        const binary = config.get<string>('binaryPath', 'git-ai');
+        let binary = config.get<string>('binaryPath', 'git-ai');
+        binary = getExecutablePath(binary);
         return this.runCommand(binary, args);
     }
 

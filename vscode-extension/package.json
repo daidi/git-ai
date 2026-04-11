@@ -66,6 +66,15 @@
         "category": "git-ai"
       }
     ],
+    "icons": {
+      "git-ai-zap": {
+        "description": "Zap icon for git-ai",
+        "default": {
+          "fontPath": "./node_modules/@vscode/codicons/dist/codicon.ttf",
+          "fontCharacter": "\\eb66"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -112,6 +121,47 @@
           "description": "How notifications are displayed"
         }
       }
+    },
+    "submenus": [
+      {
+        "id": "git-ai.scmMenu",
+        "label": "git-ai",
+        "icon": "$(zap)"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "submenu": "git-ai.scmMenu",
+          "group": "navigation"
+        }
+      ],
+      "git-ai.scmMenu": [
+        {
+          "command": "git-ai.retry",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.undo",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.cancel",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.forcePush",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.init",
+          "group": "2_config"
+        },
+        {
+          "command": "git-ai.openConfig",
+          "group": "2_config"
+        }
+      ]
     }
   },
   "scripts": {
