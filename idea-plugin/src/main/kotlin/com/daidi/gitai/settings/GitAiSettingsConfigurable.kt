@@ -5,6 +5,8 @@ import com.intellij.openapi.project.Project
 import com.daidi.gitai.GitAiBundle
 import javax.swing.JComponent
 
+import java.io.File
+
 /**
  * IntelliJ Configurable for the git-ai settings page.
  * Appears under Settings → Tools → git-ai.
@@ -35,6 +37,9 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
             val savedProject = GitAiConfigManager.load(GitAiConfigManager.projectPath(basePath))
             val currentProject = comp.getProjectConfig()
             if (savedProject != currentProject) return true
+            
+            // Check hook state
+            if (isHookInstalled(basePath) != comp.pEnabled.isSelected) return true
         }
 
         return false
@@ -63,6 +68,14 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
                 // If all project fields are empty, delete the project config file.
                 GitAiConfigManager.delete(GitAiConfigManager.projectPath(basePath))
             }
+            
+            // Install / Uninstall hook logic
+            val installed = isHookInstalled(basePath)
+            if (comp.pEnabled.isSelected && !installed) {
+                com.daidi.gitai.state.GitAiCli.execute(project, "init")
+            } else if (!comp.pEnabled.isSelected && installed) {
+                com.daidi.gitai.state.GitAiCli.execute(project, "uninstall")
+            }
         }
     }
 
@@ -79,10 +92,21 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
             val projectCfg = GitAiConfigManager.load(GitAiConfigManager.projectPath(basePath))
             val merged = GitAiConfigManager.merged(basePath)
             comp.setProjectConfig(projectCfg, merged)
+            
+            // Read actual file system state
+            val hookState = isHookInstalled(basePath)
+            comp.pEnabled.isSelected = hookState
+            // Trigger update event to disable/enable project fields properly based on checkbox logic
+            comp.pEnabled.actionListeners.forEach { it.actionPerformed(java.awt.event.ActionEvent(comp.pEnabled, 0, "")) }
         }
     }
 
     override fun disposeUIResources() {
         component = null
+    }
+    
+    private fun isHookInstalled(basePath: String): Boolean {
+        val hookFile = File(basePath, ".git/hooks/post-commit")
+        return hookFile.exists() && hookFile.readText().contains("git-ai hook post-commit")
     }
 }

@@ -52,12 +52,14 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.promptTemplate': 'Custom Prompt',
         'settings.field.pushPolicy': 'Push Policy',
         'settings.field.maxDiffTokens': 'Max Diff Tokens',
+        'settings.field.projectEnabled': 'Enable git-ai',
         
         'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
         'settings.hint.projectNote': 'Project settings override Global for this repo only. Leave fields empty to inherit.',
         'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
         'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
         'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
+        'settings.hint.projectEnabled': 'Install / Uninstall physical webhooks for this repository.',
         
         'settings.inherit.label': '\u2190 Inherited from Global',
         'settings.inherit.val': '(inherit: {0})',
@@ -90,12 +92,14 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.promptTemplate': '自定义提示词 (Prompt)',
         'settings.field.pushPolicy': '推送时机 (Push Policy)',
         'settings.field.maxDiffTokens': 'Diff 截断阈值 (Tokens)',
+        'settings.field.projectEnabled': '启用 git-ai',
         
         'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
         'settings.hint.projectNote': '项目级设定仅对当前代码库生效。留空将自动继承全局设定。',
         'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
         'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
         'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
+        'settings.hint.projectEnabled': '在当前代码仓库物理安装 / 卸载 Git Hook。',
         
         'settings.inherit.label': '\u2190 继承自全局设定',
         'settings.inherit.val': '(继承: {0})',
@@ -227,7 +231,22 @@ export class SettingsPanel {
             case 'save': {
                 const filePath = msg.scope === 'project' ? this.projectPath() : this.globalPath();
                 if (msg.data) {
-                    this.writeConfig(filePath, msg.data);
+                    const dataObj: any = msg.data;
+                    const isInstallHook = dataObj['install_hook'];
+                    delete dataObj['install_hook'];
+                    this.writeConfig(filePath, dataObj as GitAiConfig);
+                    
+                    if (msg.scope === 'project' && isInstallHook !== undefined) {
+                        const installed = this.isHookInstalled();
+                        if (isInstallHook && !installed) {
+                            vscode.commands.executeCommand('git-ai.init');
+                        } else if (!isInstallHook && installed) {
+                            // Run uninstall
+                            const terminal = vscode.window.createTerminal('git-ai uninstall');
+                            terminal.sendText('git-ai uninstall');
+                            terminal.show();
+                        }
+                    }
                 }
                 notifyInfo(t('settings.msg.saved', scopeName));
                 this.refresh();
@@ -249,13 +268,23 @@ export class SettingsPanel {
         const global = this.readConfig(this.globalPath());
         const project = this.readConfig(this.projectPath());
         const merged = { ...DEFAULTS, ...global, ...project };
+        
+        const hookState = this.isHookInstalled();
 
-        this.panel.webview.html = this.getHtml(global, project, merged);
+        this.panel.webview.html = this.getHtml(global, project, merged, hookState);
+    }
+    
+    private isHookInstalled(): boolean {
+        const hookPath = path.join(this.workspaceRoot, '.git', 'hooks', 'post-commit');
+        if (!fs.existsSync(hookPath)) { return false; }
+        try {
+            return fs.readFileSync(hookPath, 'utf-8').includes('git-ai hook post-commit');
+        } catch { return false; }
     }
 
     // ── HTML ──────────────────────────────────────────────
 
-    private getHtml(global: GitAiConfig, project: GitAiConfig, merged: Required<GitAiConfig>): string {
+    private getHtml(global: GitAiConfig, project: GitAiConfig, merged: Required<GitAiConfig>, hookState: boolean): string {
         const codiconsUri = this.panel.webview.asWebviewUri(
             vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
         );
@@ -349,8 +378,14 @@ export class SettingsPanel {
     .field .inherited {
         font-size: 12px; color: var(--vscode-textLink-foreground); margin-top: 4px;
     }
+    
+    .toggle-switch-field {
+        display: flex; align-items: center; justify-content: space-between; max-width: 480px; margin-bottom: 24px;
+    }
+    .toggle-switch-field label { font-size: 13px; font-weight: 600; cursor: pointer; }
+    .toggle-switch-field .hint { font-size: 12px; color: var(--vscode-descriptionForeground); margin-top: 2px; }
 
-    input, select {
+    input[type="text"], input[type="password"], input[type="number"], select {
         width: 100%; max-width: 480px; padding: 6px 10px; font-size: 13px; font-family: inherit;
         border: 1px solid var(--vscode-input-border);
         background: var(--vscode-input-background);
@@ -445,6 +480,10 @@ export class SettingsPanel {
             <i class="codicon codicon-info" style="color: var(--vscode-textLink-foreground); font-size: 16px; line-height: 1.2;"></i>
             <span>${t('settings.hint.projectNote')}</span>
         </div>
+        
+        <div class="section-title"><i class="codicon codicon-plug"></i>Installation</div>
+        <div class="divider"></div>
+        ${this.renderCheckbox('p', 'install_hook', t('settings.field.projectEnabled'), hookState)}
 
         <div class="section-title"><i class="codicon codicon-key"></i>${t('settings.section.auth')}</div>
         <div class="divider"></div>
@@ -487,9 +526,15 @@ export class SettingsPanel {
             const data = {};
             document.querySelectorAll('[data-scope="' + prefix + '"]').forEach(el => {
                 const key = el.dataset.key;
-                let val = el.value.trim();
-                if (el.type === 'number' && val !== '') { val = parseInt(val, 10); }
-                if (val !== '' && val !== 0 && !Number.isNaN(val)) { data[key] = val; }
+                if (el.type === 'checkbox') {
+                    if (key === 'install_hook') {
+                        data[key] = el.checked;
+                    }
+                } else {
+                    let val = el.value.trim();
+                    if (el.type === 'number' && val !== '') { val = parseInt(val, 10); }
+                    if (val !== '' && val !== 0 && !Number.isNaN(val)) { data[key] = val; }
+                }
             });
             return data;
         }
@@ -544,6 +589,18 @@ export class SettingsPanel {
             ${hint ? `<div class="hint">${hint}</div>` : ''}
             <select data-scope="${prefix}" data-key="${key}">${optionsHtml}</select>
             ${prefix === 'p' && !val && inheritedVal ? `<div class="inherited">${t('settings.inherit.label')}</div>` : ''}
+        </div>`;
+    }
+
+    private renderCheckbox(
+        prefix: string, key: string, label: string, currentVal: boolean
+    ): string {
+        return `<div class="toggle-switch-field">
+            <div>
+                <label for="${prefix}_${key}">${label}</label>
+                <div class="hint">${t('settings.hint.projectEnabled')}</div>
+            </div>
+            <input type="checkbox" id="${prefix}_${key}" data-scope="${prefix}" data-key="${key}" ${currentVal ? 'checked' : ''} />
         </div>`;
     }
 

@@ -35,7 +35,7 @@
         <toolWindow
                 id="git-ai"
                 anchor="bottom"
-                icon="AllIcons.Actions.Lightning"
+                icon="com.daidi.gitai.Icons.GitAi"
                 factoryClass="com.daidi.gitai.ui.GitAiToolWindowFactory"/>
 
         <!-- Project-level service for state management -->
@@ -58,7 +58,7 @@
 
     <actions>
         <group id="GitAi.ActionGroup" text="Git AI" popup="true"
-               icon="AllIcons.Actions.Lightning">
+               icon="com.daidi.gitai.Icons.GitAi">
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
 

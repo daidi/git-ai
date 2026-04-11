@@ -44,6 +44,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pPushPolicy = JComboBox(arrayOf("", "queue", "block"))
     private val pPromptTemplate = JBTextField()
     private val pMaxDiffTokens = JBTextField()
+    val pEnabled = JCheckBox(GitAiBundle.message("settings.field.projectEnabled"))
 
     private val globalPanel: JPanel
     private val projectPanel: JPanel
@@ -131,7 +132,9 @@ class GitAiSettingsComponent(private val basePath: String?) {
     }
 
     private fun buildProjectForm(): JPanel {
-        return FormBuilder.createFormBuilder()
+        val form = FormBuilder.createFormBuilder()
+            .addComponent(pEnabled.apply { font = font.deriveFont(Font.BOLD) })
+            .addComponent(Box.createVerticalStrut(16))
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.auth")))
             .addLabeledComponent(createLabelWithHelp("settings.field.apiKey", "settings.hint.apiKey"), pApiKey.apply { columns = 40 })
             .addLabeledComponent(GitAiBundle.message("settings.field.provider"), pProvider)
@@ -149,6 +152,22 @@ class GitAiSettingsComponent(private val basePath: String?) {
             
             .addComponentFillVertically(JPanel(), 0)
             .panel.apply { border = EmptyBorder(10, 0, 0, 0) }
+            
+        pEnabled.addActionListener { updateProjectFieldsState() }
+        return form
+    }
+
+    private fun updateProjectFieldsState() {
+        val enabled = pEnabled.isSelected
+        pApiKey.isEnabled = enabled
+        pProvider.isEnabled = enabled
+        pBaseUrl.isEnabled = enabled
+        pModel.isEnabled = enabled
+        pMessageFormat.isEnabled = enabled
+        pLanguage.isEnabled = enabled
+        pPushPolicy.isEnabled = enabled
+        pPromptTemplate.isEnabled = enabled
+        pMaxDiffTokens.isEnabled = enabled
     }
 
     private fun createSectionLabel(text: String): JPanel {
