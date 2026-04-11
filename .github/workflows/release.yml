@@ -37,6 +37,8 @@ jobs:
   vscode-release:
     name: VS Code — Package
     runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
     defaults:
       run:
         working-directory: vscode-extension
@@ -67,8 +69,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to VS Code Marketplace
-        if: secrets.VSCE_PAT != ''
-        run: npx -y @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
+        if: env.VSCE_PAT != ''
+        run: npx -y @vscode/vsce publish --packagePath *.vsix -p ${{ env.VSCE_PAT }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
