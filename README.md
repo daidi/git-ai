@@ -16,7 +16,7 @@
   <a href="https://goreportcard.com/report/github.com/daidi/git-ai"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai" alt="Go Report Card" /></a>
   <a href="https://github.com/daidi/git-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/release.yml?logo=github&label=Build" alt="Build Status" /></a>
   <br/>
-  <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/daidi.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/git-ai-async-commit-polisher.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
   <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
   <br/>
   <a href="README_zh.md">📖 中文文档</a>
@@ -212,11 +212,10 @@ Both plugins provide native integration — status display, one-click actions, a
 </td>
 <td>
 
-```bash
-cd vscode-extension
-npm install && npm run compile
-# Cmd+Shift+P → "Install Extension from Location..."
-```
+[Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai)
+<br><br>
+Open VS Code, press `Cmd+Shift+X` and search for **git-ai** or use the CLI:
+`code --install-extension git-ai-async-commit-polisher.git-ai`
 
 </td>
 </tr></table>
