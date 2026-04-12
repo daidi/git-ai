@@ -37,6 +37,22 @@ body {
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: -300px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(62, 207, 142, 0.08) 0%, transparent 60%);
+    border-radius: 50%;
+    z-index: -1;
+    pointer-events: none;
 }
 
 .container {
@@ -47,13 +63,13 @@ body {
 
 /* Navbar */
 .navbar {
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: sticky;
     top: 0;
     z-index: 50;
-    background-color: rgba(15, 15, 15, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
 }
 
 .nav-container {
@@ -285,14 +301,16 @@ body {
 .sticky-terminal {
     position: sticky;
     top: max(20vh, 120px);
-    background: var(--bg-surface);
-    border: 1px solid var(--border-standard);
+    background: rgba(20, 20, 20, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-sm);
     overflow: hidden;
     height: 420px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.5); /* subtle edge */
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .term-header {
@@ -398,16 +416,18 @@ body {
 }
 
 .f-card {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.01);
     border: 1px solid var(--border-standard);
     border-radius: var(--radius-sm);
     padding: 32px;
-    transition: var(--transition);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.4s;
 }
 
 .f-card:hover {
-    border-color: var(--border-prominent);
-    background: rgba(255,255,255,0.01);
+    transform: translateY(-4px);
+    border-color: rgba(62, 207, 142, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .f-card h3 { font-size: 1.25rem; font-weight: 400; margin-bottom: 12px; letter-spacing: -0.01em; }
