@@ -13,10 +13,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
   <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
-  <a href="https://goreportcard.com/report/github.com/daidi/git-ai"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai" alt="Go Report Card" /></a>
-  <a href="https://github.com/daidi/git-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/release.yml?logo=github&label=Build" alt="Build Status" /></a>
+  <a href="https://goreportcard.com/report/github.com/daidi/git-ai/cli"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai/cli" alt="Go Report Card" /></a>
+  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&logo=github&label=Build" alt="Build Status" /></a>
   <br/>
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/git-ai-async-commit-polisher.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat&color=007ACC&label=VS%20Code&logo=visualstudiocode" alt="VS Code Installs" /></a>
   <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
   <br/>
   <a href="README_zh.md">📖 中文文档</a>
@@ -24,9 +24,9 @@
 
 ---
 
-You write `git commit -m "fix bug"`. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
+You write `git commit -m "fix bug"`. Git log instantly shows `[⏳] fix bug` — letting you (and AI coding agents like Cursor/Claude Code) know it's being polished. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
 
-**git-ai** hooks into your normal Git workflow and uses LLMs to rewrite your commit messages into clean, [Conventional Commits](https://www.conventionalcommits.org/)-style messages. It does this *after* you commit, so you're never waiting. If you push while polishing is in progress, the push is queued and fires automatically when ready.
+**git-ai** hooks into your normal Git workflow and uses LLMs to rewrite your commit messages into clean, [Conventional Commits](https://www.conventionalcommits.org/)-style messages. It does this *after* you commit, so you're never waiting. The temporary `[⏳]` prefix provides instant visual feedback in `git log` and prevents confusion from AI agents. If you push while polishing is in progress, the push is queued and fires automatically when ready.
 
 ## 💡 Why "Commit First"?
 
@@ -82,6 +82,8 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 ## ✨ Core Features
 
 - 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook
+- ⏳ **Real-time status** — `[⏳]` prefix in `git log` shows polishing in progress; auto-removed on success
+- 🛡️ **Auto-recovery** — crashes/timeouts auto-rollback; manual `git-ai recover` for edge cases
 - 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
 - 📝 **4 message formats** — `plain`, `conventional`, `gitmoji`, `subject+body`
 - 🤖 **Multi-provider** — OpenAI, DeepSeek, Ollama, and any OpenAI-compatible API
@@ -121,6 +123,15 @@ git commit -m "fix bug"
 # 4. Push — queued if polishing, auto-pushed when ready
 git push
 # ⏳ git-ai: AI is polishing. Push queued — will auto-push when ready.
+
+# 5. Check status anytime
+git log -1
+# Shows: [⏳] fix bug (while polishing)
+# Then:  fix(auth): resolve session timeout on mobile devices
+
+# 6. If polishing gets stuck (rare), recover manually
+git-ai recover
+# ✅ Recovery complete.
 ```
 
 That's it. Your commit message is now a clean, descriptive, spec-compliant message — and you didn't have to think about it.
@@ -129,18 +140,26 @@ That's it. Your commit message is now a clean, descriptive, spec-compliant messa
 
 git-ai uses a layered config system. Values are resolved in order: **env vars → project (`.git-ai.json`) → global (`~/.config/git-ai/config.json`) → defaults**.
 
+> 💡 **Tip**: Use **fast models** (flash/mini/turbo variants) for commit messages. They're 10x cheaper, respond in ~500ms, and work perfectly for this task. Most users won't experience any noticeable delay.
+
 ### Popular Provider Configurations
 
 ```bash
-# DeepSeek (Recommended & Default)
+# DeepSeek (Recommended — fast & cheap)
 git-ai config set api_key sk-xxx --global
 git-ai config set model deepseek-chat --global
 
-# OpenAI (Or any OpenAI-compatible endpoint)
+# OpenAI (Fast mini model recommended)
 git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set model gpt-4o --global
+git-ai config set api_key sk-xxx --global
+git-ai config set model gpt-4o-mini --global
 
-# Ollama (Local and free)
+# Qwen (Extremely fast, Chinese-friendly)
+git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
+git-ai config set api_key sk-xxx --global
+git-ai config set model qwen-turbo --global
+
+# Ollama (Local, free, private)
 git-ai config set provider ollama --global
 git-ai config set model llama3 --global
 git-ai config set base_url http://localhost:11434 --global
@@ -170,8 +189,10 @@ git commit -m "fix bug"
         │
         ├── Fork background daemon (non-blocking)
         │    │
+        │    ├── Immediately mark: git commit --amend -m "[⏳] fix bug"
         │    ├── Read diff + Call LLM
-        │    ├── git commit --amend -m "fix(auth): ..."
+        │    ├── On success: git commit --amend -m "fix(auth): ..."
+        │    ├── On failure: rollback to "fix bug" (no [⏳])
         │    ├── If pending_push → auto push
         │    └── Update IDE state / OS UI notification 🔔
         │

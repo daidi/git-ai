@@ -14,10 +14,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
   <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
-  <a href="https://goreportcard.com/report/github.com/daidi/git-ai"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai" alt="Go Report Card" /></a>
-  <a href="https://github.com/daidi/git-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/release.yml?logo=github&label=Build" alt="Build Status" /></a>
+  <a href="https://goreportcard.com/report/github.com/daidi/git-ai/cli"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai/cli" alt="Go Report Card" /></a>
+  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&logo=github&label=Build" alt="Build Status" /></a>
   <br/>
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/git-ai-async-commit-polisher.git-ai?label=VS%20Code&logo=visualstudiocode&color=007ACC" alt="VS Code Installs" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat&color=007ACC&label=VS%20Code&logo=visualstudiocode" alt="VS Code Installs" /></a>
   <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
   <br/>
   <a href="README.md">📖 English</a>
@@ -25,9 +25,9 @@
 
 ---
 
-你写 `git commit -m "修个bug"`，几秒后，它变成了 `fix(auth): resolve session timeout on mobile devices` —— 静默的、后台的、不需要你动任何手指。
+你写 `git commit -m "修个bug"`，Git log 立即显示 `[⏳] 修个bug` —— 让你（和 Cursor/Claude Code 等 AI 编程助手）一眼看到它正在被润色。几秒后，它变成了 `fix(auth): resolve session timeout on mobile devices` —— 静默的、后台的、不需要你动任何手指。
 
-**git-ai** 挂接到你现有的 Git 工作流中，利用大语言模型将你的提交信息改写为干净的、符合 [Conventional Commits](https://www.conventionalcommits.org/) 规范的信息。这一切发生在你提交 *之后*，所以你永远不需要等待。如果你在润色进行中执行 Push，推送会被排队，润色完成后自动发出。
+**git-ai** 挂接到你现有的 Git 工作流中，利用大语言模型将你的提交信息改写为干净的、符合 [Conventional Commits](https://www.conventionalcommits.org/) 规范的信息。这一切发生在你提交 *之后*，所以你永远不需要等待。临时的 `[⏳]` 前缀在 `git log` 中提供即时视觉反馈，防止 AI 编程助手误判。如果你在润色进行中执行 Push，推送会被排队，润色完成后自动发出。
 
 ## 💡 为什么要"先提交"？
 
@@ -83,6 +83,8 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 ## ✨ 核心特性
 
 - 🔄 **异步 AI 润色** —— 通过 `post-commit` 钩子在后台增强提交信息
+- ⏳ **实时状态可见** —— `git log` 显示 `[⏳]` 前缀表示润色中；成功后自动移除
+- 🛡️ **自动恢复机制** —— 崩溃/超时自动回滚；极端情况可用 `git-ai recover` 手动恢复
 - 🚀 **延迟推送** —— AI 工作时推送自动排队，完成后静默推送
 - 📝 **4 种消息格式** —— `plain`、`conventional`、`gitmoji`、`subject+body`
 - 🤖 **多模型供应商** —— OpenAI、DeepSeek、Ollama 及所有兼容 API
@@ -122,6 +124,15 @@ git commit -m "修个bug"
 # 4. 推送 —— 润色中则排队，完成后自动推送
 git push
 # ⏳ git-ai: AI 正在润色，推送已排队 —— 完成后将自动推送。
+
+# 5. 随时查看状态
+git log -1
+# 显示: [⏳] 修个bug (润色中)
+# 然后:  fix(auth): resolve session timeout on mobile devices
+
+# 6. 如果润色卡住（极少发生），手动恢复
+git-ai recover
+# ✅ 恢复完成。
 ```
 
 就这么简单！你的提交信息现在永远都是干净、精准、符合规范的，无需任何等待。
@@ -130,18 +141,26 @@ git push
 
 git-ai 支持分层配置系统：**环境变量 → 项目级 (`.git-ai.json`) → 全局级 (`~/.config/git-ai/config.json`) → 默认值**。
 
+> 💡 **强烈建议**：使用 **快速模型**（flash/mini/turbo 系列）。它们成本降低 10 倍、响应时间约 500ms，对于提交信息润色完全够用。绝大多数情况下你不会感到任何延迟。
+
 ### 常见模型配置
 
 ```bash
-# DeepSeek (推荐 & 默认)
+# DeepSeek (推荐 — 快速且便宜)
 git-ai config set api_key sk-xxx --global
 git-ai config set model deepseek-chat --global
 
-# OpenAI (或者任何 OpenAI 兼容接口)
+# OpenAI (推荐使用 mini 快速模型)
 git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set model gpt-4o --global
+git-ai config set api_key sk-xxx --global
+git-ai config set model gpt-4o-mini --global
 
-# Ollama (本地免费断网运行)
+# 通义千问 (极快，中文友好)
+git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
+git-ai config set api_key sk-xxx --global
+git-ai config set model qwen-turbo --global
+
+# Ollama (本地、免费、隐私)
 git-ai config set provider ollama --global
 git-ai config set model llama3 --global
 git-ai config set base_url http://localhost:11434 --global
@@ -171,8 +190,10 @@ git commit -m "修个bug"
         │
         ├── 派生后台守护进程（极速脱离终端）
         │    │
+        │    ├── 立即标记: git commit --amend -m "[⏳] 修个bug"
         │    ├── 检测 diff 并在协程调用 LLM
-        │    ├── git commit --amend -m "fix(auth): ..."
+        │    ├── 成功时: git commit --amend -m "fix(auth): ..."
+        │    ├── 失败时: 回滚到 "修个bug" (无 [⏳])
         │    ├── 若检测到排队推送中 → 自动 push
         │    └── 通知 IDE 插件更新状态 / 发送系统气泡提醒
         │
