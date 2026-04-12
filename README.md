@@ -45,7 +45,43 @@ Three reasons this is better:
 2. **Zero friction** — No waiting, no confirmation dialogs. You commit and move on. The message gets polished behind the scenes.
 3. **No new habits** — Use `git commit -m` from terminal, your IDE's commit UI, or any Git client you already love. git-ai is invisible.
 
-## ✨ Features
+---
+
+# 👩‍💻 For Users
+
+## 🖥️ Seamless IDE Experience
+
+Don't change a single habit. Use Git AI directly inside your favorite IDE! Both plugins provide native integration — status display, one-click actions, and built-in cross-platform settings panels.
+
+### JetBrains IDEA Plugin
+
+Native UI with support for undo, retry, and settings.
+
+<p align="center">
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai">
+    <img src="https://img.shields.io/badge/JetBrains_Marketplace-Install_Plugin-black?style=for-the-badge&logo=intellijidea&logoColor=white" alt="Install JetBrains Plugin" />
+  </a>
+</p>
+
+### VS Code Extension
+
+Real-time state monitoring via sidebar and status bar.
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai">
+    <img src="https://img.shields.io/badge/VS_Code_Marketplace-Install_Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Install VS Code Extension" />
+  </a>
+</p>
+
+Open VS Code, press `Cmd+Shift+X` and search for **git-ai**, or run the following command:
+
+```bash
+code --install-extension git-ai-async-commit-polisher.git-ai
+```
+
+> **Note:** The plugins are UI wrappers that orchestrate the headless engine. Make sure you install the CLI below to do the heavy lifting!
+
+## ✨ Core Features
 
 - 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook
 - 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
@@ -54,9 +90,8 @@ Three reasons this is better:
 - ✂️ **Smart diff trimming** — handles large diffs with three-tier token truncation
 - 🔔 **System notifications** — OS-native toast when polish/push finishes
 - ⏪ **Undo & retry** — restore original message or re-generate at any time
-- 🖥️ **IDE plugins** — first-class VS Code extension and IntelliJ IDEA plugin
 
-## 📦 Install
+## 📦 Core Engine Install (CLI)
 
 ### GitHub Releases (Recommended)
 Download the latest pre-compiled binary for macOS, Linux, or Windows directly from the [GitHub Releases](https://github.com/daidi/git-ai/releases) page.
@@ -67,11 +102,8 @@ Download the latest pre-compiled binary for macOS, Linux, or Windows directly fr
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai
 
-# Go install
+# Go Install (For Go developers)
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
-
-# From source
-cd cli && make install
 ```
 
 ## 🚀 Quick Start
@@ -81,10 +113,10 @@ cd cli && make install
 cd your-project
 git-ai init
 
-# 2. Configure your API key (one-time)
+# 2. Configure your API key (one-time global setup)
 git-ai config set api_key sk-your-key --global
 
-# 3. Commit as usual — AI polishes in background
+# 3. Commit as usual — AI polishes in background!
 git commit -m "fix bug"
 # ✨ git-ai: polishing in background (PID 12345)
 
@@ -95,7 +127,42 @@ git push
 
 That's it. Your commit message is now a clean, descriptive, spec-compliant message — and you didn't have to think about it.
 
-## 🏗️ How It Works
+## ⚙️ Models & Configuration
+
+git-ai uses a layered config system. Values are resolved in order: **env vars → project (`.git-ai.json`) → global (`~/.config/git-ai/config.json`) → defaults**.
+
+### Popular Provider Configurations
+
+```bash
+# DeepSeek (Recommended & Default)
+git-ai config set api_key sk-xxx --global
+git-ai config set model deepseek-chat --global
+
+# OpenAI (Or any OpenAI-compatible endpoint)
+git-ai config set base_url https://api.openai.com/v1 --global
+git-ai config set model gpt-4o --global
+
+# Ollama (Local and free)
+git-ai config set provider ollama --global
+git-ai config set model llama3 --global
+git-ai config set base_url http://localhost:11434 --global
+```
+
+### More Options
+
+| Command | Default | Description |
+|:---|:---|:---|
+| `git-ai config set language zh-CN --global` | `en` | Output language (`en`, `zh-CN`, `ja`, etc.) |
+| `git-ai config set push_policy queue --global` | `queue` | `queue`=auto-push, `block`=prevent push until polished |
+| `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
+
+---
+
+# 👨‍💻 For Developers & Maintainers
+
+## 🏗️ Architecture & How It Works
+
+We use a **Monorepo** architecture that decouples the headless CLI agent from the IDE plugins. They communicate via a stateless `.git/git-ai/state.json` file.
 
 ```
 git commit -m "fix bug"
@@ -105,148 +172,34 @@ git commit -m "fix bug"
         │
         ├── Fork background daemon (non-blocking)
         │    │
-        │    ├── Read diff + original message
-        │    ├── Call LLM (DeepSeek / OpenAI / Ollama)
+        │    ├── Read diff + Call LLM
         │    ├── git commit --amend -m "fix(auth): ..."
         │    ├── If pending_push → auto push
-        │    └── Send OS notification 🔔
+        │    └── Update IDE state / OS UI notification 🔔
         │
         └── Exit immediately → you keep coding
-
-git push
-        │
-        ▼
-   [pre-push hook]
-        │
-        ├── If polishing → queue push, exit 1
-        └── If idle → allow push, exit 0
 ```
 
-## ⚙️ Configuration
+- **`cli/` (Go 1.23+)**: The core engine daemonizing processes, invoking LLMs, and amending Git commits.
+- **`idea-plugin/` (Kotlin)**: JetBrains native integration watching `state.json` with VFS.
+- **`vscode-extension/` (TS)**: Webview / tree-view plugin that tracks state through FS-polling. 
 
-git-ai uses a layered config system. Values are resolved in order: **env vars → project → global → defaults**.
+## 🖥️ Local Build & Testing
 
-### Config Files
+For contributors looking to modify and customize:
 
-| Scope | Path | Description |
-|:---|:---|:---|
-| Global | `~/.config/git-ai/config.json` | Shared across all repos |
-| Project | `<repo>/.git-ai.json` | Per-repo overrides |
-| Env vars | `GIT_AI_API_KEY`, `GIT_AI_MODEL`, etc. | Runtime overrides |
-
-### Options
-
-| Key | Default | Description |
-|:---|:---|:---|
-| `api_key` | — | Your LLM API key |
-| `model` | `deepseek-chat` | Model name |
-| `base_url` | `https://api.deepseek.com/v1` | API endpoint |
-| `provider` | `openai` | `openai` or `ollama` |
-| `language` | `en` | Output language (`en`, `zh-CN`, `ja`, `ko`, ...) |
-| `push_policy` | `queue` | `queue` = auto-push after polish, `block` = manual |
-| `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body` |
-| `max_diff_tokens` | `4000` | Max tokens of diff context sent to LLM |
-
-### Message Formats
-
+### Compiling the CLI
 ```bash
-# plain
-Fix the login timeout bug on mobile
-
-# conventional (default)
-fix(auth): resolve login timeout on mobile devices
-
-# gitmoji
-🐛 fix(auth): resolve login timeout on mobile devices
-
-# subject-body
-Fix login timeout on mobile
-
-The session cookie was not being refreshed when the user
-switched between mobile and desktop views.
+cd cli
+make build
+make install
 ```
 
-### Provider Examples
+### Developing the IDE plugins
+1. **IntelliJ Plugin**: Under `/idea-plugin`, run `./gradlew runIde` to launch a sandboxed IDE instance containing the plugin. Run `./gradlew buildPlugin` to package it.
+2. **VS Code Extension**: Under `/vscode-extension`, run `npm install`, then press `F5` to open the Extension Development Host.
 
-```bash
-# DeepSeek (default)
-git-ai config set api_key sk-xxx --global
-git-ai config set model deepseek-chat --global
-
-# OpenAI
-git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set model gpt-4o --global
-
-# Ollama (local, no API key needed)
-git-ai config set provider ollama
-git-ai config set model llama3
-git-ai config set base_url http://localhost:11434
-```
-
-## 🛠️ CLI Commands
-
-| Command | Description |
-|:---|:---|
-| `git-ai init` | Install hooks and state directory in current repo |
-| `git-ai config set <key> <val>` | Set a config value (`--global` for global) |
-| `git-ai config get <key>` | Read a config value (merged) |
-| `git-ai config list` | Show full merged configuration |
-| `git-ai retry` | Re-generate AI message for the last commit |
-| `git-ai undo` | Restore the original pre-AI message |
-
-## 🖥️ IDE Plugins
-
-Both plugins provide native integration — status display, one-click actions, and a Settings UI with i18n support (English + 中文).
-
-### VS Code Extension
-
-<table><tr>
-<td width="50%">
-
-- **Status Bar** — real-time polishing / push / idle status
-- **Sidebar Panel** — status tree + actions webview
-- **Settings UI** — Global + Project config with Codicons
-- **i18n** — auto-detects VS Code language (en / zh-CN)
-- **Notifications** — toast on polish/push completion
-
-</td>
-<td>
-
-[Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai)
-<br><br>
-Open VS Code, press `Cmd+Shift+X` and search for **git-ai** or use the CLI:
-`code --install-extension git-ai-async-commit-polisher.git-ai`
-
-</td>
-</tr></table>
-
-### IntelliJ IDEA Plugin
-
-<table><tr>
-<td width="50%">
-
-- **Status Bar Widget** — live status in the bottom bar
-- **Tool Window** — Status + Logs tabs with auto-tailing
-- **Native Settings** — `Settings → Tools → git-ai` with i18n
-- **VCS Menu** — Retry, Undo, Cancel, Force Push, Config
-- **IDE Notifications** — balloon alerts on state changes
-
-</td>
-<td>
-
-```bash
-cd idea-plugin
-./gradlew buildPlugin
-# → build/distributions/git-ai-0.1.0.zip
-# Settings → Plugins → ⚙️ → Install from Disk...
-```
-
-</td>
-</tr></table>
-
-> **Note:** Both plugins are UI-only — they observe `state.json` and delegate to the `git-ai` CLI. The CLI must be installed on PATH.
-
-## 🛠️ For Maintainers / Releasing
+## 🚀 Releasing
 
 A unified script is provided to automate version bumping across all ecosystem components (CLI, VS Code, IntelliJ) and prepare for the automated GitHub distribution pipeline.
 
@@ -255,7 +208,7 @@ A unified script is provided to automate version bumping across all ecosystem co
    ./scripts/bump-version.sh 0.3.0
    ```
 2. The script explicitly updates `vscode-extension/package.json` and `idea-plugin/gradle.properties`.
-3. Follow the CLI prompt output to commit and push the updated Tag:
+3. Follow the output to commit and push the release Tag:
    ```bash
    git add vscode-extension/package.json idea-plugin/gradle.properties
    git commit -m "chore(release): bump version to 0.3.0"
@@ -272,5 +225,5 @@ GoReleaser will automatically trigger via GitHub Actions to package and distribu
 ---
 
 <p align="center">
-  <sub>This commit message was optimized by <code>git-ai</code> 🤖</sub>
+  <sub>This project's own commit history is polished and maintained by <code>git-ai</code> 🤖</sub>
 </p>

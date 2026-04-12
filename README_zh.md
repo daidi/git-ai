@@ -46,21 +46,56 @@
 2. **不打断心流** —— 没有等待，没有确认弹窗。你 commit 然后继续写下一行代码。消息在幕后被静默润色。
 3. **兼容所有习惯** —— 用终端的 `git commit -m`、用 IDE 的提交快捷键、用任何你喜欢的 Git 客户端。git-ai 是隐形的。
 
-## ✨ 特性
+---
+
+# 👩‍💻 献给使用者 (For Users)
+
+## 🖥️ 沉浸式 IDE 体验
+
+不需要改变任何习惯，直接在你的 IDE 里使用 Git AI！两款插件均提供原生集成 —— 状态展示、一键操作、全中文化设置面板。
+
+### JetBrains IDEA 插件
+
+原生 UI，支持操作撤销、重试和配置。
+
+<p align="center">
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai">
+    <img src="https://img.shields.io/badge/JetBrains_Marketplace-Install_Plugin-black?style=for-the-badge&logo=intellijidea&logoColor=white" alt="Install JetBrains Plugin" />
+  </a>
+</p>
+
+### VS Code 扩展
+
+支持状态栏与侧边栏的实时更新监听。
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai">
+    <img src="https://img.shields.io/badge/VS_Code_Marketplace-Install_Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Install VS Code Extension" />
+  </a>
+</p>
+
+打开 VS Code，按 `Cmd+Shift+X` 并搜索 **git-ai**，或使用以下命令：
+
+```bash
+code --install-extension git-ai-async-commit-polisher.git-ai
+```
+
+> **注意：** IDEA 插件与 VS Code 扩展负责提供无缝的交互界面，底层均依赖于系统环境下的 `git-ai` 核心引擎。请参考下方文档安装引擎。
+
+## ✨ 核心特性
 
 - 🔄 **异步 AI 润色** —— 通过 `post-commit` 钩子在后台增强提交信息
 - 🚀 **延迟推送** —— AI 工作时推送自动排队，完成后静默推送
 - 📝 **4 种消息格式** —— `plain`、`conventional`、`gitmoji`、`subject+body`
-- 🤖 **多模型供应商** —— OpenAI、DeepSeek、Ollama 及所有 OpenAI 兼容 API
+- 🤖 **多模型供应商** —— OpenAI、DeepSeek、Ollama 及所有兼容 API
 - ✂️ **智能 Diff 裁剪** —— 三级 Token 截断，处理超大 Diff 不溢出
 - 🔔 **系统通知** —— 润色/推送完成时发送操作系统原生通知
 - ⏪ **撤销与重试** —— 随时恢复原始消息或重新生成
-- 🖥️ **IDE 插件** —— 原生 VS Code 扩展和 IntelliJ IDEA 插件
 
-## 📦 安装
+## 📦 核心引擎 (CLI) 安装
 
-### GitHub Releases (推荐)
-从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新免安装二进制文件。
+### GitHub Releases (推荐，无需任何依赖)
+从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新单文件二进制程序。
 
 ### 包管理器
 
@@ -68,24 +103,21 @@
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai
 
-# Go install
+# Go Install (针对 Go 开发者)
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
-
-# 从源码编译
-cd cli && make install
 ```
 
 ## 🚀 快速开始
 
 ```bash
-# 1. 在你的仓库中初始化（安装 Git 钩子）
+# 1. 在你的仓库中初始化（注入后台 Git 钩子）
 cd your-project
 git-ai init
 
-# 2. 配置 API 密钥（仅需一次）
+# 2. 配置 API 密钥（全局生效，仅需一次）
 git-ai config set api_key sk-your-key --global
 
-# 3. 像往常一样提交 —— AI 在后台润色
+# 3. 像往常一样提交 —— AI 在后台静默干活！
 git commit -m "修个bug"
 # ✨ git-ai: 正在后台润色 (PID 12345)
 
@@ -94,9 +126,44 @@ git push
 # ⏳ git-ai: AI 正在润色，推送已排队 —— 完成后将自动推送。
 ```
 
-就这样。你的提交信息现在是一条干净、精准、符合规范的消息 —— 而你什么都不需要想。
+就这么简单！你的提交信息现在永远都是干净、精准、符合规范的，无需任何等待。
 
-## 🏗️ 工作原理
+## ⚙️ 模型与配置
+
+git-ai 支持分层配置系统：**环境变量 → 项目级 (`.git-ai.json`) → 全局级 (`~/.config/git-ai/config.json`) → 默认值**。
+
+### 常见模型配置
+
+```bash
+# DeepSeek (推荐 & 默认)
+git-ai config set api_key sk-xxx --global
+git-ai config set model deepseek-chat --global
+
+# OpenAI (或者任何 OpenAI 兼容接口)
+git-ai config set base_url https://api.openai.com/v1 --global
+git-ai config set model gpt-4o --global
+
+# Ollama (本地免费断网运行)
+git-ai config set provider ollama --global
+git-ai config set model llama3 --global
+git-ai config set base_url http://localhost:11434 --global
+```
+
+### 更多常用配置
+
+| 命令 | 默认值 | 说明 |
+|:---|:---|:---|
+| `git-ai config set language zh-CN --global` | `en` | 输出语言（`en`、`zh-CN`、`ja` 等） |
+| `git-ai config set push_policy queue --global` | `queue` | `queue`=自动推送, `block`=阻止未完成的推送 |
+| `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
+
+---
+
+# 👨‍💻 献给开发者 (For Developers)
+
+## 🏗️ 架构与工作原理
+
+我们采用 **Monorepo** 架构，将 CLI 后台引擎与不同 IDE 平台的前端插件进行了解耦，并通过共享 `.git/git-ai/state.json` 的无状态文件机制进行通信。
 
 ```
 git commit -m "修个bug"
@@ -104,159 +171,47 @@ git commit -m "修个bug"
         ▼
    [post-commit 钩子]
         │
-        ├── 派生后台守护进程（非阻塞）
+        ├── 派生后台守护进程（极速脱离终端）
         │    │
-        │    ├── 读取 diff + 原始消息
-        │    ├── 调用 LLM（DeepSeek / OpenAI / Ollama）
+        │    ├── 检测 diff 并在协程调用 LLM
         │    ├── git commit --amend -m "fix(auth): ..."
-        │    ├── 若有待推送 → 自动 push
-        │    └── 发送系统通知 🔔
+        │    ├── 若检测到排队推送中 → 自动 push
+        │    └── 通知 IDE 插件更新状态 / 发送系统气泡提醒
         │
-        └── 立即退出 → 你继续写代码
-
-git push
-        │
-        ▼
-   [pre-push 钩子]
-        │
-        ├── 若正在润色 → 排队推送, exit 1
-        └── 若空闲 → 放行推送, exit 0
+        └── 同步退出终端拦截 → 你继续写代码
 ```
 
-## ⚙️ 配置
+- **`cli/` (Go 1.23+)**：处理 `post-commit` / `pre-push` 钩子的绑定、守护进程派发、LLM 逻辑增强重写。
+- **`idea-plugin/` (Kotlin)**：利用 JetBrains VFS 机制非阻塞监听 `state.json`，在 UI 侧回显状态。
+- **`vscode-extension/` (TS)**：原生 VS Code UI/TreeView，利用 FS Polling 无缝桥接核心引擎。
 
-git-ai 使用分层配置系统。值的解析优先级：**环境变量 → 项目级 → 全局级 → 默认值**。
+## 🖥️ 源码编译与测试
 
-### 配置文件
+针对有定制需要的二次开发者或维护者：
 
-| 作用域 | 路径 | 说明 |
-|:---|:---|:---|
-| 全局 | `~/.config/git-ai/config.json` | 所有仓库共享 |
-| 项目 | `<repo>/.git-ai.json` | 当前仓库覆盖 |
-| 环境变量 | `GIT_AI_API_KEY`, `GIT_AI_MODEL` 等 | 运行时覆盖 |
-
-### 配置项
-
-| 键 | 默认值 | 说明 |
-|:---|:---|:---|
-| `api_key` | — | LLM API 密钥 |
-| `model` | `deepseek-chat` | 模型名称 |
-| `base_url` | `https://api.deepseek.com/v1` | API 端点 |
-| `provider` | `openai` | `openai` 或 `ollama` |
-| `language` | `en` | 输出语言（`en`、`zh-CN`、`ja`、`ko` 等） |
-| `push_policy` | `queue` | `queue` = 自动推送, `block` = 手动推送 |
-| `message_format` | `conventional` | `plain`、`conventional`、`gitmoji`、`subject-body` |
-| `max_diff_tokens` | `4000` | 发送给 LLM 的最大 Diff Token 数 |
-
-### 消息格式示例
+### 编译 CLI 后台引擎
 
 ```bash
-# plain
-Fix the login timeout bug on mobile
-
-# conventional（默认）
-fix(auth): resolve login timeout on mobile devices
-
-# gitmoji
-🐛 fix(auth): resolve login timeout on mobile devices
-
-# subject-body
-Fix login timeout on mobile
-
-The session cookie was not being refreshed when the user
-switched between mobile and desktop views.
+cd cli
+make build
+make install
 ```
 
-### 模型供应商配置
+### 本地运行与调试 IDE 插件
 
-```bash
-# DeepSeek（默认）
-git-ai config set api_key sk-xxx --global
-git-ai config set model deepseek-chat --global
+1. **IntelliJ 插件**：进入 `idea-plugin` 目录执行 `./gradlew runIde`，即可打开包含插件调试沙盒的 IDEA 实例。如果仅需编译打包，可执行 `./gradlew buildPlugin`。
+2. **VS Code 扩展**：进入 `vscode-extension` 目录执行 `npm install` 后，按 `F5` 即可在扩展开发宿主环境中启动调试。
 
-# OpenAI
-git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set model gpt-4o --global
+## 🚀 项目维护与发版
 
-# Ollama（本地部署，无需 API Key）
-git-ai config set provider ollama
-git-ai config set model llama3
-git-ai config set base_url http://localhost:11434
-```
-
-## 🛠️ CLI 命令
-
-| 命令 | 说明 |
-|:---|:---|
-| `git-ai init` | 在当前仓库安装钩子和状态目录 |
-| `git-ai config set <key> <val>` | 设置配置值（加 `--global` 为全局） |
-| `git-ai config get <key>` | 读取配置值（合并后） |
-| `git-ai config list` | 显示完整合并配置 |
-| `git-ai retry` | 重新生成上次提交的 AI 消息 |
-| `git-ai undo` | 恢复原始提交信息 |
-
-## 🖥️ IDE 插件
-
-两款插件均提供原生集成 —— 状态展示、一键操作、以及支持 i18n（英文 + 中文）的设置界面。
-
-### VS Code 扩展
-
-<table><tr>
-<td width="50%">
-
-- **状态栏** —— 实时展示润色 / 推送 / 空闲状态
-- **侧边栏** —— 状态树 + 操作 Webview 面板
-- **设置界面** —— 全局 + 项目配置，原生 Codicon 图标
-- **国际化** —— 自动检测 VS Code 语言（en / zh-CN）
-- **通知** —— 润色/推送完成时弹出提示
-
-</td>
-<td>
-
-[从 VS Code 市场安装](https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai)
-<br><br>
-打开 VS Code，按 `Cmd+Shift+X` 并在扩展视图中搜索 **git-ai**，或使用 CLI：
-`code --install-extension git-ai-async-commit-polisher.git-ai`
-
-</td>
-</tr></table>
-
-### IntelliJ IDEA 插件
-
-<table><tr>
-<td width="50%">
-
-- **状态栏组件** —— 底部实时状态展示
-- **工具窗口** —— Status + Logs 双标签，自动跟踪日志
-- **原生设置** —— `Settings → Tools → git-ai`，支持中文
-- **VCS 菜单** —— 重试、撤销、取消、强制推送、配置
-- **IDE 通知** —— 状态切换时气泡提醒
-
-</td>
-<td>
-
-```bash
-cd idea-plugin
-./gradlew buildPlugin
-# → build/distributions/git-ai-0.1.0.zip
-# Settings → Plugins → ⚙️ → 从磁盘安装...
-```
-
-</td>
-</tr></table>
-
-> **注意：** 两款插件仅负责 UI 展示 —— 它们观察 `state.json` 并委托给 `git-ai` CLI 执行。CLI 需要安装在系统 PATH 中。
-
-## 🛠️ 项目维护与发版
-
-项目中提供了一个统一的版本跨生态管理脚本，用于在此项目发版时，自动同步修改 CLI、VS Code 和 IntelliJ 的版本号，从而无缝衔接 GitHub Actions 自动化分发流水线。
+项目中提供了一个统一的版本跨生态管理脚本，用于在此项目发版时，自动同步修改 CLI、VS Code 和 IntelliJ 的版本号。
 
 1. 请确保当前工作区干净没有未提交的改动。运行跨生态升版脚本：
    ```bash
    ./scripts/bump-version.sh 0.3.0
    ```
-2. 这个脚本会自动把新的版本号同步到 `vscode-extension/package.json` 以及 `idea-plugin/gradle.properties` 里。
-3. 随后你可以直接参考命令行输出完成发版提交并 Push Tag：
+2. 脚本会自动更新 `vscode-extension/package.json` 以及 `idea-plugin/gradle.properties` 的配置。
+3. 把变更文件进行发版提交并 Push Tag：
    ```bash
    git add vscode-extension/package.json idea-plugin/gradle.properties
    git commit -m "chore(release): bump version to 0.3.0"
@@ -264,7 +219,7 @@ cd idea-plugin
    git push origin main v0.3.0
    ```
 
-接下来，触发的 Tag 流水线就会带着自动更新好版本的跨生态源码，驱动 GoReleaser 把内容分发向 Homebrew、Scoop 以及 GitHub Releases 啦！
+接下来，触发的 Tag 流水线会自动化完成 GoReleaser 对 Homebrew、Scoop 以及 GitHub Releases 的分发工作。
 
 ## 📝 开源协议
 
@@ -273,5 +228,5 @@ cd idea-plugin
 ---
 
 <p align="center">
-  <sub>本提交信息由 <code>git-ai</code> 自动优化 🤖</sub>
+  <sub>本项目自身的 Git 提交历史由 <code>git-ai</code> 自动润色与维护 🤖</sub>
 </p>
