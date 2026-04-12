@@ -34,7 +34,7 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 	var lastErr error
 
 	for attempt := 0; attempt <= len(delays); attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		result, lastErr = GenerateMessage(ctx, llm, sysProm, userProm)
 		cancel()
 

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 type Cache struct {
@@ -78,7 +80,7 @@ func CheckUpdate(currentVersion string) string {
 			latest := strings.TrimPrefix(c.LatestVersion, "v")
 			curr := strings.TrimPrefix(currentVersion, "v")
 
-			if latest != "" && curr != latest {
+			if latest != "" && semver.Compare("v"+curr, "v"+latest) < 0 {
 				return fmt.Sprintf("\033[33m\n✨ Update available for git-ai: v%s \033[0m→\033[1;32m v%s\033[0m\n\033[33mRun 'brew upgrade git-ai' or your package manager to update.\033[0m\n", curr, latest)
 			}
 		}

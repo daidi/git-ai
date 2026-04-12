@@ -64,10 +64,13 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
     private renderHtml(): void {
         if (!this.webviewView) { return; }
-        this.webviewView.webview.html = this.getHtml();
+        const codiconsUri = this.webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css')
+        );
+        this.webviewView.webview.html = this.getHtml(codiconsUri);
     }
 
-    private getHtml(): string {
+    private getHtml(codiconsUri: vscode.Uri): string {
         const s = this.state;
         const isPolishing = s.current_status === 'polishing';
         const isPushing = s.current_status === 'pushing';
@@ -77,22 +80,22 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
         let statusHtml: string;
         if (isPolishing) {
             statusHtml = `<div class="status polishing">
-                <span class="status-icon">✨</span>
+                <i class="codicon codicon-sparkle status-icon"></i>
                 <span>AI 润色中...</span>
             </div>`;
         } else if (isPushing) {
             statusHtml = `<div class="status pushing">
-                <span class="status-icon">🚀</span>
+                <i class="codicon codicon-cloud-upload status-icon"></i>
                 <span>推送中...</span>
             </div>`;
         } else if (hasPending) {
             statusHtml = `<div class="status pending">
-                <span class="status-icon">⏳</span>
+                <i class="codicon codicon-clock status-icon"></i>
                 <span>待推送 → ${s.pending_push!.remote}</span>
             </div>`;
         } else {
             statusHtml = `<div class="status idle">
-                <span class="status-icon">✅</span>
+                <i class="codicon codicon-check status-icon"></i>
                 <span>空闲</span>
             </div>`;
         }
@@ -110,6 +113,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="${codiconsUri}" rel="stylesheet" />
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -180,16 +184,16 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     <div class="section-title">Actions</div>
     <div class="btn-grid">
         <button class="primary" onclick="send('retry')" ${isPolishing || isPushing ? 'disabled' : ''}>
-            🔄 Retry AI Polish
+            <i class="codicon codicon-refresh"></i> Retry AI Polish
         </button>
         <button onclick="send('undo')" ${isPolishing || isPushing ? 'disabled' : ''}>
-            ⏪ Undo (Restore Original)
+            <i class="codicon codicon-discard"></i> Undo (Restore Original)
         </button>
         <button class="danger" onclick="send('cancel')" ${!isPolishing ? 'disabled' : ''}>
-            🛑 Cancel Polishing
+            <i class="codicon codicon-circle-slash"></i> Cancel Polishing
         </button>
         <button onclick="send('forcePush')" ${isPushing ? 'disabled' : ''}>
-            🚀 Force Push Now
+            <i class="codicon codicon-cloud-upload"></i> Force Push Now
         </button>
     </div>
 
@@ -197,9 +201,9 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
     <div class="section-title">Tools</div>
     <div class="btn-grid">
-        <button onclick="send('showLogs')">📋 Show Logs</button>
-        <button onclick="send('openConfig')">⚙️ Configuration</button>
-        <button onclick="send('init')">🔧 Re-initialize</button>
+        <button onclick="send('showLogs')"><i class="codicon codicon-output"></i> Show Logs</button>
+        <button onclick="send('openConfig')"><i class="codicon codicon-settings-gear"></i> Configuration</button>
+        <button onclick="send('init')"><i class="codicon codicon-tools"></i> Re-initialize</button>
     </div>
 
     <script>

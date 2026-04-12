@@ -1,12 +1,13 @@
 module github.com/daidi/git-ai
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/gen2brain/beeep v0.11.2
 	github.com/gofrs/flock v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tmc/langchaingo v0.1.14
+	golang.org/x/mod v0.35.0
 )
 
 require (

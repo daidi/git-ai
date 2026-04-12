@@ -19,6 +19,7 @@ import java.util.Timer
 import java.util.TimerTask
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import com.intellij.icons.AllIcons
 
 /**
  * Tool window factory for the git-ai panel.
@@ -71,16 +72,16 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
 
         // Actions section.
         val actionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0))
-        actionsPanel.add(createButton("🔄 Retry") {
+        actionsPanel.add(createButton("Retry", AllIcons.Actions.Refresh) {
             com.daidi.gitai.actions.RetryAction.execute(project)
         })
-        actionsPanel.add(createButton("⏪ Undo") {
+        actionsPanel.add(createButton("Undo", AllIcons.Actions.Undo) {
             com.daidi.gitai.actions.UndoAction.execute(project)
         })
-        actionsPanel.add(createButton("🛑 Cancel") {
+        actionsPanel.add(createButton("Cancel", AllIcons.Actions.Cancel) {
             com.daidi.gitai.actions.CancelAction.execute(project)
         })
-        actionsPanel.add(createButton("🚀 Push") {
+        actionsPanel.add(createButton("Push", AllIcons.Vcs.Push) {
             com.daidi.gitai.actions.ForcePushAction.execute(project)
         })
 
@@ -95,11 +96,23 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
 
     private fun updateUI(state: GitAiState) {
         SwingUtilities.invokeLater {
-            statusLabel.text = when {
-                state.isPolishing -> "✨ AI 润色中..."
-                state.isPushing -> "🚀 推送中..."
-                state.hasPendingPush -> "⏳ 待推送..."
-                else -> "✓ 空闲"
+            when {
+                state.isPolishing -> {
+                    statusLabel.text = "AI 润色中..."
+                    statusLabel.icon = AllIcons.Actions.Lightning
+                }
+                state.isPushing -> {
+                    statusLabel.text = "推送中..."
+                    statusLabel.icon = AllIcons.Vcs.Push
+                }
+                state.hasPendingPush -> {
+                    statusLabel.text = "待推送..."
+                    statusLabel.icon = AllIcons.Actions.Delay
+                }
+                else -> {
+                    statusLabel.text = "空闲"
+                    statusLabel.icon = AllIcons.Actions.Checked
+                }
             }
 
             commitLabel.text = if (state.lastSha != null) "Commit: ${state.lastSha.take(8)}" else ""
@@ -110,8 +123,8 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
         }
     }
 
-    private fun createButton(text: String, action: () -> Unit): JButton {
-        return JButton(text).apply {
+    private fun createButton(text: String, icon: Icon, action: () -> Unit): JButton {
+        return JButton(text, icon).apply {
             addActionListener { action() }
             isFocusPainted = false
         }

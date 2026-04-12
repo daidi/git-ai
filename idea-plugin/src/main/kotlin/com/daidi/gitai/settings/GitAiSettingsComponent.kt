@@ -128,7 +128,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), gPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), gMaxDiffTokens.apply { columns = 10 })
-            .addComponent(Box.createVerticalStrut(8))
+            .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(gTestConfigBtn)
             
             .addComponentFillVertically(JPanel(), 0)
@@ -138,7 +138,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private fun buildProjectForm(): JPanel {
         val form = FormBuilder.createFormBuilder()
             .addComponent(pEnabled.apply { font = font.deriveFont(Font.BOLD) })
-            .addComponent(Box.createVerticalStrut(16))
+            .addComponent(Box.createVerticalStrut(16) as JComponent)
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.auth")))
             .addLabeledComponent(createLabelWithHelp("settings.field.apiKey", "settings.hint.apiKey"), pApiKey.apply { columns = 40 })
             .addLabeledComponent(GitAiBundle.message("settings.field.provider"), pProvider)
@@ -153,7 +153,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), pPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), pMaxDiffTokens.apply { columns = 10 })
-            .addComponent(Box.createVerticalStrut(8))
+            .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(pTestConfigBtn)
             
             .addComponentFillVertically(JPanel(), 0)
