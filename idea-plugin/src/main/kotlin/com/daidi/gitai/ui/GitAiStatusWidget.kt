@@ -13,7 +13,7 @@ import java.awt.event.MouseEvent
 import javax.swing.Icon
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.ui.popup.ListPopup
-
+import com.intellij.openapi.ui.popup.JBPopup
 /**
  * Factory for the status bar widget.
  */
@@ -67,7 +67,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
         }
     }
 
-    override fun getPopupStep(): ListPopup? = null
+    override fun getPopup(): JBPopup? = null
 
     override fun getTooltipText(): String {
         return when {
