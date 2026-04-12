@@ -1,48 +1,67 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/daidi/git-ai/main/assets/icon.png" width="120" alt="git-ai logo" />
+  <img src="https://raw.githubusercontent.com/daidi/git-ai/main/assets/icon.png" width="120" alt="Git AI logo" />
 </p>
 
-<h1 align="center">Git AI - Async Commit Polisher</h1>
+<h1 align="center">Git AI: The Zero-Friction Commit Polisher</h1>
 
 <p align="center">
-  <strong>Never wait for AI. Polish your commits in the background while you code.</strong>
+  <strong>Don't wait for your AI. Keep coding while Git AI writes your commit messages in the background.</strong>
 </p>
 
-You write `git commit -m "fix bug"`. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
+<p align="center">
+  <a href="https://github.com/daidi/git-ai">GitHub</a> •
+  <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai">VS Code</a> •
+  <a href="https://plugins.jetbrains.com/plugin/24227-git-ai">IntelliJ</a>
+</p>
 
-## 💡 Why "Commit First"?
+## ⚡️ The Problem: AI Tools Break Your Flow
 
-Most AI commit tools make you *wait* before committing. We take the opposite approach: your code goes instantly into your Git history, and the LLM safely rewrites your commit message in the background. If you push early, the push is queued and executes silently after polishing.
+Most AI Git tools force you into a synchronous waiting game:
+1. Stage changes.
+2. Click "Generate".
+3. **Wait...** and watch a spinner.
+4. Review, accept, and *finally* commit.
 
-No confirmation modals. No wait times. No broken habits.
+This friction kills your flow state.
 
-## 🖥️ Extension Features
+## 🚀 The Solution: "Commit First, Think Later"
 
-- 🟢 **Real-time Status Bar**: See instantly if the Git AI daemon is polishing behind the scenes.
-- 🌳 **Action Panel**: Access one-click actions to Undo changes, Retry polishing, or manually force a push.
-- ⚙️ **Config UI**: Rich visual settings for managing API Keys, selecting models (DeepSeek, OpenAI, Ollama), and setting up prompts.
+Git AI flips the script. It operates purely asynchronously.
 
-## 🚀 Quick Start
+You simply type your lazy, dirty commit message:
+`git commit -m "fix bug"`
 
-1. Install this extension.
-2. In your terminal, run `git-ai init` inside your Git repository.
-3. Open the VS Code Settings UI (search for `git-ai`) to configure your **API Key** and Provider (e.g., DeepSeek, OpenAI, or a local Ollama model).
-4. Run `git commit -m "your dirty message"` in your VS Code terminal or Source Control UI.
-5. Watch the magic happen in your status bar! 
+And **you are done.** You instantly return to writing code.
 
+Meanwhile, a detached background daemon securely sends your diff to an LLM, processes conventional semantic rules, and silently `--amend`s your local commit in the background to:
+`fix(auth): resolve session timeout on mobile devices`
 
+If you habitually type `git commit -am "wip"` and immediately `git push`, Git AI elegantly queues the push, waits for the polish to finish, and executes it perfectly. **Zero broken habits.**
 
-## ⚙️ Providers Supported
+## ✨ Features Tailored for VS Code
 
-- **OpenAI Compatible Models** (`gpt-4o`, `gpt-3.5`, etc.)
-- **DeepSeek** (Default pre-configured model)
-- **Ollama** (Run models totally locally & offline for free)
+Git AI is deeply integrated into your VS Code workspace:
 
-## 💬 Telemetry & Privacy
+- 🟢 **Live Status Bar:** Instantly see when Git AI is polishing your commit behind the scenes.
+- 🌳 **Source Control Menu:** Native actions to undo an AI rewrite, retry a polish, or view daemon logs right from the SCM view.
+- ⚙️ **Seamless Configuration:** A rich, native Settings GUI to configure your API keys, prompts, and behaviors without touching JSON.
+- 🧠 **Bring Your Own Model:** First-class support for **DeepSeek**, **OpenAI (GPT-4o)**, and local, free, offline models via **Ollama**.
 
-The extension strictly communicates with your designated AI endpoints. No data is sent to us. 
+## 🛠️ Quick Start
+
+1. **Install** the extension from the VS Code Marketplace.
+2. **Open** any Git repository in VS Code. *The extension will automatically provision the background engine for you.*
+3. Open **Settings** (Search for `Git AI`) and securely paste your API key (DeepSeek is highly recommended for speed and cost).
+4. Run `git commit -m "your dirty message"` anywhere (VS Code Terminal or SCM panel).
+5. Watch the magic happen in the bottom right corner of your editor!
+
+## 🔒 Privacy First
+
+Your code is yours. Git AI communicates *exclusively and directly* with the AI endpoint you configure (e.g., `api.deepseek.com`, or your own `localhost:11434` for Ollama). 
+**Zero telemetry. Zero middleman servers.**
 
 ---
+
 <p align="center">
-  <sub>This project's own commit history is polished and maintained by <code>git-ai</code> 🤖</sub>
+  <sub>Built by developers, for developers. This project's own commit history is polished and maintained by <code>Git AI</code> 🤖</sub>
 </p>

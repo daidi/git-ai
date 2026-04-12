@@ -1,49 +1,73 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/daidi/git-ai/main/assets/icon.png" width="120" alt="git-ai logo" />
+  <img src="https://raw.githubusercontent.com/daidi/git-ai/main/assets/icon.png" width="120" alt="Git AI logo" />
 </p>
 
-<h1 align="center">Git AI - Async Commit Polisher</h1>
+<h1 align="center">Git AI: The Zero-Friction Commit Polisher</h1>
 
 <p align="center">
-  <strong>Never wait for AI. Polish your commits in the background while you code.</strong>
+  <strong>Don't wait for your AI. Keep coding while Git AI writes your commit messages in the background.</strong>
 </p>
 
-You write `git commit -m "fix bug"`. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
+<p align="center">
+  <a href="https://github.com/daidi/git-ai">GitHub</a> •
+  <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai">VS Code</a> •
+  <a href="https://plugins.jetbrains.com/plugin/24227-git-ai">IntelliJ</a>
+</p>
 
-## 💡 Why "Commit First"?
+## ⚡️ The Problem: AI Tools Break Your Flow
 
-Most AI commit tools make you *wait* before committing. We take the opposite approach: your code goes instantly into your Git history, and the LLM safely rewrites your commit message in the background. If you push early, the push is queued and executes silently after polishing.
+Most AI Git tools force you into a synchronous waiting game:
+1. Stage changes.
+2. Click "Generate Message".
+3. **Wait...** and stare at a loading bar.
+4. Review, accept, and *finally* commit.
 
-No confirmation modals. No wait times. No broken habits.
+This friction kills your momentum.
 
-## 🖥️ Plugin Features
+## 🚀 The Solution: "Commit First, Think Later"
 
-- 🟢 **Status Bar Widget**: See instantly if the Git AI background daemon is active right at the bottom of IntelliJ.
-- 🛠 **Tool Window & Logs**: Jump into the Git AI tool window to view live streaming logs of the daemon's internal process and decision-making.
-- ⚙️ **Native Preferences**: fully integrated into `Settings → Tools → Git AI` with seamless multi-language (en/zh-CN) layouts.
-- 🔄 **Commit Window Integration**: Provides top-level VCS menu actions for undoing and retrying commits.
+Git AI flips the script with pure, asynchronous background processing.
 
-## 🚀 Quick Start
+You simply type your fast, messy commit message in the JetBrains Commit Tool Window:
+`git commit -m "fix stuff"`
 
-1. Install the plugin from the JetBrains Marketplace.
-2. Open a project. A balloon notification will invite you to "Initialize Git AI" if your Git repo lacks the required hooks.
-3. Go to `Settings → Tools → Git AI` to set your **API Key** and Provider (Default is DeepSeek, supports OpenAI and local Ollama natively).
+And **you are done.** You instantly return to writing code.
+
+Meanwhile, a detached background daemon securely sends your diff to an LLM, applies conventional commit standards, and silently `--amend`s your commit in the background to:
+`fix(ui): resolve layout shift on high-DPI displays`
+
+Even if you click "Commit and Push", Git AI elegantly queues the push, waits for the polish to finish, and safely syncs with your remote. **Zero broken habits.**
+
+## ✨ Features Tailored for JetBrains
+
+Git AI is beautifully integrated into the JetBrains Platform:
+
+- 🟢 **Smart Status Bar Widget:** Real-time feedback at the bottom of your IDE. Know exactly what the daemon is doing without leaving your editor.
+- 📺 **Dedicated Git AI Tool Window:** Jump into a beautifully formatted live-streaming log of the background daemon's decision-making process.
+- ⚙️ **Native Preferences UI:** Fully integrated into `Settings → Tools → Git AI` with seamless multi-language (English / zh-CN) support.
+- 🌳 **Commit Action Toolbar:** One-click actions embedded directly into your Commit window to undo, cancel, or retry AI polishes.
+
+## 🛠️ Quick Start
+
+1. **Install** the plugin from the JetBrains Marketplace.
+2. **Open a Project.** If your Git repo lacks the necessary hooks, a friendly balloon will invite you to auto-initialize Git AI in one click. *The plugin will also automatically provision its fast background engine.*
+3. Navigate to **`Settings → Tools → Git AI`** to securely supply your API Key (DeepSeek is incredibly fast, or use your local Ollama instance).
 4. Do a regular Git Commit.
-5. Keep coding. Git AI will silently polish your original commit into a Conventional semantic message.
+5. Keep coding. Git AI takes care of the rest.
 
+## 🧠 Supported Providers
 
+- **OpenAI Compatible Models** (`gpt-4o`, `gpt-4-turbo`)
+- **DeepSeek** (Default & Highly Recommended)
+- **Ollama** (Run open-source models completely locally and offline)
 
-## ⚙️ Provider Setup
+## 🔒 Uncompromising Privacy
 
-- **OpenAI Models**
-- **DeepSeek** (highly recommended)
-- **Ollama** (completely local & private)
-
-## 💬 Privacy & Code Security
-
-All code diffs and prompts are sent exclusively to the API endpoints you manually configure. This plugin collects absolutely zero telemetry.
+Your codebase never passes through our servers. Git AI sends prompts and diffs *exclusively* to the LLM API endpoint you configure in your IDE. 
+**Zero data collection. Zero telemetry.**
 
 ---
+
 <p align="center">
-  <sub>This project's own commit history is polished and maintained by <code>git-ai</code> 🤖</sub>
+  <sub>Built by developers, for developers. This project's own commit history is polished and maintained by <code>Git AI</code> 🤖</sub>
 </p>

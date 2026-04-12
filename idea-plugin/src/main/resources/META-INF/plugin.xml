@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.daidi.gitai</id>
     <name>Git AI - Async Commit Polisher</name>
-    <vendor email="daidi@users.noreply.github.com" url="https://github.com/daidi/git-ai">daidi</vendor>
+    <vendor email="daidi88@sina.com" url="https://github.com/daidi/git-ai">daidi</vendor>
 
     <description><![CDATA[
     <h3>Commit first, think later.</h3>
@@ -22,6 +22,12 @@
     <br/>
 
     ]]></description>
+
+    <change-notes><![CDATA[
+        <ul>
+            <li>Initial release of Git AI</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>

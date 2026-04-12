@@ -2,11 +2,10 @@
   <img src="assets/icon.png" width="120" alt="git-ai logo" />
 </p>
 
-<h1 align="center">Git AI - Async Commit Polisher</h1>
+<h1 align="center">Git AI: The Zero-Friction Commit Polisher</h1>
 
 <p align="center">
-  <strong>Commit first, think later.</strong><br/>
-  <sub>AI-powered Git commit messages — async, invisible, zero-friction.</sub>
+  <strong>Don't wait for AI. Keep coding while Git AI writes your commit messages in the background.</strong>
 </p>
 
 <p align="center">
@@ -26,26 +25,36 @@
 
 ---
 
-You write `git commit -m "fix bug"`. Git log instantly shows `[⏳] fix bug` — letting you (and AI coding agents like Cursor/Claude Code) know it's being polished. Seconds later, it becomes `fix(auth): resolve session timeout on mobile devices` — silently, in the background, without you lifting a finger.
+## ⚡️ The Problem: AI Tools Break Your Flow
 
-**git-ai** hooks into your normal Git workflow and uses LLMs to rewrite your commit messages into clean, [Conventional Commits](https://www.conventionalcommits.org/)-style messages. It does this *after* you commit, so you're never waiting. The temporary `[⏳]` prefix provides instant visual feedback in `git log` and prevents confusion from AI agents. If you push while polishing is in progress, the push is queued and fires automatically when ready.
+Most AI Git tools force you into a synchronous waiting game: stage your files, click "Generate", watch a loading spinner, review, and *finally* commit. This friction kills your momentum.
 
-## 💡 Why "Commit First"?
+## 🚀 The Solution: "Commit First, Think Later"
 
-Most AI commit tools make you *wait* before committing. We take the opposite approach:
+Git AI flips the script with pure, asynchronous background processing.
 
-| | Traditional AI Commit Tools | git-ai |
+You simply type:
+`git commit -m "fix bug"`
+
+And **you are done**. You instantly return to writing code.
+
+Meanwhile, a detached background daemon securely sends your diff to an LLM, applies conventional commit standards, and silently `--amend`s your commit to:
+`fix(auth): resolve session timeout on mobile devices`
+
+If you habitually push immediately, Git AI elegantly queues the push, waits for the polish to finish, and auto-pushes when ready. **Zero broken habits.**
+
+## 💡 Why It's Better
+
+| | Traditional AI Tools | Git AI |
 |:---|:---|:---|
-| **Workflow** | Generate → review → commit | Commit → polish in background |
-| **Latency** | 2–5s blocking wait | Zero. You keep coding. |
+| **Workflow** | Generate → wait → review → commit | Commit → code → polish in background |
+| **Latency** | 2–5s blocking wait | **Zero. You keep coding.** |
 | **If AI fails?** | No commit happens | Your commit is safe regardless |
-| **Habit change?** | New commands to learn | `git commit` — same as always |
+| **Habit change?** | New buttons/commands to learn | Standard `git commit` |
 
-Three reasons this is better:
-
-1. **Instant snapshot** — Your code enters Git's version history *immediately*. Even if the AI service goes down, your work is safe.
-2. **Zero friction** — No waiting, no confirmation dialogs. You commit and move on. The message gets polished behind the scenes.
-3. **No new habits** — Use `git commit -m` from terminal, your IDE's commit UI, or any Git client you already love. git-ai is invisible.
+1. **Safety First:** Your code enters Git's history *immediately*. Even if the AI service goes down, your work is safely snapshotted.
+2. **Agent-Friendly:** Git log instantly shows an `[⏳]` prefix while polishing, preventing AI coding agents (like Cursor/Claude Code) from making duplicate commits.
+3. **Completely Invisible:** Use the terminal, JetBrains, VS Code, or any Git client. Git AI just works in the background.
 
 ---
 
