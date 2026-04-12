@@ -61,7 +61,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
         return when {
             currentState.isPolishing -> AllIcons.Actions.Lightning
             currentState.isPushing -> AllIcons.Vcs.Push
-            currentState.hasPendingPush -> AllIcons.Actions.Delay
+            currentState.hasPendingPush -> AllIcons.Actions.Suspend
             else -> AllIcons.Actions.Checked
         }
     }
@@ -76,8 +76,6 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
             else -> "git-ai: Idle"
         }
     }
-
-    override fun getAlignment(): Float = 0f
 
     override fun getClickConsumer(): Consumer<MouseEvent>? = null
 

@@ -107,7 +107,7 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
                 }
                 state.hasPendingPush -> {
                     statusLabel.text = "待推送..."
-                    statusLabel.icon = AllIcons.Actions.Delay
+                    statusLabel.icon = AllIcons.Actions.Suspend
                 }
                 else -> {
                     statusLabel.text = "空闲"
