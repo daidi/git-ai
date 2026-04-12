@@ -100,12 +100,40 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 
 ### GitHub Releases (Recommended)
 Download the latest pre-compiled binary for macOS, Linux, or Windows directly from the [GitHub Releases](https://github.com/daidi/git-ai/releases) page.
+Since there are many files published, please refer to the table below if downloading manually:
+
+| OS | Architecture / Chip | File to Download |
+| :--- | :--- | :--- |
+| **Windows** | 64-bit (Most common) | `git-ai_windows_amd64.zip` |
+| **Windows** | ARM | `git-ai_windows_arm64.zip` |
+| **macOS** | Apple Silicon (M1/M2/M3) | `git-ai_darwin_arm64.tar.gz` |
+| **macOS** | Intel | `git-ai_darwin_amd64.tar.gz` |
+| **Linux** | 64-bit / ARM | We provide `.deb`, `.rpm`, or `.tar.gz` |
+
+> *Tip: For Windows users, extract `git-ai.exe` from the zip file and add it to your system's `Path` environment variable.*
+
+#### 💻 Geek Way (GitHub CLI)
+If you have the `gh` CLI installed, avoid the asset list entirely with a simple one-liner:
+```bash
+# Windows
+gh release download -R daidi/git-ai -p "*windows_amd64.zip"
+
+# macOS (Apple Silicon, use amd64 for Intel)
+gh release download -R daidi/git-ai -p "*darwin_arm64.tar.gz"
+
+# Linux
+gh release download -R daidi/git-ai -p "*linux_amd64.tar.gz"
+```
 
 ### Package Managers
 
 ```bash
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai
+
+# Scoop (Windows)
+scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
+scoop install daidi/git-ai
 
 # Go Install (For Go developers)
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest

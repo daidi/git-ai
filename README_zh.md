@@ -101,12 +101,40 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 
 ### GitHub Releases (推荐，无需任何依赖)
 从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新单文件二进制程序。
+由于发布产物较多，首次下载请参考以下对照表：
+
+| 操作系统 | 架构 / 芯片 | 下载文件 |
+| :--- | :--- | :--- |
+| **Windows** | 64位 (绝大多数) | `git-ai_windows_amd64.zip` |
+| **Windows** | ARM (部分轻薄本) | `git-ai_windows_arm64.zip` |
+| **macOS** | Apple Silicon (M1/M2/M3) | `git-ai_darwin_arm64.tar.gz` |
+| **macOS** | Intel 芯片 | `git-ai_darwin_amd64.tar.gz` |
+| **Linux** | 64位 / ARM | 提供 `.deb`, `.rpm` 或直接下载 `.tar.gz` |
+
+> *提示：Windows 用户下载压缩包后，将其中的 `git-ai.exe` 解压并配置到系统的 `Path` 环境变量中即可。*
+
+#### 💻 极客直达 (通过 GitHub CLI)
+如果你已安装 `gh` CLI，一条命令即可精准下到本地，无需在浏览器里翻找折叠的 Assets 列表：
+```bash
+# Windows
+gh release download -R daidi/git-ai -p "*windows_amd64.zip"
+
+# macOS (Apple Silicon 版，Intel 请替换为 amd64)
+gh release download -R daidi/git-ai -p "*darwin_arm64.tar.gz"
+
+# Linux
+gh release download -R daidi/git-ai -p "*linux_amd64.tar.gz"
+```
 
 ### 包管理器
 
 ```bash
 # Homebrew (macOS/Linux)
 brew install daidi/tap/git-ai
+
+# Scoop (Windows)
+scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
+scoop install daidi/git-ai
 
 # Go Install (针对 Go 开发者)
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest

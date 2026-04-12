@@ -33,47 +33,47 @@
       {
         "command": "git-ai.init",
         "title": "%command.init%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.retry",
         "title": "%command.retry%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.undo",
         "title": "%command.undo%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.cancel",
         "title": "%command.cancel%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.forcePush",
         "title": "%command.forcePush%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.showLogs",
         "title": "%command.showLogs%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.openConfig",
         "title": "%command.openConfig%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.uninstall",
         "title": "%command.uninstall%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       },
       {
         "command": "git-ai.skipNextCommit",
         "title": "%command.skipNextCommit%",
-        "category": "git-ai"
+        "category": "%category.gitai%"
       }
     ],
     "icons": {
@@ -89,7 +89,7 @@
       "activitybar": [
         {
           "id": "git-ai",
-          "title": "Git AI",
+          "title": "%viewContainer.title%",
           "icon": "resources/icon.svg"
         }
       ]
@@ -98,27 +98,27 @@
       "git-ai": [
         {
           "id": "git-ai.status",
-          "name": "Status"
+          "name": "%view.status.name%"
         },
         {
           "id": "git-ai.actions",
-          "name": "Actions",
+          "name": "%view.actions.name%",
           "type": "webview"
         }
       ]
     },
     "configuration": {
-      "title": "Git AI",
+      "title": "%config.title%",
       "properties": {
         "git-ai.pollingInterval": {
           "type": "number",
           "default": 1000,
-          "description": "State file polling interval in milliseconds"
+          "description": "%config.pollingInterval%"
         },
         "git-ai.binaryPath": {
           "type": "string",
           "default": "git-ai",
-          "description": "Path to the git-ai binary"
+          "description": "%config.binaryPath%"
         },
         "git-ai.notificationMode": {
           "type": "string",
@@ -128,7 +128,7 @@
             "silentStatus"
           ],
           "default": "sound",
-          "description": "How notifications are displayed"
+          "description": "%config.notificationMode%"
         }
       }
     },
@@ -136,7 +136,10 @@
       {
         "id": "git-ai.scmMenu",
         "label": "%submenu.gitai%",
-        "icon": "$(zap)"
+        "icon": {
+          "light": "resources/icon.svg",
+          "dark": "resources/icon.svg"
+        }
       }
     ],
     "menus": {
