@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             nav_features: "Features",
-            hero_badge: "v0.2.3 Released",
+            hero_badge: "v0.4.2 Released",
             hero_title: "Commit first,<br>think <span>later.</span>",
             hero_desc: "An async background daemon that intercepts your raw commits, passes them to LLMs, and silently amends your history. <strong>Never wait in the terminal.</strong>",
             btn_vscode: "Get VS Code Extension",
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         zh: {
             nav_features: "核心特性",
-            hero_badge: "v0.2.3 最新发布",
+            hero_badge: "v0.4.2 最新发布",
             hero_title: "先提交，<br>后<span>思考。</span>",
             hero_desc: "基于 post-commit 挂钩的异步守护进程，自动拦截原始提交交由语言模型润色，并在后台静默重写历史。<strong>再也不用在终端里傻等。</strong>",
             btn_vscode: "获取 VS Code 插件",
