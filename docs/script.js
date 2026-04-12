@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
             term_line2: '<span class="t-wait">✨ git-ai:</span> Background polishing started (PID 28312)',
             term_line3: '<span class="t-dim">1 file changed, 12 insertions(+)</span>',
             term_line4: '<span class="t-success">✓ git-ai:</span> Polished commit message',
-            term_line5: '<span class="t-cmd">fix(auth): resolve session timeout on mobile devices</span>'
+            term_line5: '<span class="t-cmd">fix(auth): resolve session timeout on mobile devices</span>',
+            dl_mac: "Download for Mac",
+            dl_win: "Download for Windows",
+            dl_linux: "Download for Linux"
         },
         zh: {
             nav_features: "核心特性",
@@ -55,7 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
             term_line2: '<span class="t-wait">✨ git-ai:</span> 正在后台处理润色 (PID 28312)',
             term_line3: '<span class="t-dim">1 file changed, 12 insertions(+)</span>',
             term_line4: '<span class="t-success">✓ git-ai:</span> 润色完成',
-            term_line5: '<span class="t-cmd">fix(auth): resolve session timeout on mobile devices</span>'
+            term_line5: '<span class="t-cmd">fix(auth): resolve session timeout on mobile devices</span>',
+            dl_mac: "下载 Mac 版",
+            dl_win: "下载 Windows 版",
+            dl_linux: "下载 Linux 版"
         }
     };
 
@@ -171,4 +177,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     runTerminal();
+
+    // Auto-detect OS and provide direct download & command
+    async function setupSmartInstall() {
+        const ua = navigator.userAgent.toLowerCase();
+        let os = 'macOS';
+        
+        if (ua.includes('win')) os = 'windows';
+        if (ua.includes('linux') && !ua.includes('android')) os = 'linux';
+        
+        // Display OS-specific command
+        let cmd = 'brew install daidi/tap/git-ai';
+        if (os === 'windows') {
+            cmd = 'gh release download -R daidi/git-ai -p "*windows_amd64.zip"';
+        } else if (os === 'linux') {
+            cmd = 'gh release download -R daidi/git-ai -p "*linux_amd64.tar.gz"';
+        }
+        document.querySelector('.cmd-text').textContent = cmd;
+
+        // Setup direct download button via GitHub API
+        try {
+            const res = await fetch('https://api.github.com/repos/daidi/git-ai/releases/latest');
+            const data = await res.json();
+            const assets = data.assets;
+            
+            if (!assets) return;
+
+            let targetAsset = null;
+            let btnTextKey = 'dl_mac';
+
+            if (os === 'windows') {
+                targetAsset = assets.find(a => a.name.includes('windows_amd64.zip'));
+                btnTextKey = 'dl_win';
+            } else if (os === 'macOS') {
+                targetAsset = assets.find(a => a.name.includes('darwin_arm64.tar.gz')) || assets.find(a => a.name.includes('darwin_amd64.tar.gz')); 
+                btnTextKey = 'dl_mac';
+            } else {
+                targetAsset = assets.find(a => a.name.includes('linux_amd64.tar.gz'));
+                btnTextKey = 'dl_linux';
+            }
+
+            if (targetAsset) {
+                const dlBtn = document.createElement('a');
+                dlBtn.className = 'btn btn-primary';
+                dlBtn.href = targetAsset.browser_download_url;
+                dlBtn.setAttribute('data-i18n', btnTextKey);
+                dlBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 5px; vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> ${translations[currentLang][btnTextKey]}`;
+                
+                const docsBtn = document.querySelector('a[href*="#readme"]');
+                if (docsBtn && docsBtn.parentNode) {
+                    docsBtn.parentNode.insertBefore(dlBtn, docsBtn);
+                    dlBtn.style.marginRight = '10px';
+                }
+            }
+        } catch(e) {
+            console.log('Failed to fetch latest release:', e);
+        }
+    }
+    
+    setupSmartInstall();
 });
