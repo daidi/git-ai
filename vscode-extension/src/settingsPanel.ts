@@ -332,7 +332,8 @@ export class SettingsPanel {
 </style>
 <script>
     const i18n = {
-        confirmReset: "${t('settings.confirm.reset', '{0}')}"
+        confirmReset: "${t('settings.confirm.reset', '{0}')}",
+        disabledHint: "${t('settings.hint.disabledTemplate')}"
     };
 </script>
 </head>
@@ -436,6 +437,38 @@ export class SettingsPanel {
             document.getElementById('pane-' + scope).classList.add('active');
             window.scrollTo(0, 0);
         }
+
+        function updateDisables() {
+            ['g', 'p'].forEach(prefix => {
+                const pt = document.querySelector('[data-scope="' + prefix + '"][data-key="prompt_template"]');
+                const mf = document.querySelector('[data-scope="' + prefix + '"][data-key="message_format"]');
+                const ex = document.querySelector('[data-scope="' + prefix + '"][data-key="explain"]');
+                
+                if (pt && mf && ex) {
+                    const hasTemplate = pt.value.trim().length > 0;
+                    mf.disabled = hasTemplate;
+                    ex.disabled = hasTemplate;
+                    
+                    if (hasTemplate) {
+                        mf.title = i18n.disabledHint;
+                        ex.title = i18n.disabledHint;
+                        mf.style.opacity = '0.5';
+                        ex.style.opacity = '0.5';
+                    } else {
+                        mf.title = '';
+                        ex.title = '';
+                        mf.style.opacity = '1';
+                        ex.style.opacity = '1';
+                    }
+                }
+            });
+        }
+
+        document.querySelectorAll('[data-key="prompt_template"]').forEach(el => {
+            el.addEventListener('input', updateDisables);
+        });
+        // Run once on load
+        setTimeout(updateDisables, 0);
 
         function gatherFields(prefix) {
             const data = {};

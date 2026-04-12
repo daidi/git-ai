@@ -20,16 +20,19 @@ func SystemPrompt(format Format, language string, explain bool, commitlintConfig
 
 	switch format {
 	case FormatPlain:
+		lineRule := "- Keep it on a single line."
+		if explain {
+			lineRule = "- Maximum 72 characters for the first line."
+		}
 		base = fmt.Sprintf(`You are a Git commit message expert. Rewrite the given commit message to be clear, concise, and descriptive.
 
 Rules:
 - Output ONLY the commit message, nothing else.
-- Keep it on a single line.
+%s
 - Do not use any prefix like "feat:", "fix:", etc.
 - Do not use emoji.
 - Use imperative mood (e.g., "Add feature" not "Added feature").
-- Maximum 72 characters.
-%s`, langInstruction)
+%s`, lineRule, langInstruction)
 
 	case FormatConventional:
 		base = fmt.Sprintf(`You are a Git commit message expert following the Conventional Commits specification.

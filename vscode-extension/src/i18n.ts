@@ -36,7 +36,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
         'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
         'settings.hint.projectEnabled': 'Install / Uninstall physical webhooks for this repository.',
-        
+        'settings.hint.disabledTemplate': 'Disabled because Custom Prompt takes over formatting.',
+
         'settings.inherit.label': '\u2190 Inherited from Global',
         'settings.inherit.val': '(inherit: {0})',
         
@@ -173,6 +174,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
         'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
         'settings.hint.projectEnabled': '在当前代码仓库物理安装 / 卸载 Git Hook。',
+        'settings.hint.disabledTemplate': '已禁用（因为您填写了自定义提示词模板，它将接管所有格式化规则）',
         
         'settings.inherit.label': '\u2190 继承自全局设定',
         'settings.inherit.val': '(继承: {0})',
