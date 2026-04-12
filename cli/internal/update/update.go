@@ -27,7 +27,7 @@ func cachePath() string {
 
 // BackgroundCheck launches an async check if the cache is expired.
 func BackgroundCheck(checkUpdateEnabled bool) {
-	if (!checkUpdateEnabled) {
+	if !checkUpdateEnabled {
 		return
 	}
 	go func() {
@@ -41,18 +41,8 @@ func BackgroundCheck(checkUpdateEnabled bool) {
 		if time.Since(c.LastChecked) < checkInterval {
 			return
 		}
-
-		// Fetch latest release
-		resp, err := http.Get("https://api.github.com/repos/" + repo + "/releases/latest")
+		release, err := FetchLatestRelease()
 		if err != nil {
-			return
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		var release struct {
-			TagName string `json:"tag_name"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 			return
 		}
 
@@ -64,6 +54,35 @@ func BackgroundCheck(checkUpdateEnabled bool) {
 			_ = os.WriteFile(path, b, 0644)
 		}
 	}()
+}
+
+// ReleaseMetadata contains GitHub API payload info for releases
+type ReleaseMetadata struct {
+	TagName string `json:"tag_name"`
+	Assets  []struct {
+		Name               string `json:"name"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
+}
+
+// FetchLatestRelease pulls the latest release from GitHub
+func FetchLatestRelease() (*ReleaseMetadata, error) {
+	resp, err := http.Get("https://api.github.com/repos/" + repo + "/releases/latest")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github api returned %s", resp.Status)
+	}
+
+	var release ReleaseMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, err
+	}
+	return &release, nil
+
 }
 
 // CheckUpdate returns a notice string if an update is available.

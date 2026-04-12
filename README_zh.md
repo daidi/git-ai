@@ -97,7 +97,9 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 - 🔔 **系统通知** —— 润色/推送完成时发送操作系统原生通知
 - ⏪ **撤销与重试** —— 随时恢复原始消息或重新生成
 
-## 📦 核心引擎 (CLI) 安装
+## 📦 CLI 手动安装 (如果你只用终端)
+
+> **注意**: 如果你已经安装了 VS Code 或 JetBrains 插件，**请跳过本节，无需任何手动安装**。插件会在后台自动为你下载并管理跨平台的 CLI 核心引擎。
 
 ### GitHub Releases (推荐，无需任何依赖)
 从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新单文件二进制程序。

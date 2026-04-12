@@ -30,7 +30,7 @@ No confirmation modals. No wait times. No broken habits.
 4. Run `git commit -m "your dirty message"` in your VS Code terminal or Source Control UI.
 5. Watch the magic happen in your status bar! 
 
-> **Important**: This extension serves as the graphical interface. Under the hood, it seamlessly observes the [git-ai Core CLI Engine](https://github.com/daidi/git-ai). Make sure the `git-ai` CLI is installed and in your PATH!
+
 
 ## ⚙️ Providers Supported
 

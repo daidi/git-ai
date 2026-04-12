@@ -20,7 +20,7 @@
         <li><b>Visual Settings</b> — Configure API keys and providers (DeepSeek, OpenAI, local Ollama) inside Preferences with i18n support.</li>
     </ul>
     <br/>
-    <p><i>Note: This plugin acts as the rich graphical dashboard. The open-source <code>git-ai</code> background daemon must be installed on your system. <a href="https://github.com/daidi/git-ai">Check out the GitHub Repository for installation instructions</a>.</i></p>
+
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

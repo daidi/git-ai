@@ -27,7 +27,7 @@ var rootCmd = &cobra.Command{
 	Use:   "git-ai",
 	Short: "AI-powered Git commit message enhancer",
 	Long: "\033[1;36m✨ Git AI - Async Commit Polisher\033[0m\n\n" +
-`Never wait for AI. Polish your commits in the background while you code.
+		`Never wait for AI. Polish your commits in the background while you code.
 Git AI automatically enhances your commit messages using LLMs.
 It works asynchronously via post-commit hooks and supports deferred push.`,
 
@@ -35,14 +35,14 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip git root detection for commands that don't need it.
 		// Including the root command itself if run with no args (which shows help).
-		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai"
+		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai" || cmd.Name() == "update"
 		for c := cmd; c != nil; c = c.Parent() {
 			if c.Name() == "config" {
 				skipGit = true
 				break
 			}
 		}
-		
+
 		// Initialize i18n as early as possible.
 		// Try to load config for ui_language; if unavailable, i18n auto-detects from env.
 		var uiLang string

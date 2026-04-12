@@ -31,7 +31,7 @@ No confirmation modals. No wait times. No broken habits.
 4. Do a regular Git Commit.
 5. Keep coding. Git AI will silently polish your original commit into a Conventional semantic message.
 
-> **Important**: This plugin provides a rich IDE frontend. Underneath, it seamlessly observes the [git-ai Core CLI Engine](https://github.com/daidi/git-ai). Make sure the `git-ai` CLI is installed and in your PATH!
+
 
 ## ⚙️ Provider Setup
 

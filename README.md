@@ -96,7 +96,9 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 - 🔔 **System notifications** — OS-native toast when polish/push finishes
 - ⏪ **Undo & retry** — restore original message or re-generate at any time
 
-## 📦 Core Engine Install (CLI)
+## 📦 Manual CLI Installation (For Terminal-Only Users)
+
+> **Note**: If you are using the VS Code or JetBrains plugin, **do not manually install the CLI**. The plugins handle downloading and managing the CLI for you completely behind the scenes.
 
 ### GitHub Releases (Recommended)
 Download the latest pre-compiled binary for macOS, Linux, or Windows directly from the [GitHub Releases](https://github.com/daidi/git-ai/releases) page.
