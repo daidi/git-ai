@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             nav_features: "Features",
-            hero_badge: "v0.4.2 Released",
+            hero_badge: "v1.0.0 Released",
             hero_title: "Commit first,<br>think <span>later.</span>",
             hero_desc: "Don't wait for AI. Keep coding while Git AI writes your commit messages in the background. <strong>The zero-friction async polisher.</strong>",
             btn_vscode: "Get VS Code Extension",
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         zh: {
             nav_features: "核心特性",
-            hero_badge: "v0.4.2 最新发布",
+            hero_badge: "v1.0.0 最新发布",
             hero_title: "先提交，<br>后<span>思考。</span>",
             hero_desc: "告别漫长的同步等待。你只管写代码，让 Git AI 在后台默默为你写好提交信息。<strong>零摩擦的异步润色体验。</strong>",
             btn_vscode: "获取 VS Code 插件",
