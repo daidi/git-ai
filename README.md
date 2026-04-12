@@ -144,6 +144,22 @@ Since there are many files published, please refer to the table below if downloa
 
 
 
+### Universal Installer Script (macOS/Linux)
+
+The quickest way to install is via our terminal script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+
+For Windows users, open PowerShell and run:
+
+```powershell
+iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
+```
+
 ### Package Managers
 
 ```bash

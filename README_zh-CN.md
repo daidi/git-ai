@@ -144,6 +144,22 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 
 
 
+### 终端一键安装脚本 (macOS/Linux)
+
+最快且跨平台的安装方式是通过我们的终端脚本：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+
+Windows 用户请打开 PowerShell 并运行：
+
+```powershell
+iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
+```
+
 ### 包管理器
 
 ```bash

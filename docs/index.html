@@ -3,145 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Git AI: The Zero-Friction Commit Polisher</title>
-    <meta name="description" content="Git AI: The Zero-Friction Commit Polisher. Don't wait for AI. Keep coding while it writes your commit messages in the background. Commit first, think later.">
-    
-    <!-- Modern Typefaces -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Vanilla CSS -->
+    <title>Git AI - The Ghost Daemon Commit Polisher</title>
+    <!-- Geist Font -->
+    <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/style.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="bgr-grid"></div>
-    <div class="bg-glow"></div>
-    <header class="navbar">
-        <div class="container nav-container">
+    <nav class="navbar">
+        <div class="nav-container container">
             <div class="logo">
-                <img src="assets/icon.png" alt="Git AI Logo" class="logo-img">
+                <svg class="logo-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
                 <span class="logo-text">Git AI</span>
             </div>
-            <nav class="nav-links">
-                <a href="#features" data-i18n="nav_features">Features</a>
-                <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank" rel="noopener">JetBrains</a>
-                <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank" rel="noopener">VS Code</a>
-                <a href="https://github.com/daidi/git-ai" target="_blank" rel="noopener" class="github-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                    GitHub
-                </a>
-                <select id="lang-select" class="btn btn-secondary" style="padding: 6px 24px 6px 12px; font-size: 0.875rem; cursor: pointer; outline: none; background-color: var(--bg-surface); color: var(--text-main); border-radius: var(--radius); border: 1px solid var(--border);">
-                    <option value="en">English</option>
-                    <option value="zh-cn">简体中文</option>
-                    <option value="zh-tw">繁體中文</option>
-                    <option value="fr">Français</option>
-                    <option value="it">Italiano</option>
-                    <option value="de">Deutsch</option>
-                    <option value="es">Español</option>
-                    <option value="ja">日本語</option>
-                    <option value="ko">한국어</option>
-                    <option value="pt">Português</option>
-                    <option value="ru">Русский</option>
-                    <option value="ar">العربية</option>
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="th">ไทย</option>
-                    <option value="id">Bahasa Indonesia</option>
-                </select>
-            </nav>
+            <div class="nav-links">
+                <a href="#problem" data-i18n="nav_problem">Why it exists</a>
+                <a href="#faq" data-i18n="nav_faq">FAQ</a>
+                <a href="https://github.com/daidi/git-ai" target="_blank" data-i18n="btn_github">View Source</a>
+                <div class="custom-dropdown" id="lang-dropdown">
+                    <button class="dropdown-trigger btn btn-ghost" id="lang-trigger">
+                        <span id="lang-selected-text">English</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="dropdown-menu">
+                        <button class="lang-option" data-val="en">🇺🇸 English</button>
+                        <button class="lang-option" data-val="zh-cn">🇨🇳 简体中文</button>
+                        <button class="lang-option" data-val="zh-tw">🇭🇰 繁體中文</button>
+                        <button class="lang-option" data-val="fr">🇫🇷 Français</button>
+                        <button class="lang-option" data-val="it">🇮🇹 Italiano</button>
+                        <button class="lang-option" data-val="de">🇩🇪 Deutsch</button>
+                        <button class="lang-option" data-val="es">🇪🇸 Español</button>
+                        <button class="lang-option" data-val="ja">🇯🇵 日本語</button>
+                        <button class="lang-option" data-val="ko">🇰🇷 한국어</button>
+                        <button class="lang-option" data-val="pt">🇵🇹 Português</button>
+                        <button class="lang-option" data-val="ru">🇷🇺 Русский</button>
+                        <button class="lang-option" data-val="ar">🇸🇦 العربية</button>
+                        <button class="lang-option" data-val="vi">🇻🇳 Tiếng Việt</button>
+                        <button class="lang-option" data-val="th">🇹🇭 ไทย</button>
+                        <button class="lang-option" data-val="id">🇮🇩 Bahasa Indonesia</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Compressed Hero -->
+    <header class="hero container">
+        <span class="tech-label" style="display:inline-block;margin-bottom:16px;" data-i18n="hero_badge">V1.2.0 • MIT LICENSED</span>
+        <h1 class="hero-title" data-i18n="hero_title">Write code. Not commits.</h1>
+        <p class="hero-desc" data-i18n="hero_desc">
+            A background git hooks engine that deeply understands your diffs and silently polishes your commits while you keep coding. Zero terminal waiting.
+        </p>
+        <div class="hero-actions">
+            <a href="#install" class="btn btn-pill" data-i18n="btn_install">Install Now</a>
+            <a href="#scroll-story" class="btn btn-outline" data-i18n="sec_arch">See How It Works</a>
         </div>
     </header>
 
-    <main class="container hero">
-        <div class="hero-content">
-            <div class="hero-badge">
-                <span class="badge-dot"></span>
-                <span data-i18n="hero_badge">v1.0.1 Released</span>
-            </div>
-            <h1 class="hero-title" data-i18n="hero_title">Commit first,<br>think <span>later.</span></h1>
-            <p class="hero-desc" data-i18n="hero_desc">
-                An async background daemon that intercepts your raw commits, passes them to LLMs, and silently amends your history. <strong>Never wait in the terminal.</strong>
-            </p>
-            <div class="hero-actions">
-                <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank" rel="noopener" class="btn btn-primary btn-massive">
-                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-2H1v2h2zm2-20h-2v2h2v-2zm16 20h2v-2h-2v2zm2-20h-2v2h2v-2z"></path><path d="M7 16l4-4-4-4"></path><path d="M12 16h5"></path></svg>
-                    <span data-i18n="btn_vscode">Get VS Code Extension</span>
-                </a>
-                <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank" rel="noopener" class="btn btn-primary btn-massive">
-                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    <span data-i18n="btn_idea">Get JetBrains Plugin</span>
-                </a>
-            </div>
-            <div class="hero-subtext">
-                <a href="https://github.com/daidi/git-ai#readme" target="_blank" rel="noopener" data-i18n="hero_cli_link">Terminal maximalist? Get the CLI engine →</a>
-            </div>
-        </div>
+    <!-- Visionary Sticky Story Section -->
+    <section id="scroll-story" class="scroll-story-section">
+        <div class="story-layout">
+            
+            <!-- Left Side: Scrollable Text -->
+            <div class="story-text">
+                <!-- Step 1 -->
+                <div class="story-step" data-step="1">
+                    <div class="step-marker"></div>
+                    <span class="tech-label">PHASE 01</span>
+                    <h3 data-i18n="flow_step1_title">12ms Hook</h3>
+                    <p data-i18n="flow_step1_desc">Run git commit -m "fix". The intercepting post-commit hook finishes instantly.</p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="story-step" data-step="2">
+                    <div class="step-marker"></div>
+                    <span class="tech-label">PHASE 02</span>
+                    <h3 data-i18n="flow_step2_title">Daemon Detaches</h3>
+                    <p data-i18n="flow_step2_desc">A background process orphans itself to the OS, completely freeing your terminal.</p>
+                </div>
 
-        <div class="hero-visual">
-            <div class="terminal">
-                <div class="term-header">
-                    <div class="term-controls">
-                        <span class="term-dot rot"></span>
-                        <span class="term-dot yel"></span>
-                        <span class="term-dot grn"></span>
+                <!-- Step 3 -->
+                <div class="story-step" data-step="3">
+                    <div class="step-marker"></div>
+                    <span class="tech-label">PHASE 03</span>
+                    <h3 data-i18n="flow_step3_title">Ghost Polishing</h3>
+                    <p data-i18n="flow_step3_desc">The script fetches the diff, streams to the LLM, and runs git commit --amend silently.</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="story-step" data-step="4">
+                    <div class="step-marker"></div>
+                    <span class="tech-label">PHASE 04</span>
+                    <h3 data-i18n="flow_step4_title">Auto-Queue</h3>
+                    <p data-i18n="flow_step4_desc">If you run git push early, the payload queues until the amend finishes.</p>
+                </div>
+            </div>
+
+            <!-- Right Side: Sticky Terminal -->
+            <div class="story-visual">
+                <div class="sticky-terminal">
+                    <div class="term-header">
+                        <div class="term-dot"></div>
+                        <div class="term-dot"></div>
+                        <div class="term-dot"></div>
+                        <div class="term-title">git-ai-daemon (orphaned)</div>
                     </div>
-                    <div class="term-title">~ / workspaces / git-ai</div>
-                </div>
-                <div class="term-body" id="term-typing">
-                    <!-- Typing script populates here -->
+                    <div class="term-body" id="dynamic-term-body">
+                        <!-- Lines populated by JS based on active step -->
+                        <div id="term-content">
+                            <div class="t-line active"><span class="t-prompt">➜</span> <span class="t-dim">Waiting for scroll...</span><span class="cursor"></span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
 
-    <section id="features" class="container bento-grid">
-        <div class="feature-card bento-item hover-effect reveal-up">
-            <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            </div>
-            <h3 data-i18n="feat1_title">Zero Latency</h3>
-            <p data-i18n="feat1_desc">Your commit completes in 12ms. The LLM processes everything in an orphaned background daemon.</p>
-        </div>
-        <div class="feature-card bento-item item-span-2 hover-effect reveal-up" style="animation-delay: 100ms;">
-            <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            </div>
-            <h3 data-i18n="feat2_title">Real-time Status</h3>
-            <p data-i18n="feat2_desc"><code>[⏳]</code> prefix acts as a locking mechanism visible natively in <code>git log</code> to prevent sync issues.</p>
-        </div>
-        <div class="feature-card bento-item item-span-2 hover-effect reveal-up" style="animation-delay: 200ms;">
-            <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-            </div>
-            <h3 data-i18n="feat3_title">Queue Push</h3>
-            <p data-i18n="feat3_desc">Hitting <code>git push</code> while polishing? We queue the network payload and execute it after the amend finishes.</p>
-        </div>
-        <div class="feature-card bento-item hover-effect reveal-up" style="animation-delay: 300ms;">
-            <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-            </div>
-            <h3 data-i18n="feat4_title">IDE Native</h3>
-            <p data-i18n="feat4_desc">No more terminal toggling. Monitor daemon hooks natively through VS Code and IntelliJ IDEA extensions.</p>
         </div>
     </section>
 
-    <footer class="footer container">
+    <!-- Deep IDE Integration -->
+    <section class="features-grid">
+        <div class="f-card">
+            <span class="tech-label">ECOSYSTEM</span>
+            <h3 data-i18n="eco_title">Deep IDE Integration</h3>
+            <p data-i18n="eco_desc">Don't want to use the terminal? Native VS Code and IntelliJ IDEA plugins monitor the state file to provide real-time background status, streaming logs, and controls directly where you write code.</p>
+        </div>
+        <div class="f-card">
+            <span class="tech-label">PROBLEM STATEMENT</span>
+            <h3 data-i18n="prob_title">The AI Waiting Problem</h3>
+            <p data-i18n="prob_desc">Synchronous CLI tools lock your terminal for 10-30 seconds while the LLM generates a commit message. That's enough friction to break your flow and lose context.</p>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+        <span class="tech-label" style="display:block;text-align:center;margin-bottom:16px;">KNOWLEDGE BASE</span>
+        <h2 data-i18n="faq_title">Frequently Asked Questions</h2>
+        <div class="faq-list">
+            <div class="faq-item">
+                <h4 data-i18n="faq1_q">Will it mess up my git history?</h4>
+                <p data-i18n="faq1_a">No. Git AI uses a strictly matched lock prefix [⏳]. It only ever amends the latest exact commit it was initiated on.</p>
+            </div>
+            <div class="faq-item">
+                <h4 data-i18n="faq2_q">What if I push while it's still generating?</h4>
+                <p data-i18n="faq2_a">By default, the pre-push hook intercepts the network call, puts it in an execution queue, and releases the terminal. The actual network push runs automatically in the background.</p>
+            </div>
+            <div class="faq-item">
+                <h4 data-i18n="faq3_q">Which LLMs are supported?</h4>
+                <p data-i18n="faq3_a">Git AI natively supports the OpenAI, Anthropic, Gemini, and DeepSeek APIs. It also supports locally hosted models like Ollama.</p>
+            </div>
+            <div class="faq-item">
+                <h4 data-i18n="faq4_q">Do I need the IDE plugin to use it?</h4>
+                <p data-i18n="faq4_a">No, the core engine is a standalone Go binary that operates purely via standard Git hooks. It works universally.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation CTA Section -->
+    <section id="install" class="cta-section" style="padding: 120px 0; border-top: 1px solid var(--border-subtle); background: var(--bg-surface);">
+        <div class="container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;">
+            <div style="text-align: left;">
+                <h2 style="font-size: 2.5rem; font-weight: 400; margin-bottom: 16px; letter-spacing: -0.04em;" data-i18n="cta_title">Start commiting faster.</h2>
+                <p style="color: var(--text-secondary); max-width: 400px; font-size: 1.125rem;" data-i18n="cta_desc">Install the CLI via script or grab an IDE plugin.</p>
+            </div>
+            
+            <div style="text-align: right;">
+                <!-- OS Selector -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; justify-content: flex-end;" id="os-selector">
+                    <button class="os-btn active" data-os="unix" style="background:var(--bg-elevated); color:var(--text-main); border:1px solid var(--border-standard); padding:4px 12px; border-radius:12px; font-size:0.75rem; cursor:pointer; transition:0.2s;">macOS / Linux</button>
+                    <button class="os-btn" data-os="win" style="background:transparent; color:var(--text-muted); border:1px solid transparent; padding:4px 12px; border-radius:12px; font-size:0.75rem; cursor:pointer; transition:0.2s;">Windows (PowerShell)</button>
+                </div>
+                <!-- Code snippet install box -->
+                <div class="install-box" style="margin-bottom: 16px; padding: 16px 24px; background: var(--bg-base); border: 1px solid var(--border-standard); border-radius: var(--radius-sm); text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                    <code id="install-cmd" style="font-family: var(--font-mono); color: var(--accent); font-size: 0.875rem; white-space: nowrap; overflow-x: auto; margin-right: 16px; scrollbar-width: none;">curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash</code>
+                    <button onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').innerText); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 2000)" style="background: transparent; color: var(--text-muted); border: none; cursor: pointer; font-family: var(--font-sans); font-size: 0.875rem; transition: 0.2s;">Copy</button>
+                </div>
+
+                <div style="display: flex; gap: 16px; justify-content: flex-start;">
+                    <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" class="btn btn-outline" data-i18n="btn_idea">IntelliJ IDEA</a>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" class="btn btn-outline" data-i18n="btn_vscode">VS Code extension</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
         <div class="footer-top">
             <div class="footer-brand">
-                <img src="assets/icon.png" alt="Git AI Logo" class="footer-logo">
                 <span class="footer-name">Git AI</span>
-                <p data-i18n="footer_subtitle">Async Commit Polisher.</p>
+                <p data-i18n="footer_subtitle">© 2026. The Async Commit Framework.</p>
             </div>
             <div class="footer-links">
                 <div class="link-col">
-                    <strong data-i18n="footer_plugins">Plugins</strong>
-                    <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank">JetBrains</a>
-                    <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank">VS Code</a>
+                    <strong data-i18n="footer_resources">Project</strong>
+                    <a href="https://github.com/daidi/git-ai" data-i18n="footer_repo">GitHub</a>
+                    <a href="https://github.com/daidi/git-ai/releases" data-i18n="footer_releases">Releases</a>
                 </div>
                 <div class="link-col">
-                    <strong data-i18n="footer_resources">Resources</strong>
-                    <a href="https://github.com/daidi/git-ai" data-i18n="footer_repo">GitHub Repositories</a>
-                    <a href="https://github.com/daidi/git-ai/releases" data-i18n="footer_releases">Releases</a>
+                    <strong data-i18n="footer_plugins">Ecosystem</strong>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" data-i18n="btn_vscode">VS Code Plugin</a>
+                    <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" data-i18n="btn_idea">IntelliJ Plugin</a>
                 </div>
             </div>
         </div>
