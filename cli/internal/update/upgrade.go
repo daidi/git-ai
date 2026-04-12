@@ -104,7 +104,7 @@ func PerformUpgrade(currentVersion string) error {
 					return err
 				}
 				newBinData, err = io.ReadAll(rc)
-				rc.Close()
+				_ = rc.Close()
 				if err != nil {
 					return err
 				}
@@ -157,14 +157,14 @@ func PerformUpgrade(currentVersion string) error {
 	// 2. Rename current to bak
 	_ = os.Remove(bakFile) // ensure no old bak file
 	if err := os.Rename(execPath, bakFile); err != nil {
-		os.Remove(tempFile)
+		_ = os.Remove(tempFile)
 		return fmt.Errorf("failed to swap binary (permission denied? run with root/admin?): %w", err)
 	}
 
 	// 3. Rename new to current
 	if err := os.Rename(tempFile, execPath); err != nil {
 		// rollback
-		os.Rename(bakFile, execPath)
+		_ = os.Rename(bakFile, execPath)
 		return fmt.Errorf("failed to install new binary: %w", err)
 	}
 
