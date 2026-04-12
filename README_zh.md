@@ -113,18 +113,7 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 
 > *提示：Windows 用户下载压缩包后，将其中的 `git-ai.exe` 解压并配置到系统的 `Path` 环境变量中即可。*
 
-#### 💻 极客直达 (通过 GitHub CLI)
-如果你已安装 `gh` CLI，一条命令即可精准下到本地，无需在浏览器里翻找折叠的 Assets 列表：
-```bash
-# Windows
-gh release download -R daidi/git-ai -p "*windows_amd64.zip"
 
-# macOS (Apple Silicon 版，Intel 请替换为 amd64)
-gh release download -R daidi/git-ai -p "*darwin_arm64.tar.gz"
-
-# Linux
-gh release download -R daidi/git-ai -p "*linux_amd64.tar.gz"
-```
 
 ### 包管理器
 

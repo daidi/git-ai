@@ -50,12 +50,17 @@ export async function checkAndPromptInstall(): Promise<void> {
 }
 
 function promptInstall() {
-    vscode.window.showWarningMessage(
-        t('installer.missing'),
+    const isMac = os.platform() === 'darwin';
+    const options = [
         t('installer.download'),
-        t('installer.homebrew'),
+        ...(isMac ? [t('installer.homebrew')] : []),
         t('installer.go'),
         t('installer.cancel')
+    ];
+
+    vscode.window.showWarningMessage(
+        t('installer.missing'),
+        ...options
     ).then(selection => {
         if (!selection || selection === t('installer.cancel')) {
             notifyWarning(t('installer.skipped'));

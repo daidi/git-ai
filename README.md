@@ -112,18 +112,7 @@ Since there are many files published, please refer to the table below if downloa
 
 > *Tip: For Windows users, extract `git-ai.exe` from the zip file and add it to your system's `Path` environment variable.*
 
-#### 💻 Geek Way (GitHub CLI)
-If you have the `gh` CLI installed, avoid the asset list entirely with a simple one-liner:
-```bash
-# Windows
-gh release download -R daidi/git-ai -p "*windows_amd64.zip"
 
-# macOS (Apple Silicon, use amd64 for Intel)
-gh release download -R daidi/git-ai -p "*darwin_arm64.tar.gz"
-
-# Linux
-gh release download -R daidi/git-ai -p "*linux_amd64.tar.gz"
-```
 
 ### Package Managers
 
