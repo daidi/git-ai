@@ -25,7 +25,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     // ── Global fields ──
     private val gApiKey = JBPasswordField()
-    private val gProvider = JComboBox(arrayOf("openai", "ollama"))
+    private val gProvider = JComboBox(arrayOf("openai", "ollama", "anthropic", "gemini"))
     private val gBaseUrl = JBTextField()
     private val gModel = JBTextField()
     private val gMessageFormat = JComboBox(arrayOf("conventional", "plain", "gitmoji", "subject-body"))
@@ -39,7 +39,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     // ── Project fields ──
     private val pApiKey = JBPasswordField()
-    private val pProvider = JComboBox(arrayOf("", "openai", "ollama"))
+    private val pProvider = JComboBox(arrayOf("", "openai", "ollama", "anthropic", "gemini"))
     private val pBaseUrl = JBTextField()
     private val pModel = JBTextField()
     private val pMessageFormat = JComboBox(arrayOf("", "conventional", "plain", "gitmoji", "subject-body"))

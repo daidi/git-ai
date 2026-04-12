@@ -357,7 +357,7 @@ export class SettingsPanel {
         <div class="section-title"><i class="codicon codicon-key"></i>${t('settings.section.auth')}</div>
         <div class="divider"></div>
         ${this.renderField('g', 'api_key', t('settings.field.apiKey'), 'password', DEFAULTS.api_key, global.api_key, '', t('settings.hint.apiKey'))}
-        ${this.renderSelect('g', 'provider', t('settings.field.provider'), ['openai', 'ollama'], DEFAULTS.provider, global.provider, '')}
+        ${this.renderSelect('g', 'provider', t('settings.field.provider'), ['openai', 'ollama', 'anthropic', 'gemini'], DEFAULTS.provider, global.provider, '')}
         ${this.renderField('g', 'base_url', t('settings.field.baseUrl'), 'text', DEFAULTS.base_url, global.base_url, '')}
         ${this.renderField('g', 'model', t('settings.field.model'), 'text', DEFAULTS.model, global.model, '')}
 
@@ -396,7 +396,7 @@ export class SettingsPanel {
         <div class="section-title"><i class="codicon codicon-key"></i>${t('settings.section.auth')}</div>
         <div class="divider"></div>
         ${this.renderField('p', 'api_key', t('settings.field.apiKey'), 'password', '', project.api_key, merged.api_key, '')}
-        ${this.renderSelect('p', 'provider', t('settings.field.provider'), ['', 'openai', 'ollama'], '', project.provider, merged.provider)}
+        ${this.renderSelect('p', 'provider', t('settings.field.provider'), ['', 'openai', 'ollama', 'anthropic', 'gemini'], '', project.provider, merged.provider)}
         ${this.renderField('p', 'base_url', t('settings.field.baseUrl'), 'text', '', project.base_url, merged.base_url)}
         ${this.renderField('p', 'model', t('settings.field.model'), 'text', '', project.model, merged.model)}
 

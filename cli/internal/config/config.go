@@ -22,6 +22,7 @@ type Config struct {
 	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
 	LogLevel       string `json:"log_level,omitempty"`
 	CheckUpdate    *bool  `json:"check_update,omitempty"`
+	Explain        bool   `json:"explain,omitempty"`
 }
 
 // IsDebug returns true when the log level is set to "debug".
@@ -140,6 +141,8 @@ func Set(path, key, value string) error {
 	case "check_update":
 		b := value == "true"
 		cfg.CheckUpdate = &b
+	case "explain":
+		cfg.Explain = value == "true"
 	default:
 		return &UnknownKeyError{Key: key}
 	}
@@ -175,6 +178,11 @@ func Get(cfg *Config, key string) (string, error) {
 			return "true", nil
 		}
 		return "false", nil
+	case "explain":
+		if cfg.Explain {
+			return "true", nil
+		}
+		return "false", nil
 	default:
 		return "", &UnknownKeyError{Key: key}
 	}
@@ -185,7 +193,7 @@ func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider",
 		"language", "ui_language", "push_policy", "message_format", "prompt_template",
-		"log_level", "check_update",
+		"log_level", "check_update", "explain",
 	}
 }
 
@@ -236,6 +244,9 @@ func mergeConfig(dst, src *Config) {
 	if src.CheckUpdate != nil {
 		dst.CheckUpdate = src.CheckUpdate
 	}
+	if src.Explain {
+		dst.Explain = src.Explain
+	}
 }
 
 // applyEnvOverrides applies environment variable overrides to the config.
@@ -260,5 +271,8 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("GIT_AI_LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
+	}
+	if v := os.Getenv("GIT_AI_EXPLAIN"); v == "true" {
+		cfg.Explain = true
 	}
 }

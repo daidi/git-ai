@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/daidi/git-ai/internal/config"
@@ -47,19 +48,51 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 // PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
 func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.Logger) (string, error) {
 	// Use direct HTTP client instead of langchaingo for better control
-	client := NewOpenAIClient(cfg, logger)
+	client := NewClient(cfg, logger)
 
 	// Trim the diff to stay within token budget.
 	trimmedDiff := TrimDiff(diff, cfg.MaxDiffTokens)
 
 	// Build prompts.
 	format := Format(cfg.MessageFormat)
-	sysProm := SystemPrompt(format, cfg.Language)
+	var sysProm, userProm string
+
 	if cfg.PromptTemplate != "" {
-		// Custom template overrides the default system prompt.
-		sysProm = cfg.PromptTemplate
+		tmpl, err := template.New("prompt").Parse(cfg.PromptTemplate)
+		if err != nil {
+			logger.Printf("failed to parse prompt_template: %v, falling back to default", err)
+		} else {
+			ctx := struct {
+				Hint     string
+				Diff     string
+				Language string
+			}{
+				Hint:     originalMsg,
+				Diff:     trimmedDiff,
+				Language: cfg.Language,
+			}
+
+			var buf strings.Builder
+			if err := tmpl.Execute(&buf, ctx); err != nil {
+				logger.Printf("failed to execute prompt_template: %v, falling back to default", err)
+			} else {
+				rendered := buf.String()
+				if strings.Contains(cfg.PromptTemplate, "{{.Diff}}") {
+					sysProm = "You are a Git commit message expert."
+					userProm = rendered
+				} else {
+					sysProm = rendered
+					userProm = UserPrompt(originalMsg, trimmedDiff)
+				}
+				goto PromptsReady
+			}
+		}
 	}
-	userProm := UserPrompt(originalMsg, trimmedDiff)
+
+	sysProm = SystemPrompt(format, cfg.Language)
+	userProm = UserPrompt(originalMsg, trimmedDiff)
+
+PromptsReady:
 
 	logger.Printf("prompt: system=%d chars, user=%d chars (diff≈%d tokens)",
 		len(sysProm), len(userProm), len(trimmedDiff)/4)

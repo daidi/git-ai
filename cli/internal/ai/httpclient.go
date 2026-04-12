@@ -14,6 +14,11 @@ import (
 	"github.com/daidi/git-ai/internal/config"
 )
 
+// Client is the interface for AI providers
+type Client interface {
+	GenerateCompletion(ctx context.Context, systemPrompt, userPrompt string) (string, error)
+}
+
 // OpenAIClient is a simple HTTP client for OpenAI-compatible APIs
 type OpenAIClient struct {
 	baseURL string
@@ -23,8 +28,8 @@ type OpenAIClient struct {
 	logger  *log.Logger
 }
 
-// NewOpenAIClient creates a new OpenAI-compatible HTTP client
-func NewOpenAIClient(cfg *config.Config, logger *log.Logger) *OpenAIClient {
+// NewClient creates a new HTTP client for the specified provider
+func NewClient(cfg *config.Config, logger *log.Logger) Client {
 	if logger == nil {
 		logger = log.Default()
 	}
@@ -45,12 +50,39 @@ func NewOpenAIClient(cfg *config.Config, logger *log.Logger) *OpenAIClient {
 		},
 	}
 
-	return &OpenAIClient{
-		baseURL: cfg.BaseURL,
-		apiKey:  cfg.APIKey,
-		model:   cfg.Model,
-		client:  client,
-		logger:  logger,
+	switch cfg.Provider {
+	case "anthropic":
+		url := cfg.BaseURL
+		if url == "" {
+			url = "https://api.anthropic.com/v1"
+		}
+		return &AnthropicClient{
+			baseURL: url,
+			apiKey:  cfg.APIKey,
+			model:   cfg.Model,
+			client:  client,
+			logger:  logger,
+		}
+	case "gemini":
+		url := cfg.BaseURL
+		if url == "" {
+			url = "https://generativelanguage.googleapis.com/v1beta"
+		}
+		return &GeminiClient{
+			baseURL: url,
+			apiKey:  cfg.APIKey,
+			model:   cfg.Model,
+			client:  client,
+			logger:  logger,
+		}
+	default:
+		return &OpenAIClient{
+			baseURL: cfg.BaseURL,
+			apiKey:  cfg.APIKey,
+			model:   cfg.Model,
+			client:  client,
+			logger:  logger,
+		}
 	}
 }
 

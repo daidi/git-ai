@@ -78,7 +78,7 @@ Rules:
 
 // UserPrompt builds the user prompt with the original message and diff.
 func UserPrompt(originalMsg, diff string) string {
-	return fmt.Sprintf(`Original commit message: %s
+	return fmt.Sprintf(`User's original commit message (might be meaningless / just a hint): "%s"
 
 Diff:
 %s`, originalMsg, diff)

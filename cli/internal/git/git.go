@@ -54,10 +54,22 @@ func GetLastCommitMsg() (string, error) {
 
 // GetDiff returns the diff introduced by a given commit SHA.
 func GetDiff(sha string) (string, error) {
-	out, err := runGit("diff", sha+"~1.."+sha)
+	ignores := getIgnoreArgs()
+	args := []string{"diff", sha + "~1.." + sha}
+	if len(ignores) > 0 {
+		args = append(args, "--", ".")
+		args = append(args, ignores...)
+	}
+
+	out, err := runGit(args...)
 	if err != nil {
 		// Might be the initial commit — fallback to diff against empty tree.
-		out, err = runGit("diff", "--cached", sha)
+		args = []string{"diff", "--cached", sha}
+		if len(ignores) > 0 {
+			args = append(args, "--", ".")
+			args = append(args, ignores...)
+		}
+		out, err = runGit(args...)
 		if err != nil {
 			return "", err
 		}
@@ -67,14 +79,54 @@ func GetDiff(sha string) (string, error) {
 
 // GetDiffStat returns a summary of changed files for a commit.
 func GetDiffStat(sha string) (string, error) {
-	out, err := runGit("diff", "--stat", sha+"~1.."+sha)
+	ignores := getIgnoreArgs()
+	args := []string{"diff", "--stat", sha + "~1.." + sha}
+	if len(ignores) > 0 {
+		args = append(args, "--", ".")
+		args = append(args, ignores...)
+	}
+
+	out, err := runGit(args...)
 	if err != nil {
-		out, err = runGit("diff", "--stat", "--cached", sha)
+		args = []string{"diff", "--stat", "--cached", sha}
+		if len(ignores) > 0 {
+			args = append(args, "--", ".")
+			args = append(args, ignores...)
+		}
+		out, err = runGit(args...)
 		if err != nil {
 			return "", err
 		}
 	}
 	return out, nil
+}
+
+// getIgnoreArgs returns pathspecs to ignore when generating dicts.
+// It includes defaults (-lock.*, *.lock, go.sum...) and parses .git-ai-ignore.
+func getIgnoreArgs() []string {
+	ignores := []string{
+		":(exclude)*-lock.*",
+		":(exclude)*.lock",
+		":(exclude)go.sum",
+	}
+
+	repoRoot, err := GetRepoRoot()
+	if err != nil {
+		return ignores
+	}
+
+	ignoreFile := filepath.Join(repoRoot, ".git-ai-ignore")
+	data, err := os.ReadFile(ignoreFile)
+	if err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" && !strings.HasPrefix(line, "#") {
+				ignores = append(ignores, ":(exclude)"+line)
+			}
+		}
+	}
+	return ignores
 }
 
 // Amend replaces the last commit message. Sets GIT_AI_INTERNAL=true to
