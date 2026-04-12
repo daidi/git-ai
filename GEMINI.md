@@ -49,5 +49,5 @@ We do not bundle the Go CLI binary into the IDE plugin bundles (to avoid giganti
 
 ### 6. AI Agent Workflow Constraints
 **Issue:** The user requires full control over Git history and project versioning.
-**Rule:** When solving issues or generating code, the AI/Assistant **MUST NOT** execute `git commit` or `git push` autonomously. All fixes and optimizations must be left in the working tree for the user to manually review, test, and commit.
+**Rule:** When solving issues or generating code, the AI/Assistant **MUST NOT** execute `git commit` or `git push` autonomously. All fixes and optimizations must be left in the working tree for the user to manually review, test, and commit. **Exception:** If the user explicitly requests an autonomous commit, push, or release, the AI/Assistant is allowed to execute these commands on their behalf.
 
