@@ -1,0 +1,20 @@
+{
+  "command.init": "تهيئة Git AI",
+  "command.retry": "إعادة محاولة التحسين",
+  "command.undo": "التراجع عن التحسين",
+  "command.cancel": "إلغاء التحسين",
+  "command.forcePush": "فرض الدفع الآن",
+  "command.showLogs": "إظهار السجلات",
+  "command.openConfig": "فتح الإعدادات",
+  "command.uninstall": "إلغاء تثبيت الخطافات",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "الفاصل الزمني لفحص ملف الحالة (بالملي ثانية)",
+  "config.binaryPath": "المسار للملف التنفيذي لـ Git AI",
+  "config.notificationMode": "كيفية عرض الإشعارات",
+  "command.skipNextCommit": "تخطي الذكاء الاصطناعي للإيداع التالي",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "الحالة",
+  "view.actions.name": "الإجراءات",
+  "config.title": "Git AI"
+}

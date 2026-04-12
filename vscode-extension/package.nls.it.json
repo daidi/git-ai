@@ -1,0 +1,20 @@
+{
+  "command.init": "Inizializza Git AI",
+  "command.retry": "Riprova la pulizia dell'IA",
+  "command.undo": "Annulla la pulizia dell'IA",
+  "command.cancel": "Annulla la pulizia dell'IA",
+  "command.forcePush": "Forza push ora",
+  "command.showLogs": "Mostra i log",
+  "command.openConfig": "Apri configurazione",
+  "command.uninstall": "Disinstalla Hook",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "Intervallo di polling del file di stato in millisecondi",
+  "config.binaryPath": "Percorso al binario Git AI",
+  "config.notificationMode": "Come vengono visualizzate le notifiche",
+  "command.skipNextCommit": "Salta IA per il prossimo commit",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "Stato",
+  "view.actions.name": "Azioni",
+  "config.title": "Git AI"
+}

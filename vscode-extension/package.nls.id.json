@@ -1,0 +1,20 @@
+{
+  "command.init": "Inisialisasi Git AI",
+  "command.retry": "Ulangi pemolesan AI",
+  "command.undo": "Urungkan pemolesan AI",
+  "command.cancel": "Batalkan pemolesan AI",
+  "command.forcePush": "Paksa push sekarang",
+  "command.showLogs": "Tampilkan Log",
+  "command.openConfig": "Buka Konfigurasi",
+  "command.uninstall": "Hapus Instalan Hooks",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "Interval pemeriksaan file status dalam milidetik",
+  "config.binaryPath": "Jalur ke biner Git AI",
+  "config.notificationMode": "Bagaimana notifikasi ditampilkan",
+  "command.skipNextCommit": "Lewati AI untuk commit berikutnya",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "Status",
+  "view.actions.name": "Aksi",
+  "config.title": "Git AI"
+}

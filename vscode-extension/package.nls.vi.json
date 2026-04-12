@@ -1,0 +1,20 @@
+{
+  "command.init": "Khởi tạo Git AI",
+  "command.retry": "Thử lại AI trau chuốt",
+  "command.undo": "Hoàn tác AI trau chuốt",
+  "command.cancel": "Hủy AI trau chuốt",
+  "command.forcePush": "Ép đẩy ngay",
+  "command.showLogs": "Hiện Nhật ký",
+  "command.openConfig": "Mở cấu hình",
+  "command.uninstall": "Gỡ bỏ Hooks",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "Khoảng thời gian polling tệp trạng thái (mili-giây)",
+  "config.binaryPath": "Đường dẫn tới mã nhị phân Git AI",
+  "config.notificationMode": "Cách hiển thị thông báo",
+  "command.skipNextCommit": "Bỏ qua AI trong commit tiếp theo",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "Trạng thái",
+  "view.actions.name": "Tác vụ",
+  "config.title": "Git AI"
+}

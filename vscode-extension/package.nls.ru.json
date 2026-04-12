@@ -1,0 +1,20 @@
+{
+  "command.init": "Инициализировать Git AI",
+  "command.retry": "Повторить ИИ полировку",
+  "command.undo": "Отменить ИИ полировку",
+  "command.cancel": "Отменить ИИ полировку",
+  "command.forcePush": "Выполнить push сейчас",
+  "command.showLogs": "Показать логи",
+  "command.openConfig": "Открыть настройки",
+  "command.uninstall": "Удалить Hooks",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "Интервал опроса файла состояния в миллисекундах",
+  "config.binaryPath": "Путь к бинарнику Git AI",
+  "config.notificationMode": "Отображение уведомлений",
+  "command.skipNextCommit": "Пропустить ИИ для следующего коммита",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "Статус",
+  "view.actions.name": "Действия",
+  "config.title": "Git AI"
+}

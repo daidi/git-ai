@@ -1,0 +1,20 @@
+{
+  "command.init": "เริ่มต้นใช้งาน Git AI",
+  "command.retry": "ลองเรียบเรียง AI ใหม่",
+  "command.undo": "เลิกทำ AI เรียบเรียง",
+  "command.cancel": "ยกเลิก AI เรียบเรียง",
+  "command.forcePush": "บังคับพุชเดี๋ยวนี้",
+  "command.showLogs": "ดูบันทึก",
+  "command.openConfig": "เปิดหน้าตั้งค่า",
+  "command.uninstall": "ถอนการติดตั้ง Hooks",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "ช่วงเวลาการตรวจสอบไฟล์สถานะเป็นมิลลิวินาที",
+  "config.binaryPath": "เส้นทางไปยังไบนารี Git AI",
+  "config.notificationMode": "วิธีการแสดงการแจ้งเตือน",
+  "command.skipNextCommit": "ข้าม AI สำหรับคอมมิตถัดไป",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "สถานะ",
+  "view.actions.name": "การกระทำ",
+  "config.title": "Git AI"
+}

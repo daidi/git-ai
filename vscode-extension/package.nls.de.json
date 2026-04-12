@@ -1,0 +1,20 @@
+{
+  "command.init": "Git AI initialisieren",
+  "command.retry": "KI-Polieren wiederholen",
+  "command.undo": "KI-Polieren rückgängig machen",
+  "command.cancel": "KI-Polieren abbrechen",
+  "command.forcePush": "Jetzt sofort pushen",
+  "command.showLogs": "Logs anzeigen",
+  "command.openConfig": "Konfiguration öffnen",
+  "command.uninstall": "Hooks deinstallieren",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "Intervall für die Statusdatei-Abfrage in Millisekunden",
+  "config.binaryPath": "Pfad zur Git AI Binärdatei",
+  "config.notificationMode": "Wie Benachrichtigungen angezeigt werden",
+  "command.skipNextCommit": "KI für den nächsten Commit überspringen",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "Status",
+  "view.actions.name": "Aktionen",
+  "config.title": "Git AI"
+}

@@ -1,0 +1,20 @@
+{
+  "command.init": "Git AI 초기화",
+  "command.retry": "AI 윤색 재시도",
+  "command.undo": "AI 윤색 실행 취소",
+  "command.cancel": "AI 윤색 취소",
+  "command.forcePush": "지금 강제 푸시",
+  "command.showLogs": "로그 표시",
+  "command.openConfig": "구성 열기",
+  "command.uninstall": "훅 제거",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "상태 파일 폴링 간격(밀리초)",
+  "config.binaryPath": "Git AI 바이너리 경로",
+  "config.notificationMode": "알림 표시 방법",
+  "command.skipNextCommit": "다음 커밋의 AI 건너뛰기",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "상태",
+  "view.actions.name": "액션",
+  "config.title": "Git AI"
+}

@@ -20,7 +20,23 @@
   <a href="https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai"><img src="https://img.shields.io/open-vsx/dt/git-ai-async-commit-polisher/git-ai?style=flat&color=1C1C1C&label=Open%20VSX&logo=vscodium&logoColor=white" alt="Open VSX Installs" /></a>
   <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
   <br/>
-  <a href="README.md">📖 English</a>
+  <h4>
+    <a href="README.md">English</a> |
+    简体中文 |
+    <a href="README_zh-TW.md">繁體中文</a> |
+    <a href="README_fr.md">Français</a> |
+    <a href="README_it.md">Italiano</a> |
+    <a href="README_de.md">Deutsch</a> |
+    <a href="README_es.md">Español</a> |
+    <a href="README_ja.md">日本語</a> |
+    <a href="README_ko.md">한국어</a> |
+    <a href="README_pt.md">Português</a> |
+    <a href="README_ru.md">Русский</a> |
+    <a href="README_ar.md">العربية</a> |
+    <a href="README_vi.md">Tiếng Việt</a> |
+    <a href="README_th.md">ไทย</a> |
+    <a href="README_id.md">Bahasa Indonesia</a>
+  </h4>
 </p>
 
 ---

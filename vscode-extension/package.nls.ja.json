@@ -1,0 +1,20 @@
+{
+  "command.init": "Git AIを初期化",
+  "command.retry": "AI推敲を再試行",
+  "command.undo": "AI推敲を元に戻す",
+  "command.cancel": "AI推敲をキャンセル",
+  "command.forcePush": "今すぐ強制プッシュ",
+  "command.showLogs": "ログを表示",
+  "command.openConfig": "設定を開く",
+  "command.uninstall": "フックをアンインストール",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "ステータスファイルのポーリング間隔(ミリ秒)",
+  "config.binaryPath": "Git AIバイナリへのパス",
+  "config.notificationMode": "通知の表示方法",
+  "command.skipNextCommit": "次のコミットでAIをスキップ",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "ステータス",
+  "view.actions.name": "アクション",
+  "config.title": "Git AI"
+}

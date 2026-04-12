@@ -1,0 +1,20 @@
+{
+  "command.init": "初始化 Git AI",
+  "command.retry": "重試 AI 潤飾",
+  "command.undo": "復原 AI 潤飾",
+  "command.cancel": "取消 AI 潤飾",
+  "command.forcePush": "立即強制推播",
+  "command.showLogs": "顯示日誌",
+  "command.openConfig": "開啟設定",
+  "command.uninstall": "解除安裝 Hooks",
+  "category.gitai": "Git AI",
+  "submenu.gitai": "Git AI",
+  "config.pollingInterval": "狀態檔案輪詢間隔（毫秒）",
+  "config.binaryPath": "Git AI 執行檔路徑",
+  "config.notificationMode": "通知顯示方式",
+  "command.skipNextCommit": "略過下一次提交的 AI 處理",
+  "viewContainer.title": "Git AI",
+  "view.status.name": "狀態",
+  "view.actions.name": "操作",
+  "config.title": "Git AI"
+}
