@@ -79,8 +79,6 @@ Open VS Code, press `Cmd+Shift+X` and search for **git-ai**, or run the followin
 code --install-extension git-ai-async-commit-polisher.git-ai
 ```
 
-> **Note:** The plugins are UI wrappers that orchestrate the headless engine. Make sure you install the CLI below to do the heavy lifting!
-
 ## ✨ Core Features
 
 - 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook

@@ -80,8 +80,6 @@
 code --install-extension git-ai-async-commit-polisher.git-ai
 ```
 
-> **注意：** IDEA 插件与 VS Code 扩展负责提供无缝的交互界面，底层均依赖于系统环境下的 `git-ai` 核心引擎。请参考下方文档安装引擎。
-
 ## ✨ 核心特性
 
 - 🔄 **异步 AI 润色** —— 通过 `post-commit` 钩子在后台增强提交信息
