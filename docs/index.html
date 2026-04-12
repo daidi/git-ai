@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git AI — Async Commit Polisher</title>
+    <meta name="description" content="Never wait for AI. Polish your commits in the background while you code. Commit first, think later.">
+    
+    <!-- Modern Typefaces -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Vanilla CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bgr-grid"></div>
+    <header class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <img src="assets/icon.png" alt="Git AI Logo" class="logo-img">
+                <span class="logo-text">Git AI</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#features" data-i18n="nav_features">Features</a>
+                <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank" rel="noopener">JetBrains</a>
+                <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank" rel="noopener">VS Code</a>
+                <a href="https://github.com/daidi/git-ai" target="_blank" rel="noopener" class="github-btn">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    GitHub
+                </a>
+                <button id="lang-toggle" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; border-color: transparent;">中 / EN</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span data-i18n="hero_badge">v0.2.3 Released</span>
+            </div>
+            <h1 class="hero-title" data-i18n="hero_title">Commit first,<br>think <span>later.</span></h1>
+            <p class="hero-desc" data-i18n="hero_desc">
+                An async background daemon that intercepts your raw commits, passes them to LLMs, and silently amends your history. <strong>Never wait in the terminal.</strong>
+            </p>
+            <div class="hero-actions">
+                <div class="code-snippet group" id="install-cmd">
+                    <span class="prompt">$</span>
+                    <code class="cmd-text">brew install daidi/tap/git-ai</code>
+                    <button class="copy-btn" aria-label="Copy command">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <span class="copy-feedback" data-i18n="copy_feedback">Copied</span>
+                </div>
+                <a href="#quickstart" class="btn btn-secondary" data-i18n="hero_docs_btn">Documentation →</a>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="terminal">
+                <div class="term-header">
+                    <div class="term-controls">
+                        <span class="term-dot rot"></span>
+                        <span class="term-dot yel"></span>
+                        <span class="term-dot grn"></span>
+                    </div>
+                    <div class="term-title">~ / workspaces / git-ai</div>
+                </div>
+                <div class="term-body" id="term-typing">
+                    <!-- Typing script populates here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section id="features" class="container grid-section">
+        <div class="feature-card">
+            <div class="f-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <h3 data-i18n="feat1_title">Zero Latency</h3>
+            <p data-i18n="feat1_desc">Your commit completes in 12ms. The LLM processes everything in an orphaned background daemon.</p>
+        </div>
+        <div class="feature-card">
+            <div class="f-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </div>
+            <h3 data-i18n="feat2_title">Real-time Status</h3>
+            <p data-i18n="feat2_desc"><code>[⏳]</code> prefix acts as a locking mechanism visible natively in <code>git log</code> to prevent sync issues.</p>
+        </div>
+        <div class="feature-card">
+            <div class="f-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            </div>
+            <h3 data-i18n="feat3_title">Queue Push</h3>
+            <p data-i18n="feat3_desc">Hitting <code>git push</code> while polishing? We queue the network payload and execute it after the amend finishes.</p>
+        </div>
+        <div class="feature-card">
+            <div class="f-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <h3 data-i18n="feat4_title">IDE Native</h3>
+            <p data-i18n="feat4_desc">No more terminal toggling. Monitor daemon hooks natively through VS Code and IntelliJ IDEA extensions.</p>
+        </div>
+    </section>
+
+    <footer class="footer container">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <img src="assets/icon.png" alt="Git AI Logo" class="footer-logo">
+                <span class="footer-name">Git AI</span>
+                <p data-i18n="footer_subtitle">Async Commit Polisher.</p>
+            </div>
+            <div class="footer-links">
+                <div class="link-col">
+                    <strong data-i18n="footer_plugins">Plugins</strong>
+                    <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank">JetBrains</a>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank">VS Code</a>
+                </div>
+                <div class="link-col">
+                    <strong data-i18n="footer_resources">Resources</strong>
+                    <a href="https://github.com/daidi/git-ai" data-i18n="footer_repo">GitHub Repositories</a>
+                    <a href="https://github.com/daidi/git-ai/releases" data-i18n="footer_releases">Releases</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
