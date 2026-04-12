@@ -4,15 +4,23 @@
     <vendor email="daidi@users.noreply.github.com" url="https://github.com/daidi/git-ai">daidi</vendor>
 
     <description><![CDATA[
-    <p>AI-powered Git commit message enhancer — status, controls, and logs directly in your IDE.</p>
-    <p>This plugin integrates with the <code>git-ai</code> CLI tool to provide:</p>
+    <h3>Commit first, think later.</h3>
+    <br/>
+    <p>Never wait for an AI to generate your commit messages again. <b>Git AI</b> hooks into your normal Git workflow and uses LLMs (DeepSeek, OpenAI, Ollama) to rewrite your commit messages into clean, Conventional Commits — completely asynchronously.</p>
+    <br/>
+    <p>You write <code>git commit -m "fix bug"</code>, and just keep coding. Seconds later, it becomes <code>fix(auth): resolve session timeout on mobile devices</code> silently in the background.</p>
+    <br/>
+    <p><b>Features:</b></p>
     <ul>
-        <li><b>Status widget</b> — Shows polishing / pending push / idle status in the status bar</li>
-        <li><b>Tool window</b> — Real-time daemon logs and state details</li>
-        <li><b>Actions</b> — Retry, undo, cancel polishing, and force push from the IDE</li>
-        <li><b>Notifications</b> — IDE notifications when polishing completes or push finishes</li>
+        <li><b>Zero Friction</b> — Immediate IDE state snapshot tracking so your code is instantly safe without blocking your terminal or IDE flow.</li>
+        <li><b>Deferred Priority Push</b> — Pushes are automatically queued if AI is working, and executed silently when polishing finishes.</li>
+        <li><b>Live Status Bar Widget</b> — See instantly if the Git AI daemon is polishing right at the bottom of the IDE.</li>
+        <li><b>Tool Window & Logs</b> — Real-time daemon logs and tracing directly inside IntelliJ.</li>
+        <li><b>Commit History UI</b> — Native actions to Undo changes, Retry polishing, or cancel requests.</li>
+        <li><b>Visual Settings</b> — Configure API keys and providers (DeepSeek, OpenAI, local Ollama) inside Preferences with i18n support.</li>
     </ul>
-    <p>Requires the <code>git-ai</code> CLI to be installed. See <a href="https://github.com/daidi/git-ai">GitHub</a> for installation.</p>
+    <br/>
+    <p><i>Note: This plugin acts as the rich graphical dashboard. The open-source <code>git-ai</code> background daemon must be installed on your system. <a href="https://github.com/daidi/git-ai">Check out the GitHub Repository for installation instructions</a>.</i></p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -61,6 +69,13 @@
                icon="com.daidi.gitai.Icons.GitAi">
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
+
+            <action id="GitAi.SkipNextCommit"
+                    class="com.daidi.gitai.actions.SkipNextCommitAction"
+                    text="Skip AI (Direct Commit)"
+                    description="Bypass Git AI for the next commit and push directly"
+                    icon="AllIcons.Actions.Suspend"/>
+
 
             <action id="GitAi.Retry"
                     class="com.daidi.gitai.actions.RetryAction"

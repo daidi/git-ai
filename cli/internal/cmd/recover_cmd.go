@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,7 +47,7 @@ It will:
 		hasPolishingState := s.CurrentStatus == state.StatusPolishing && s.OriginalMsg != ""
 
 		if !hasLoadingPrefix && !hasPolishingState {
-			fmt.Fprint(os.Stdout, i18n.Sprintf("recover.nothing_to_recover"))
+			Printf("%s", i18n.Sprintf("recover.nothing_to_recover"))
 			return nil
 		}
 
@@ -60,17 +59,17 @@ It will:
 			// Strip the [⏳] prefix
 			originalMsg = strings.TrimPrefix(currentMsg, "[⏳] ")
 		} else {
-			fmt.Fprint(os.Stdout, i18n.Sprintf("recover.nothing_to_recover"))
+			Printf("%s", i18n.Sprintf("recover.nothing_to_recover"))
 			return nil
 		}
 
 		// Rollback the commit message
 		if currentMsg != originalMsg {
-			fmt.Fprint(os.Stdout, i18n.Sprintf("recover.rolling_back"))
+			Printf("%s", i18n.Sprintf("recover.rolling_back"))
 			if err := git.Amend(originalMsg); err != nil {
 				return fmt.Errorf("amend commit: %w", err)
 			}
-			fmt.Fprintf(os.Stdout, i18n.Sprintf("recover.rolled_back", originalMsg))
+			Printf("%s", i18n.Sprintf("recover.rolled_back", originalMsg))
 		}
 
 		// Reset state
@@ -80,7 +79,7 @@ It will:
 			}
 		}
 
-		fmt.Fprint(os.Stdout, i18n.Sprintf("recover.success"))
+		Printf("%s", i18n.Sprintf("recover.success"))
 		return nil
 	},
 }
