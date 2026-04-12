@@ -33,6 +33,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gPushPolicy = JComboBox(arrayOf("queue", "block"))
     private val gPromptTemplate = JBTextField()
     private val gMaxDiffTokens = JBTextField()
+    val gTestConfigBtn = JButton("Test LLM Configuration")
 
     // ── Project fields ──
     private val pApiKey = JBPasswordField()
@@ -44,6 +45,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pPushPolicy = JComboBox(arrayOf("", "queue", "block"))
     private val pPromptTemplate = JBTextField()
     private val pMaxDiffTokens = JBTextField()
+    val pTestConfigBtn = JButton("Test LLM Configuration")
     val pEnabled = JCheckBox(GitAiBundle.message("settings.field.projectEnabled"))
 
     private val globalPanel: JPanel
@@ -126,6 +128,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), gPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), gMaxDiffTokens.apply { columns = 10 })
+            .addComponent(Box.createVerticalStrut(8))
+            .addComponent(gTestConfigBtn)
             
             .addComponentFillVertically(JPanel(), 0)
             .panel.apply { border = EmptyBorder(10, 0, 0, 0) }
@@ -149,6 +153,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), pPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), pMaxDiffTokens.apply { columns = 10 })
+            .addComponent(Box.createVerticalStrut(8))
+            .addComponent(pTestConfigBtn)
             
             .addComponentFillVertically(JPanel(), 0)
             .panel.apply { border = EmptyBorder(10, 0, 0, 0) }
@@ -168,6 +174,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pPushPolicy.isEnabled = enabled
         pPromptTemplate.isEnabled = enabled
         pMaxDiffTokens.isEnabled = enabled
+        pTestConfigBtn.isEnabled = enabled
     }
 
     private fun createSectionLabel(text: String): JPanel {

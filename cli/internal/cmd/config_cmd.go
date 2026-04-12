@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/daidi/git-ai/internal/ai"
 	"github.com/daidi/git-ai/internal/config"
 )
 
@@ -97,11 +98,39 @@ var configListCmd = &cobra.Command{
 	},
 }
 
+var configTestCmd = &cobra.Command{
+	Use:   "test",
+	Short: "Test the LLM configuration",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load(GetGitRoot())
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Testing configuration for provider: %s, model: %s...\n", cfg.Provider, cfg.Model)
+
+		llm, err := ai.NewLLM(cfg)
+		if err != nil {
+			return fmt.Errorf("failed to initialize LLM: %w", err)
+		}
+
+		ctx := cmd.Context()
+		resp, err := ai.GenerateMessage(ctx, llm, "You are a helpful assistant.", "Reply strictly with exactly one word: 'OK'. Do not include any other text or punctuation.")
+		if err != nil {
+			return fmt.Errorf("LLM test failed: %w", err)
+		}
+
+		fmt.Printf("LLM test successful! Response: %s\n", resp)
+		return nil
+	},
+}
+
 func init() {
 	configSetCmd.Flags().BoolVar(&configGlobal, "global", false, "Set in global config (~/.config/git-ai/config.json)")
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configListCmd)
+	configCmd.AddCommand(configTestCmd)
 	rootCmd.AddCommand(configCmd)
 }
 

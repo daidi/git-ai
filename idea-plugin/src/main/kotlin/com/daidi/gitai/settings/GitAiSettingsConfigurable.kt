@@ -3,6 +3,7 @@ package com.daidi.gitai.settings
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import com.daidi.gitai.GitAiBundle
+import com.intellij.openapi.ui.Messages
 import javax.swing.JComponent
 
 import java.io.File
@@ -20,6 +21,33 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
 
     override fun createComponent(): JComponent {
         component = GitAiSettingsComponent(project.basePath)
+        
+        component?.gTestConfigBtn?.addActionListener {
+            if (isModified()) {
+                Messages.showWarningDialog(project, "Please uncheck or 'Apply' settings before testing.", "Unsaved Changes")
+            } else {
+                val result = com.daidi.gitai.state.GitAiCli.run(project, "config", "test")
+                if (result.success) {
+                    Messages.showInfoMessage(project, "Test successful!\n\n${result.stdout}", "LLM Test Passed")
+                } else {
+                    Messages.showErrorDialog(project, "Test failed:\n\n${result.stderr}\n${result.stdout}", "LLM Test Failed")
+                }
+            }
+        }
+        
+        component?.pTestConfigBtn?.addActionListener {
+            if (isModified()) {
+                Messages.showWarningDialog(project, "Please uncheck or 'Apply' settings before testing.", "Unsaved Changes")
+            } else {
+                val result = com.daidi.gitai.state.GitAiCli.run(project, "config", "test")
+                if (result.success) {
+                    Messages.showInfoMessage(project, "Test successful!\n\n${result.stdout}", "LLM Test Passed")
+                } else {
+                    Messages.showErrorDialog(project, "Test failed:\n\n${result.stderr}\n${result.stdout}", "LLM Test Failed")
+                }
+            }
+        }
+        
         return component!!.mainPanel
     }
 

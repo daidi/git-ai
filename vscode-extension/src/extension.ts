@@ -52,6 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
             SettingsPanel.show(context.extensionUri, workspaceRoot);
         }),
         vscode.commands.registerCommand('git-ai.uninstall', () => commands.uninstall()),
+        vscode.commands.registerCommand('git-ai.config.test', () => commands.testConfig()),
     );
 
     // Listen for state changes.

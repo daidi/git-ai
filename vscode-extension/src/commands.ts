@@ -158,6 +158,23 @@ export class CommandManager {
     }
 
     /**
+     * Test the LLM configuration connectivity.
+     */
+    async testConfig(): Promise<void> {
+        await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: 'git-ai: Testing LLM connection...' },
+            async () => {
+                const result = await this.runGitAi(['config', 'test']);
+                if (result.success) {
+                    vscode.window.showInformationMessage(`✅ git-ai: Test successful!\n\n${result.output}`, { modal: true });
+                } else {
+                    vscode.window.showErrorMessage(`❌ git-ai: Test failed:\n\n${result.error}\n${result.output}`, { modal: true });
+                }
+            }
+        );
+    }
+
+    /**
      * Run a git-ai CLI command.
      */
     private runGitAi(args: string[]): Promise<{ success: boolean; output: string; error: string }> {

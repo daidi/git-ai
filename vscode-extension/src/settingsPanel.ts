@@ -66,6 +66,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         
         'settings.btn.saveGlobal': 'Save Global',
         'settings.btn.saveProject': 'Save Project',
+        'settings.btn.testConfig': 'Test LLM Config',
         'settings.btn.reset': 'Reset',
         'settings.msg.saved': '✅ git-ai: {0} config saved',
         'settings.msg.reset': '🗑️ git-ai: {0} config reset',
@@ -106,6 +107,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         
         'settings.btn.saveGlobal': '保存全局配置',
         'settings.btn.saveProject': '保存项目配置',
+        'settings.btn.testConfig': '测试连通性',
         'settings.btn.reset': '重置',
         'settings.msg.saved': '✅ git-ai: {0} 配置已保存',
         'settings.msg.reset': '🗑️ git-ai: {0} 配置已被清空',
@@ -256,6 +258,12 @@ export class SettingsPanel {
                 }
                 notifyInfo(t('settings.msg.reset', scopeName));
                 this.refresh();
+                break;
+            }
+            case 'testConfig': {
+                // If they changed fields but didn't save, warn them
+                // We'll just run git-ai config test.
+                vscode.commands.executeCommand('git-ai.config.test');
                 break;
             }
         }
@@ -466,6 +474,7 @@ export class SettingsPanel {
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('global')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveGlobal')}</button>
+            <button class="btn" style="border: 1px solid var(--vscode-button-secondaryHoverBackground); background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground);" onclick="testConfig('global')"><i class="codicon codicon-zap"></i> ${t('settings.btn.testConfig')}</button>
             <span class="spacer"></span>
             <button class="btn btn-danger" onclick="resetScope('global')">${t('settings.btn.reset')}</button>
         </div>
@@ -502,6 +511,7 @@ export class SettingsPanel {
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('project')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveProject')}</button>
+            <button class="btn" style="border: 1px solid var(--vscode-button-secondaryHoverBackground); background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground);" onclick="testConfig('project')"><i class="codicon codicon-zap"></i> ${t('settings.btn.testConfig')}</button>
             <span class="spacer"></span>
             <button class="btn btn-danger" onclick="resetScope('project')">${t('settings.btn.reset')}</button>
         </div>
@@ -539,6 +549,10 @@ export class SettingsPanel {
         function save(scope) {
             const prefix = scope === 'global' ? 'g' : 'p';
             vscode.postMessage({ command: 'save', scope, data: gatherFields(prefix) });
+        }
+
+        function testConfig(scope) {
+            vscode.postMessage({ command: 'testConfig', scope });
         }
 
         function resetScope(scope) {
