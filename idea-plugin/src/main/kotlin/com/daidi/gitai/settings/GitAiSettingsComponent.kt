@@ -35,6 +35,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gMaxDiffTokens = JBTextField()
     private val gLogLevel = JComboBox(arrayOf("error", "info", "debug"))
     private val gUiLanguage = JComboBox(arrayOf("", "en", "zh"))
+    private val gExplain = JComboBox(arrayOf("true", "false"))
     val gTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
 
     // ── Project fields ──
@@ -49,6 +50,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pMaxDiffTokens = JBTextField()
     private val pLogLevel = JComboBox(arrayOf("", "error", "info", "debug"))
     private val pUiLanguage = JComboBox(arrayOf("", "en", "zh"))
+    private val pExplain = JComboBox(arrayOf("", "true", "false"))
     val pTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
     val pEnabled = JCheckBox(GitAiBundle.message("settings.field.projectEnabled"))
 
@@ -134,6 +136,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), gMaxDiffTokens.apply { columns = 10 })
             .addLabeledComponent(GitAiBundle.message("settings.field.logLevel"), gLogLevel)
             .addLabeledComponent(createLabelWithHelp("settings.field.uiLanguage", "settings.hint.uiLanguage"), gUiLanguage)
+            .addLabeledComponent(createLabelWithHelp("settings.field.explain", "settings.hint.explain"), gExplain)
             .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(gTestConfigBtn)
             
@@ -161,6 +164,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), pMaxDiffTokens.apply { columns = 10 })
             .addLabeledComponent(GitAiBundle.message("settings.field.logLevel"), pLogLevel)
             .addLabeledComponent(createLabelWithHelp("settings.field.uiLanguage", "settings.hint.uiLanguage"), pUiLanguage)
+            .addLabeledComponent(createLabelWithHelp("settings.field.explain", "settings.hint.explain"), pExplain)
             .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(pTestConfigBtn)
             
@@ -184,6 +188,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pMaxDiffTokens.isEnabled = enabled
         pLogLevel.isEnabled = enabled
         pUiLanguage.isEnabled = enabled
+        pExplain.isEnabled = enabled
         pTestConfigBtn.isEnabled = enabled
     }
 
@@ -215,6 +220,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         promptTemplate = gPromptTemplate.text.takeIf { it.isNotEmpty() },
         maxDiffTokens = gMaxDiffTokens.text.toIntOrNull(),
         logLevel = gLogLevel.selectedItem as? String,
+        explain = (gExplain.selectedItem as? String)?.toBooleanStrictOrNull(),
     )
 
     fun setGlobalConfig(cfg: GitAiConfig) {
@@ -229,6 +235,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gPromptTemplate.text = cfg.promptTemplate ?: ""
         gMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
         gLogLevel.selectedItem = cfg.logLevel ?: "info"
+        gExplain.selectedItem = cfg.explain?.toString() ?: "false"
     }
 
     fun getProjectConfig(): GitAiConfig {
@@ -249,6 +256,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             promptTemplate = pPromptTemplate.text.takeIf { it.isNotEmpty() },
             maxDiffTokens = pMaxDiffTokens.text.toIntOrNull(),
             logLevel = (pLogLevel.selectedItem as? String)?.takeIf { it.isNotEmpty() },
+            explain = (pExplain.selectedItem as? String)?.takeIf { it.isNotEmpty() }?.toBooleanStrictOrNull(),
         )
     }
 
@@ -274,6 +282,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
         
         pLogLevel.selectedItem = cfg.logLevel ?: ""
         pUiLanguage.selectedItem = cfg.uiLanguage ?: ""
+        
+        pExplain.selectedItem = cfg.explain?.toString() ?: ""
     }
 
     private fun inheritedVal(v: String): String {

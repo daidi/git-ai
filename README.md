@@ -100,8 +100,11 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 - 🛡️ **Auto-recovery** — crashes/timeouts auto-rollback; manual `git-ai recover` for edge cases
 - 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
 - 📝 **4 message formats** — `plain`, `conventional`, `gitmoji`, `subject+body`
-- 🤖 **Multi-provider** — OpenAI, DeepSeek, Ollama, and any OpenAI-compatible API
+- 🤖 **Multi-provider native support** — Deep integration with OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Ollama, and compatible APIs
 - ✂️ **Smart diff trimming** — handles large diffs with three-tier token truncation
+- 📐 **Commitlint integration** — Automatically reads your local `.commitlintrc` to strictly adhere to repository guidelines
+- 🎩 **Prompt templates** — Go `text/template` support (`{{.Diff}}`, `{{.Hint}}`) for ultimate control
+- 🧐 **Explain mode** — Optionally generate a short paragraph explaining the *why* of the commit (`git-ai config set explain true`)
 - 🔔 **System notifications** — OS-native toast when polish/push finishes
 - ⏪ **Undo & retry** — restore original message or re-generate at any time
 
@@ -191,6 +194,16 @@ git-ai config set model gpt-4o-mini --global
 git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
 git-ai config set api_key sk-xxx --global
 git-ai config set model qwen-turbo --global
+
+# Anthropic Claude
+git-ai config set provider anthropic --global
+git-ai config set api_key sk-ant-xxx --global
+git-ai config set model claude-3-5-sonnet-20240620 --global
+
+# Google Gemini
+git-ai config set provider gemini --global
+git-ai config set api_key AIzaSy-xxx --global
+git-ai config set model gemini-1.5-flash --global
 
 # Ollama (Local, free, private)
 git-ai config set provider ollama --global

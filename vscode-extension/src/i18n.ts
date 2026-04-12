@@ -21,8 +21,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.provider': 'Provider',
         'settings.field.baseUrl': 'Base URL',
         'settings.field.model': 'Model',
-        'settings.field.messageFormat': 'Message Format',
         'settings.field.language': 'Language',
+        'settings.field.explain': 'Explain Why',
         'settings.field.promptTemplate': 'Custom Prompt',
         'settings.field.pushPolicy': 'Push Policy',
         'settings.field.maxDiffTokens': 'Max Diff Tokens',
@@ -31,6 +31,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         
         'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
         'settings.hint.projectNote': 'Project settings override Global for this repo only. Leave fields empty to inherit.',
+        'settings.hint.explain': 'Require the AI to append an explanation of the change rationale (the "Why") to the commit message',
         'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
         'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
         'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
@@ -158,6 +159,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.model': '模型标识 (Model)',
         'settings.field.messageFormat': '消息结构 (Format)',
         'settings.field.language': '生成语言 (Language)',
+        'settings.field.explain': '追加动机说明 (Explain)',
         'settings.field.promptTemplate': '自定义提示词 (Prompt)',
         'settings.field.pushPolicy': '推送时机 (Push Policy)',
         'settings.field.maxDiffTokens': 'Diff 截断阈值 (Tokens)',
@@ -166,6 +168,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         
         'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
         'settings.hint.projectNote': '项目级设定仅对当前代码库生效。留空将自动继承全局设定。',
+        'settings.hint.explain': '要求大模型在提交语末尾追加一段阐述代码变更背后动机（为什么这么做）的补充说明',
         'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
         'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
         'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',

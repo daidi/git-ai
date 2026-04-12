@@ -20,9 +20,10 @@ data class GitAiConfig(
     @SerializedName("prompt_template") var promptTemplate: String? = null,
     @SerializedName("max_diff_tokens") var maxDiffTokens: Int? = null,
     @SerializedName("log_level") var logLevel: String? = null,
+    @SerializedName("explain") var explain: Boolean? = null,
 ) {
     fun copy() = GitAiConfig(
-        apiKey, model, baseUrl, provider, language, uiLanguage, pushPolicy, messageFormat, promptTemplate, maxDiffTokens, logLevel,
+        apiKey, model, baseUrl, provider, language, uiLanguage, pushPolicy, messageFormat, promptTemplate, maxDiffTokens, logLevel, explain
     )
 }
 
@@ -44,6 +45,7 @@ object GitAiConfigManager {
         promptTemplate = "",
         maxDiffTokens = 2000,
         logLevel = "info",
+        explain = false,
     )
 
     fun globalPath(): String {
@@ -79,6 +81,7 @@ object GitAiConfigManager {
         config.promptTemplate?.takeIf { it.isNotEmpty() }?.let { map["prompt_template"] = it }
         config.maxDiffTokens?.takeIf { it > 0 }?.let { map["max_diff_tokens"] = it }
         config.logLevel?.takeIf { it.isNotEmpty() }?.let { map["log_level"] = it }
+        config.explain?.let { map["explain"] = it }
 
         val file = File(path)
         file.parentFile?.mkdirs()
@@ -109,5 +112,6 @@ object GitAiConfigManager {
         src.promptTemplate?.takeIf { it.isNotEmpty() }?.let { dst.promptTemplate = it }
         src.maxDiffTokens?.takeIf { it > 0 }?.let { dst.maxDiffTokens = it }
         src.logLevel?.takeIf { it.isNotEmpty() }?.let { dst.logLevel = it }
+        src.explain?.let { dst.explain = it }
     }
 }

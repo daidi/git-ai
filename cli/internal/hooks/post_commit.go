@@ -108,7 +108,7 @@ func runDaemon(mgr *state.Manager) error {
 	markLoadingPrefix(logger, origMsg)
 
 	// Call AI.
-	polished, err := polishCommit(mgr, logger, cfg, sha, origMsg)
+	polished, err := polishCommit(mgr, logger, cfg, sha, origMsg, repoRoot)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func markLoadingPrefix(logger *log.Logger, origMsg string) {
 	}
 }
 
-func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sha, origMsg string) (string, error) {
+func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sha, origMsg, repoRoot string) (string, error) {
 	// Get diff.
 	diff, err := git.GetDiff(sha)
 	if err != nil {
@@ -176,7 +176,7 @@ func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sh
 		diff, _ = git.GetDiffStat(sha)
 	}
 
-	polished, err := ai.PolishWithLogger(diff, origMsg, cfg, logger)
+	polished, err := ai.PolishWithLogger(diff, origMsg, repoRoot, cfg, logger)
 	if err != nil {
 		logger.Printf("AI error: %v", err)
 		notify.Send("Git AI", i18n.Sprintf("hook.ai_failed", err))

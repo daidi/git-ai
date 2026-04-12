@@ -100,8 +100,11 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 - 🛡️ **自动恢复机制** —— 崩溃/超时自动回滚；极端情况可用 `git-ai recover` 手动恢复
 - 🚀 **延迟推送** —— AI 工作时推送自动排队，完成后静默推送
 - 📝 **4 种消息格式** —— `plain`、`conventional`、`gitmoji`、`subject+body`
-- 🤖 **多模型供应商** —— OpenAI、DeepSeek、Ollama 及所有兼容 API
+- 🤖 **原生多厂商接入** —— 深度支持 OpenAI、Anthropic Claude、Google Gemini、DeepSeek、Ollama 及兼容 API
 - ✂️ **智能 Diff 裁剪** —— 三级 Token 截断，处理超大 Diff 不溢出
+- 📐 **Commitlint 原生集成** —— 自动检测本地 `.commitlintrc` 以严格遵循你项目的自定义规范
+- 🎩 **高级 Prompt 模板** —— 支持 Go `text/template` (如 `{{.Diff}}`, `{{.Hint}}`) 随心所欲定制提示词机制
+- 🧐 **深入解释模式** —— 开启后，自动在提交信息尾部补充一段关于“为什么要这么改”的解释（`git-ai config set explain true`）
 - 🔔 **系统通知** —— 润色/推送完成时发送操作系统原生通知
 - ⏪ **撤销与重试** —— 随时恢复原始消息或重新生成
 
@@ -191,6 +194,16 @@ git-ai config set model gpt-4o-mini --global
 git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
 git-ai config set api_key sk-xxx --global
 git-ai config set model qwen-turbo --global
+
+# Anthropic Claude
+git-ai config set provider anthropic --global
+git-ai config set api_key sk-ant-xxx --global
+git-ai config set model claude-3-5-sonnet-20240620 --global
+
+# Google Gemini
+git-ai config set provider gemini --global
+git-ai config set api_key AIzaSy-xxx --global
+git-ai config set model gemini-1.5-flash --global
 
 # Ollama (本地、免费、隐私)
 git-ai config set provider ollama --global

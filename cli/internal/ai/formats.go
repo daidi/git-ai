@@ -13,12 +13,14 @@ const (
 )
 
 // SystemPrompt returns the format-specific system prompt for the LLM.
-func SystemPrompt(format Format, language string) string {
+func SystemPrompt(format Format, language string, explain bool, commitlintConfig string) string {
 	langInstruction := fmt.Sprintf("Write the commit message in %s.", languageName(language))
+
+	var base string
 
 	switch format {
 	case FormatPlain:
-		return fmt.Sprintf(`You are a Git commit message expert. Rewrite the given commit message to be clear, concise, and descriptive.
+		base = fmt.Sprintf(`You are a Git commit message expert. Rewrite the given commit message to be clear, concise, and descriptive.
 
 Rules:
 - Output ONLY the commit message, nothing else.
@@ -30,7 +32,7 @@ Rules:
 %s`, langInstruction)
 
 	case FormatConventional:
-		return fmt.Sprintf(`You are a Git commit message expert following the Conventional Commits specification.
+		base = fmt.Sprintf(`You are a Git commit message expert following the Conventional Commits specification.
 
 Rules:
 - Output ONLY the commit message, nothing else.
@@ -44,7 +46,7 @@ Rules:
 %s`, langInstruction)
 
 	case FormatGitmoji:
-		return fmt.Sprintf(`You are a Git commit message expert using the Gitmoji + Conventional Commits format.
+		base = fmt.Sprintf(`You are a Git commit message expert using the Gitmoji + Conventional Commits format.
 
 Rules:
 - Output ONLY the commit message, nothing else.
@@ -59,7 +61,7 @@ Rules:
 %s`, langInstruction)
 
 	case FormatSubjectBody:
-		return fmt.Sprintf(`You are a Git commit message expert using the subject+body format.
+		base = fmt.Sprintf(`You are a Git commit message expert using the subject+body format.
 
 Rules:
 - Output the commit message in two parts separated by a blank line.
@@ -72,8 +74,18 @@ Rules:
 
 	default:
 		// Fallback to conventional.
-		return SystemPrompt(FormatConventional, language)
+		base = SystemPrompt(FormatConventional, language, false, "")
 	}
+
+	if explain {
+		base += "\n\nIMPORTANT: You MUST append a short paragraph at the end of the message explaining 'WHY' these changes were made and what problem they solve."
+	}
+
+	if commitlintConfig != "" {
+		base += fmt.Sprintf("\n\nThis project uses commitlint. You MUST ensure the generated commit respects the following JSON configuration rules:\n```json\n%s\n```", commitlintConfig)
+	}
+
+	return base
 }
 
 // UserPrompt builds the user prompt with the original message and diff.

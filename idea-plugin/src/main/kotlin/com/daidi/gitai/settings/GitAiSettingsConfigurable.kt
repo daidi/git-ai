@@ -88,7 +88,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
                 projConfig.apiKey, projConfig.model, projConfig.baseUrl,
                 projConfig.provider, projConfig.language, projConfig.uiLanguage, projConfig.pushPolicy,
                 projConfig.messageFormat, projConfig.promptTemplate,
-            ).any { it.isNotEmpty() } || (projConfig.maxDiffTokens != null && projConfig.maxDiffTokens!! > 0)
+            ).any { it.isNotEmpty() } || (projConfig.maxDiffTokens != null && projConfig.maxDiffTokens!! > 0) || projConfig.explain != null
 
             if (hasAny) {
                 GitAiConfigManager.save(GitAiConfigManager.projectPath(basePath), projConfig)

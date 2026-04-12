@@ -112,7 +112,7 @@ func (c *GeminiClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	c.logger.Printf("[DEBUG] <<< Response Body:\n%s", string(respBody))
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf("gemini API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var chatResp geminiResponse

@@ -17,6 +17,7 @@ interface GitAiConfig {
     prompt_template?: string;
     max_diff_tokens?: number;
     log_level?: string;
+    explain?: boolean;
 }
 
 const DEFAULTS: Required<GitAiConfig> = {
@@ -31,6 +32,7 @@ const DEFAULTS: Required<GitAiConfig> = {
     prompt_template: '',
     max_diff_tokens: 2000,
     log_level: 'info',
+    explain: false,
 };
 
 /**
@@ -373,6 +375,7 @@ export class SettingsPanel {
         ${this.renderField('g', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', String(DEFAULTS.max_diff_tokens), global.max_diff_tokens !== undefined ? String(global.max_diff_tokens) : '', '', t('settings.hint.maxDiffTokens'))}
         ${this.renderSelect('g', 'log_level', t('settings.field.logLevel'), ['error', 'info', 'debug'], DEFAULTS.log_level, global.log_level, '')}
         ${this.renderSelect('g', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', global.ui_language, '', t('settings.hint.uiLanguage'))}
+        ${this.renderSelect('g', 'explain', t('settings.field.explain'), ['true', 'false'], String(DEFAULTS.explain), global.explain !== undefined ? String(global.explain) : '', '', t('settings.hint.explain'))}
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('global')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveGlobal')}</button>
@@ -412,6 +415,7 @@ export class SettingsPanel {
         ${this.renderField('p', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', '', project.max_diff_tokens !== undefined ? String(project.max_diff_tokens) : '', String(merged.max_diff_tokens))}
         ${this.renderSelect('p', 'log_level', t('settings.field.logLevel'), ['', 'error', 'info', 'debug'], '', project.log_level, merged.log_level)}
         ${this.renderSelect('p', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', project.ui_language, merged.ui_language)}
+        ${this.renderSelect('p', 'explain', t('settings.field.explain'), ['', 'true', 'false'], '', project.explain !== undefined ? String(project.explain) : '', String(merged.explain))}
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('project')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveProject')}</button>
@@ -444,7 +448,9 @@ export class SettingsPanel {
                 } else {
                     let val = el.value.trim();
                     if (el.type === 'number' && val !== '') { val = parseInt(val, 10); }
-                    if (val !== '' && val !== 0 && !Number.isNaN(val)) { data[key] = val; }
+                    if (val === 'true') { data[key] = true; }
+                    else if (val === 'false') { data[key] = false; }
+                    else if (val !== '' && val !== 0 && !Number.isNaN(val)) { data[key] = val; }
                 }
             });
             return data;

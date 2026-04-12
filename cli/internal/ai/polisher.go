@@ -41,17 +41,23 @@ func isNonRetryableError(err error) bool {
 }
 
 // Polish generates an AI-polished commit message for the given diff and original message.
-func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
-	return PolishWithLogger(diff, originalMsg, cfg, log.Default())
+func Polish(diff, originalMsg, repoRoot string, cfg *config.Config) (string, error) {
+	return PolishWithLogger(diff, originalMsg, repoRoot, cfg, log.Default())
 }
 
 // PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
-func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.Logger) (string, error) {
+func PolishWithLogger(diff, originalMsg, repoRoot string, cfg *config.Config, logger *log.Logger) (string, error) {
 	// Use direct HTTP client instead of langchaingo for better control
 	client := NewClient(cfg, logger)
 
 	// Trim the diff to stay within token budget.
 	trimmedDiff := TrimDiff(diff, cfg.MaxDiffTokens)
+
+	// Extract local commitlint rules if they exist.
+	commitlintConfig := GetCommitlintConfig(repoRoot)
+	if commitlintConfig != "" {
+		logger.Printf("found local commitlint rules (length: %d chars)", len(commitlintConfig))
+	}
 
 	// Build prompts.
 	format := Format(cfg.MessageFormat)
@@ -89,7 +95,7 @@ func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.
 		}
 	}
 
-	sysProm = SystemPrompt(format, cfg.Language)
+	sysProm = SystemPrompt(format, cfg.Language, cfg.Explain, commitlintConfig)
 	userProm = UserPrompt(originalMsg, trimmedDiff)
 
 PromptsReady:

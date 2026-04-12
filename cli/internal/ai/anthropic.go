@@ -90,7 +90,7 @@ func (c *AnthropicClient) GenerateCompletion(ctx context.Context, systemPrompt, 
 	c.logger.Printf("[DEBUG] <<< Response Body:\n%s", string(respBody))
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Anthropic API returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf("anthropic API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var chatResp anthropicResponse

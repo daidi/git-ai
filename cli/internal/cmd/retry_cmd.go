@@ -73,7 +73,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 	}
 
 	// Call AI.
-	polished, err := ai.Polish(diff, userMsg, cfg)
+	polished, err := ai.Polish(diff, userMsg, repoRoot, cfg)
 	if err != nil {
 		return fmt.Errorf("AI error: %w", err)
 	}
