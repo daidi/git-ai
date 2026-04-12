@@ -59,8 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let currentLang = localStorage.getItem('gitai_lang') || 'en';
-
+    // Detect initial language: localStorage > browser navigator > default 'en'
+    let currentLang = localStorage.getItem('gitai_lang');
+    if (!currentLang) {
+        currentLang = (navigator.language || navigator.userLanguage || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+    }
     function updateLanguage() {
         document.documentElement.lang = currentLang;
         document.querySelectorAll('[data-i18n]').forEach(el => {
