@@ -35,20 +35,20 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("find .git dir: %w", err)
 	}
 
-	Printf(i18n.Sprintf("init.start", repoRoot))
+	Printf("%s", i18n.Sprintf("init.start", repoRoot))
 
 	// 2. Create state directory.
 	mgr := state.NewManager(gitDir)
 	if err := mgr.EnsureDir(); err != nil {
 		return fmt.Errorf("create state dir: %w", err)
 	}
-	Printf(i18n.Sprintf("init.created_state", mgr.StateDir()))
+	Printf("%s", i18n.Sprintf("init.created_state", mgr.StateDir()))
 
 	// 3. Initialize state.json.
 	if err := mgr.Reset(); err != nil {
 		return fmt.Errorf("init state: %w", err)
 	}
-	Printf(i18n.T("init.state_json"))
+	Printf("%s", i18n.T("init.state_json"))
 
 	// 4. Install hooks.
 	hooksDir := filepath.Join(gitDir, "hooks")
@@ -65,7 +65,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			if err := os.Rename(hookPath, backupPath); err != nil {
 				return fmt.Errorf("backup %s: %w", hookName, err)
 			}
-			Printf(i18n.Sprintf("init.backed_up", hookName, hookName))
+			Printf("%s", i18n.Sprintf("init.backed_up", hookName, hookName))
 		}
 
 		// Write new hook.
@@ -76,15 +76,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(hookPath, content, 0o755); err != nil {
 			return fmt.Errorf("write hook %s: %w", hookName, err)
 		}
-		Printf(i18n.Sprintf("init.installed", hookName))
+		Printf("%s", i18n.Sprintf("init.installed", hookName))
 	}
 
 	// 5. SSH detection.
 	ok, reason := git.CanPushSilently("origin")
 	if !ok {
-		Printf(i18n.Sprintf("init.ssh_warn", reason))
-		Printf(i18n.T("init.ssh_block"))
-		Printf(i18n.T("init.ssh_hint"))
+		Printf("%s", i18n.Sprintf("init.ssh_warn", reason))
+		Printf("%s", i18n.T("init.ssh_block"))
+		Printf("%s", i18n.T("init.ssh_hint"))
 
 		// Force push_policy to block in project config.
 		projectCfg := config.ProjectConfigPath(repoRoot)
@@ -92,12 +92,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// 6. Summary.
-	Printf(i18n.T("init.done"))
-	Printf(i18n.T("init.next"))
-	Printf(i18n.T("init.step1"))
-	Printf(i18n.T("init.step2"))
-	Printf(i18n.T("init.step3"))
-	Printf(i18n.T("init.step4"))
+	Printf("%s", i18n.T("init.done"))
+	Printf("%s", i18n.T("init.next"))
+	Printf("%s", i18n.T("init.step1"))
+	Printf("%s", i18n.T("init.step2"))
+	Printf("%s", i18n.T("init.step3"))
+	Printf("%s", i18n.T("init.step4"))
 	Printf("\n")
 
 	return nil

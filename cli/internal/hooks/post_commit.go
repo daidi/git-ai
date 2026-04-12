@@ -44,7 +44,7 @@ func RunPostCommit(isDaemon bool) error {
 		if err != nil {
 			return fmt.Errorf("start daemon: %w", err)
 		}
-		fmt.Printf(i18n.Sprintf("hook.forked", pid))
+		fmt.Print(i18n.Sprintf("hook.forked", pid))
 		return nil
 	}
 

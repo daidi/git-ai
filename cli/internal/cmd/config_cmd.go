@@ -45,7 +45,7 @@ var configSetCmd = &cobra.Command{
 		if configGlobal {
 			scope = "global"
 		}
-		Printf(i18n.Sprintf("config.set", key, value, scope))
+		Printf("%s", i18n.Sprintf("config.set", key, value, scope))
 		return nil
 	},
 }

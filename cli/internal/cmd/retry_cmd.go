@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -44,7 +45,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if s.CurrentStatus == state.StatusPolishing {
-		return fmt.Errorf(i18n.T("err.polishing"))
+		return errors.New(i18n.T("err.polishing"))
 	}
 
 	// Get current commit info.
@@ -63,7 +64,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		userMsg = s.OriginalMsg
 	}
 
-	Printf(i18n.Sprintf("retry.start", sha[:8]))
+	Printf("%s", i18n.Sprintf("retry.start", sha[:8]))
 
 	// Get diff.
 	diff, err := git.GetDiff(sha)
@@ -90,7 +91,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		PID:           os.Getpid(),
 	})
 
-	Printf(i18n.Sprintf("retry.done", polished))
+	Printf("%s", i18n.Sprintf("retry.done", polished))
 	notify.Send("Git AI", i18n.Sprintf("retry.notify", polished))
 	return nil
 }

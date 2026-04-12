@@ -29,7 +29,7 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("find .git dir: %w", err)
 	}
 
-	Printf(i18n.Sprintf("uninstall.start", repoRoot))
+	Printf("%s", i18n.Sprintf("uninstall.start", repoRoot))
 
 	hooksDir := filepath.Join(gitDir, "hooks")
 
@@ -48,9 +48,9 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 					return fmt.Errorf("remove %s: %w", hookName, err)
 				}
 				hookRemoved = true
-				Printf(i18n.Sprintf("uninstall.removed", hookName))
+				Printf("%s", i18n.Sprintf("uninstall.removed", hookName))
 			} else {
-				Printf(i18n.Sprintf("uninstall.skipped", hookName))
+				Printf("%s", i18n.Sprintf("uninstall.skipped", hookName))
 			}
 		} else if !os.IsNotExist(err) {
 			return fmt.Errorf("read %s: %w", hookName, err)
@@ -65,11 +65,11 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 				if err := os.Rename(backupPath, hookPath); err != nil {
 					return fmt.Errorf("restore backup %s: %w", hookName, err)
 				}
-				Printf(i18n.Sprintf("uninstall.restored", hookName))
+				Printf("%s", i18n.Sprintf("uninstall.restored", hookName))
 			} else {
-				Printf(i18n.T("uninstall.backup_kept"))
-				Printf(i18n.Sprintf("uninstall.current", hookPath))
-				Printf(i18n.Sprintf("uninstall.backup", backupPath))
+				Printf("%s", i18n.T("uninstall.backup_kept"))
+				Printf("%s", i18n.Sprintf("uninstall.current", hookPath))
+				Printf("%s", i18n.Sprintf("uninstall.backup", backupPath))
 			}
 		}
 	}
@@ -78,13 +78,13 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	gitAiDir := filepath.Join(gitDir, "git-ai")
 	if _, err := os.Stat(gitAiDir); err == nil {
 		if err := os.RemoveAll(gitAiDir); err != nil {
-			Printf(i18n.Sprintf("uninstall.state_warn", gitAiDir, err))
+			Printf("%s", i18n.Sprintf("uninstall.state_warn", gitAiDir, err))
 		} else {
-			Printf(i18n.T("uninstall.state_removed"))
+			Printf("%s", i18n.T("uninstall.state_removed"))
 		}
 	}
 
-	Printf(i18n.T("uninstall.done"))
-	Printf(i18n.T("uninstall.config_kept"))
+	Printf("%s", i18n.T("uninstall.done"))
+	Printf("%s", i18n.T("uninstall.config_kept"))
 	return nil
 }

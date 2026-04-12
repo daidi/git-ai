@@ -54,7 +54,7 @@ func RunPrePush(remote string) error {
 			Timestamp: time.Now().Unix(),
 		}
 		if err := mgr.Save(s); err != nil {
-			fmt.Fprintf(os.Stderr, i18n.Sprintf("prepush.save_warn", err))
+			fmt.Fprint(os.Stderr, i18n.Sprintf("prepush.save_warn", err))
 			// Still block the push to avoid pushing stale commit.
 		}
 

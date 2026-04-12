@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -35,14 +36,14 @@ func runUndo(cmd *cobra.Command, args []string) error {
 	}
 
 	if s.CurrentStatus == state.StatusPolishing {
-		return fmt.Errorf(i18n.T("err.polishing"))
+		return errors.New(i18n.T("err.polishing"))
 	}
 
 	if s.OriginalMsg == "" {
-		return fmt.Errorf(i18n.T("err.no_undo"))
+		return errors.New(i18n.T("err.no_undo"))
 	}
 
-	Printf(i18n.Sprintf("undo.restoring", s.OriginalMsg))
+	Printf("%s", i18n.Sprintf("undo.restoring", s.OriginalMsg))
 
 	if err := git.Amend(s.OriginalMsg); err != nil {
 		return fmt.Errorf("amend failed: %w", err)
@@ -54,6 +55,6 @@ func runUndo(cmd *cobra.Command, args []string) error {
 		LastSHA:       s.LastSHA,
 	})
 
-	Printf(i18n.T("undo.done"))
+	Printf("%s", i18n.T("undo.done"))
 	return nil
 }
