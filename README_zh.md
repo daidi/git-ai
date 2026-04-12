@@ -218,6 +218,9 @@ git-ai config set base_url http://localhost:11434 --global
 | `git-ai config set language zh-CN --global` | `en` | 输出语言（`en`、`zh-CN`、`ja` 等） |
 | `git-ai config set push_policy queue --global` | `queue` | `queue`=自动推送, `block`=阻止未完成的推送 |
 | `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
+| `git-ai config set explain true --global` | `false` | 开启后，在提交末尾追加关于代码变更动机的详细解释 |
+
+> **以上所有配置选项均可直接在 VS Code 和 JetBrains IDEA 的原生插件设置界面中通过下拉菜单可视化完成配置。**
 
 ---
 

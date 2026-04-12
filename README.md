@@ -218,6 +218,9 @@ git-ai config set base_url http://localhost:11434 --global
 | `git-ai config set language zh-CN --global` | `en` | Output language (`en`, `zh-CN`, `ja`, etc.) |
 | `git-ai config set push_policy queue --global` | `queue` | `queue`=auto-push, `block`=prevent push until polished |
 | `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
+| `git-ai config set explain true --global` | `false` | Append a paragraph explaining the *why* of the commit |
+
+> **All of these configurations (and more) are fully accessible and editable via the native settings UI in both the VS Code and JetBrains IDEA plugins.**
 
 ---
 
