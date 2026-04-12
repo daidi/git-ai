@@ -46,15 +46,17 @@
                 An async background daemon that intercepts your raw commits, passes them to LLMs, and silently amends your history. <strong>Never wait in the terminal.</strong>
             </p>
             <div class="hero-actions">
-                <div class="code-snippet group" id="install-cmd">
-                    <span class="prompt">$</span>
-                    <code class="cmd-text">brew install daidi/tap/git-ai</code>
-                    <button class="copy-btn" aria-label="Copy command">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    </button>
-                    <span class="copy-feedback" data-i18n="copy_feedback">Copied</span>
-                </div>
-                <a href="https://github.com/daidi/git-ai#readme" target="_blank" rel="noopener" class="btn btn-secondary" data-i18n="hero_docs_btn">Documentation →</a>
+                <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai" target="_blank" rel="noopener" class="btn btn-primary btn-massive">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-2H1v2h2zm2-20h-2v2h2v-2zm16 20h2v-2h-2v2zm2-20h-2v2h2v-2z"></path><path d="M7 16l4-4-4-4"></path><path d="M12 16h5"></path></svg>
+                    <span data-i18n="btn_vscode">Get VS Code Extension</span>
+                </a>
+                <a href="https://plugins.jetbrains.com/plugin/31221-git-ai" target="_blank" rel="noopener" class="btn btn-primary btn-massive">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span data-i18n="btn_idea">Get JetBrains Plugin</span>
+                </a>
+            </div>
+            <div class="hero-subtext">
+                <a href="https://github.com/daidi/git-ai#readme" target="_blank" rel="noopener" data-i18n="hero_cli_link">Terminal maximalist? Get the CLI engine →</a>
             </div>
         </div>
 
@@ -75,31 +77,31 @@
         </div>
     </main>
 
-    <section id="features" class="container grid-section">
-        <div class="feature-card">
+    <section id="features" class="container bento-grid">
+        <div class="feature-card bento-item hover-effect reveal-up">
             <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
             </div>
             <h3 data-i18n="feat1_title">Zero Latency</h3>
             <p data-i18n="feat1_desc">Your commit completes in 12ms. The LLM processes everything in an orphaned background daemon.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card bento-item item-span-2 hover-effect reveal-up" style="animation-delay: 100ms;">
             <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <h3 data-i18n="feat2_title">Real-time Status</h3>
             <p data-i18n="feat2_desc"><code>[⏳]</code> prefix acts as a locking mechanism visible natively in <code>git log</code> to prevent sync issues.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card bento-item item-span-2 hover-effect reveal-up" style="animation-delay: 200ms;">
             <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
             </div>
             <h3 data-i18n="feat3_title">Queue Push</h3>
             <p data-i18n="feat3_desc">Hitting <code>git push</code> while polishing? We queue the network payload and execute it after the amend finishes.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card bento-item hover-effect reveal-up" style="animation-delay: 300ms;">
             <div class="f-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
             </div>
             <h3 data-i18n="feat4_title">IDE Native</h3>
             <p data-i18n="feat4_desc">No more terminal toggling. Monitor daemon hooks natively through VS Code and IntelliJ IDEA extensions.</p>
