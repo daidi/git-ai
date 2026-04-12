@@ -28,7 +28,7 @@ object GitAiCli {
         val exe = getExecutablePath() 
         if (exe == null) {
             GitAiInstaller.notifyMissingCli(project)
-            return Result(false, "", "git-ai CLI missing")
+            return Result(false, "", "Git AI CLI missing")
         }
         return execute(basePath, exe, *args)
     }

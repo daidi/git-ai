@@ -35,28 +35,36 @@ func RunPostCommit(isDaemon bool) error {
 	mgr := state.NewManager(gitDir)
 
 	if !isDaemon {
-		// Check for skip flag
-		if s, err := mgr.Load(); err == nil && s.SkipNext {
-			s.SkipNext = false
-			_ = mgr.Save(s)
-			return nil
-		}
+		return runForeground(mgr)
+	}
 
-		// Fork a daemon and exit immediately so the commit doesn't block.
-		binary, err := daemon.FindBinary()
-		if err != nil {
-			return err
-		}
-		_ = mgr.EnsureDir()
+	return runDaemon(mgr)
+}
 
-		pid, err := daemon.StartBackground(binary, []string{"hook", "post-commit", "--daemon"}, mgr.LogDir())
-		if err != nil {
-			return fmt.Errorf("start daemon: %w", err)
-		}
-		fmt.Print(i18n.Sprintf("hook.forked", pid))
+func runForeground(mgr *state.Manager) error {
+	// Check for skip flag
+	if s, err := mgr.Load(); err == nil && s.SkipNext {
+		s.SkipNext = false
+		_ = mgr.Save(s)
 		return nil
 	}
 
+	// Fork a daemon and exit immediately so the commit doesn't block.
+	binary, err := daemon.FindBinary()
+	if err != nil {
+		return err
+	}
+	_ = mgr.EnsureDir()
+
+	pid, err := daemon.StartBackground(binary, []string{"hook", "post-commit", "--daemon"}, mgr.LogDir())
+	if err != nil {
+		return fmt.Errorf("start daemon: %w", err)
+	}
+	fmt.Print(i18n.Sprintf("hook.forked", pid))
+	return nil
+}
+
+func runDaemon(mgr *state.Manager) error {
 	// === Daemon mode: run the polishing logic ===
 	startTime := time.Now()
 	logger := log.New(os.Stdout, "[git-ai] ", log.LstdFlags)
@@ -91,6 +99,39 @@ func RunPostCommit(isDaemon bool) error {
 	}
 
 	// Save state: polishing (with original message for rollback).
+	if err := savePolishingState(mgr, sha, origMsg); err != nil {
+		return err
+	}
+	logger.Printf("polishing commit %s: %q", sha[:8], origMsg)
+
+	setupInterruptHandler(logger, mgr, origMsg)
+	markLoadingPrefix(logger, origMsg)
+
+	// Call AI.
+	polished, err := polishCommit(mgr, logger, cfg, sha, origMsg)
+	if err != nil {
+		return err
+	}
+
+	// Amend the commit with polished message.
+	if err := applyPolishedMessage(mgr, logger, origMsg, polished); err != nil {
+		return err
+	}
+
+	handlePendingPush(mgr, logger)
+
+	// Reset to idle.
+	_ = mgr.Save(&state.State{
+		CurrentStatus: state.StatusIdle,
+		OriginalMsg:   origMsg,
+		LastSHA:       sha,
+	})
+
+	logger.Printf("done (elapsed: %v)", time.Since(startTime))
+	return nil
+}
+
+func savePolishingState(mgr *state.Manager, sha, origMsg string) error {
 	s := &state.State{
 		CurrentStatus: state.StatusPolishing,
 		OriginalMsg:   origMsg,
@@ -98,21 +139,10 @@ func RunPostCommit(isDaemon bool) error {
 		PID:           os.Getpid(),
 		StartedAt:     time.Now().Unix(),
 	}
-	if err := mgr.Save(s); err != nil {
-		return err
-	}
+	return mgr.Save(s)
+}
 
-	logger.Printf("polishing commit %s: %q", sha[:8], origMsg)
-
-	// Immediately mark the commit with loading icon for visibility.
-	tempMsg := "[⏳] " + origMsg
-	if err := git.Amend(tempMsg); err != nil {
-		logger.Printf("warning: failed to add loading prefix: %v", err)
-		// Not fatal - continue with polishing
-	} else {
-		logger.Printf("added loading prefix to commit message")
-	}
-
+func setupInterruptHandler(logger *log.Logger, mgr *state.Manager, origMsg string) {
 	// Register signal handler to rollback on interruption.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -125,7 +155,20 @@ func RunPostCommit(isDaemon bool) error {
 		_ = mgr.Reset()
 		os.Exit(1)
 	}()
+}
 
+func markLoadingPrefix(logger *log.Logger, origMsg string) {
+	// Immediately mark the commit with loading icon for visibility.
+	tempMsg := "[⏳] " + origMsg
+	if err := git.Amend(tempMsg); err != nil {
+		logger.Printf("warning: failed to add loading prefix: %v", err)
+		// Not fatal - continue with polishing
+	} else {
+		logger.Printf("added loading prefix to commit message")
+	}
+}
+
+func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sha, origMsg string) (string, error) {
 	// Get diff.
 	diff, err := git.GetDiff(sha)
 	if err != nil {
@@ -133,7 +176,6 @@ func RunPostCommit(isDaemon bool) error {
 		diff, _ = git.GetDiffStat(sha)
 	}
 
-	// Call AI.
 	polished, err := ai.PolishWithLogger(diff, origMsg, cfg, logger)
 	if err != nil {
 		logger.Printf("AI error: %v", err)
@@ -146,12 +188,15 @@ func RunPostCommit(isDaemon bool) error {
 		}
 		// Reset state so we don't block future operations.
 		_ = mgr.Reset()
-		return err
+		return "", err
 	}
 
+	return polished, nil
+}
+
+func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polished string) error {
 	logger.Printf("polished message: %q", polished)
 
-	// Amend the commit with polished message.
 	if err := git.Amend(polished); err != nil {
 		logger.Printf("amend error: %v", err)
 		notify.Send("Git AI", i18n.Sprintf("hook.amend_failed", err))
@@ -166,9 +211,12 @@ func RunPostCommit(isDaemon bool) error {
 	}
 
 	notify.Send("Git AI", i18n.Sprintf("hook.polished", truncate(polished, 60)))
+	return nil
+}
 
+func handlePendingPush(mgr *state.Manager, logger *log.Logger) {
 	// Check for pending push.
-	s, _ = mgr.Load()
+	s, _ := mgr.Load()
 	if s.PendingPush != nil {
 		logger.Printf("executing pending push to %s", s.PendingPush.Remote)
 
@@ -182,16 +230,6 @@ func RunPostCommit(isDaemon bool) error {
 			notify.Send("Git AI", i18n.Sprintf("hook.pushed", s.PendingPush.Remote))
 		}
 	}
-
-	// Reset to idle.
-	_ = mgr.Save(&state.State{
-		CurrentStatus: state.StatusIdle,
-		OriginalMsg:   origMsg,
-		LastSHA:       sha,
-	})
-
-	logger.Printf("done (elapsed: %v)", time.Since(startTime))
-	return nil
 }
 
 // truncate shortens a string to max length with ellipsis.

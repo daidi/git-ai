@@ -2,7 +2,7 @@
   <img src="assets/icon.png" width="120" alt="git-ai logo" />
 </p>
 
-<h1 align="center">git-ai</h1>
+<h1 align="center">Git AI - Async Commit Polisher</h1>
 
 <p align="center">
   <strong>Commit first, think later.</strong><br/>

@@ -12,7 +12,7 @@ export class LogViewer implements vscode.Disposable {
     private currentFile: string = '';
 
     constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('git-ai');
+        this.outputChannel = vscode.window.createOutputChannel('Git AI');
     }
 
     /**

@@ -28,7 +28,7 @@ type State struct {
 	PendingPush   *PendingPush `json:"pending_push,omitempty"`
 	PID           int          `json:"pid,omitempty"`
 	StartedAt     int64        `json:"started_at,omitempty"` // Unix timestamp when polishing started
-	SkipNext      bool         `json:"skip_next,omitempty"` // Whether to bypass git-ai on next hook trigger
+	SkipNext      bool         `json:"skip_next,omitempty"`  // Whether to bypass git-ai on next hook trigger
 }
 
 // PendingPush holds deferred push details captured from pre-push stdin.

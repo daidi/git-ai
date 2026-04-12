@@ -2,11 +2,11 @@
   <img src="assets/icon.png" width="120" alt="git-ai logo" />
 </p>
 
-<h1 align="center">Git AI - Async Commit Polisher</h1>
+<h1 align="center">Git AI - 异步提交润色</h1>
 
 <p align="center">
-  <strong>Never wait for AI. Polish your commits in the background while you code.</strong><br/>
-  <strong>Commit first, think later.</strong><br/>
+  <strong>告别等待，让 AI 在后台默默为您润色提交信息。</strong><br/>
+  <strong>先提交，后思考 (Commit first, think later)。</strong><br/>
   <sub>AI 驱动的 Git 提交信息增强工具 —— 异步、无感、零负担。</sub>
 </p>
 

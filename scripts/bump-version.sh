@@ -36,11 +36,21 @@ if [ -f "idea-plugin/gradle.properties" ]; then
   fi
 fi
 
+# 3. Bump Landing Page
+if [ -f "docs/index.html" ] && [ -f "docs/script.js" ]; then
+  echo "➡️  Updating Landing Page..."
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" docs/index.html docs/script.js
+  else
+    sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" docs/index.html docs/script.js
+  fi
+fi
+
 echo "✅ All version files updated to $VERSION"
 echo ""
 echo "📦 Committing and tagging release v$VERSION..."
 
-git add vscode-extension/package.json idea-plugin/gradle.properties
+git add vscode-extension/package.json idea-plugin/gradle.properties docs/index.html docs/script.js
 GIT_AI_SKIP=true git commit --no-verify -m "chore: bump version to $VERSION"
 
 git tag "v$VERSION"

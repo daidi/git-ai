@@ -19,16 +19,16 @@ func isNonRetryableError(err error) bool {
 	msg := err.Error()
 	// HTTP status codes embedded in error messages from langchaingo / OpenAI-compatible APIs.
 	nonRetryablePatterns := []string{
-		"401",              // Unauthorized — bad API key
-		"403",              // Forbidden — key lacks permission
-		"404",              // Not Found — wrong model name or base URL
-		"invalid_api_key",  // OpenAI-specific
-		"authentication",   // Generic auth failure
-		"Unauthorized",     // HTTP status text
-		"Forbidden",        // HTTP status text
-		"model_not_found",  // OpenAI-specific
-		"does not exist",   // Model does not exist
-		"unsupported",      // Unsupported model/provider
+		"401",             // Unauthorized — bad API key
+		"403",             // Forbidden — key lacks permission
+		"404",             // Not Found — wrong model name or base URL
+		"invalid_api_key", // OpenAI-specific
+		"authentication",  // Generic auth failure
+		"Unauthorized",    // HTTP status text
+		"Forbidden",       // HTTP status text
+		"model_not_found", // OpenAI-specific
+		"does not exist",  // Model does not exist
+		"unsupported",     // Unsupported model/provider
 	}
 	lower := strings.ToLower(msg)
 	for _, p := range nonRetryablePatterns {

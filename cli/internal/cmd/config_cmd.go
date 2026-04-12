@@ -91,7 +91,7 @@ var configListCmd = &cobra.Command{
 		}
 		Printf("%-16s %d\n", "max_diff_tokens", cfg.MaxDiffTokens)
 		Printf("%-16s %s\n", "log_level", cfg.LogLevel)
-		
+
 		chk := false
 		if cfg.CheckUpdate != nil {
 			chk = *cfg.CheckUpdate

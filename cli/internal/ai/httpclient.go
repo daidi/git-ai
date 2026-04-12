@@ -56,10 +56,10 @@ func NewOpenAIClient(cfg *config.Config, logger *log.Logger) *OpenAIClient {
 
 // ChatRequest represents the OpenAI chat completion request
 type ChatRequest struct {
-	Model           string    `json:"model"`
-	Messages        []Message `json:"messages"`
-	Temperature     float64   `json:"temperature"`
-	EnableThinking  *bool     `json:"enable_thinking,omitempty"` // DashScope: disable reasoning mode for faster responses
+	Model          string    `json:"model"`
+	Messages       []Message `json:"messages"`
+	Temperature    float64   `json:"temperature"`
+	EnableThinking *bool     `json:"enable_thinking,omitempty"` // DashScope: disable reasoning mode for faster responses
 }
 
 // Message represents a chat message
@@ -70,7 +70,7 @@ type Message struct {
 
 // ChatResponse represents the OpenAI chat completion response
 type ChatResponse struct {
-	Choices []Choice `json:"choices"`
+	Choices []Choice  `json:"choices"`
 	Error   *APIError `json:"error,omitempty"`
 }
 

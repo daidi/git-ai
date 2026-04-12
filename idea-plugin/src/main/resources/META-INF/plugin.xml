@@ -41,7 +41,7 @@
 
         <!-- Tool window for logs and state -->
         <toolWindow
-                id="git-ai"
+                id="Git AI"
                 anchor="bottom"
                 icon="com.daidi.gitai.Icons.GitAi"
                 factoryClass="com.daidi.gitai.ui.GitAiToolWindowFactory"/>
@@ -54,7 +54,7 @@
         <notificationGroup
                 id="git-ai.notifications"
                 displayType="BALLOON"
-                toolWindowId="git-ai"/>
+                toolWindowId="Git AI"/>
 
         <!-- Settings page: Settings → Tools → git-ai -->
         <projectConfigurable
@@ -103,14 +103,14 @@
 
             <action id="GitAi.Init"
                     class="com.daidi.gitai.actions.InitAction"
-                    text="Initialize git-ai"
-                    description="Set up git-ai hooks in this repository"
+                    text="Initialize Git AI"
+                    description="Set up Git AI hooks in this repository"
                     icon="AllIcons.General.Add"/>
 
             <action id="GitAi.OpenConfig"
                     class="com.daidi.gitai.actions.OpenConfigAction"
                     text="Open Configuration"
-                    description="Open git-ai configuration file"
+                    description="Open Git AI configuration file"
                     icon="AllIcons.General.Settings"/>
         </group>
     </actions>

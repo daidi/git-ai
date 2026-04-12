@@ -78,7 +78,7 @@
     ],
     "icons": {
       "git-ai-zap": {
-        "description": "Zap icon for git-ai",
+        "description": "Zap icon for Git AI",
         "default": {
           "fontPath": "./node_modules/@vscode/codicons/dist/codicon.ttf",
           "fontCharacter": "\\eb66"

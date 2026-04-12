@@ -72,7 +72,7 @@ function promptInstall() {
             return;
         }
 
-        const terminal = vscode.window.createTerminal('git-ai Installer');
+        const terminal = vscode.window.createTerminal('Git AI Installer');
         terminal.show();
         
         if (selection === t('installer.homebrew')) {

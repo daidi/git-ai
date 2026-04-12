@@ -36,22 +36,22 @@ var messages = map[string]map[string]string{
 		"init.step4":         "  4. Commit as usual:   git commit -m \"your message\"\n",
 
 		// ── uninstall ──
-		"uninstall.start":          "🗑️  Uninstalling Git AI from %s\n\n",
-		"uninstall.removed":        "  ✅ Removed %s hook\n",
-		"uninstall.skipped":        "  ℹ️  Skipped %s (not a Git AI hook)\n",
-		"uninstall.restored":       "  📦 Restored original %s hook from backup\n",
-		"uninstall.backup_kept":    "  ⚠️  Backup exists but current hook was modified — keeping both\n",
-		"uninstall.current":        "     Current: %s\n",
-		"uninstall.backup":         "     Backup:  %s\n",
-		"uninstall.state_warn":     "\n  ⚠️  Warning: could not remove %s: %v\n",
-		"uninstall.state_removed":  "\n  ✅ Removed state directory\n",
-		"uninstall.done":           "\n🎉 Git AI hooks removed.\n",
-		"uninstall.config_kept":    "Your .git-ai.json configuration was untouched and safely preserved.\n\n",
+		"uninstall.start":         "🗑️  Uninstalling Git AI from %s\n\n",
+		"uninstall.removed":       "  ✅ Removed %s hook\n",
+		"uninstall.skipped":       "  ℹ️  Skipped %s (not a Git AI hook)\n",
+		"uninstall.restored":      "  📦 Restored original %s hook from backup\n",
+		"uninstall.backup_kept":   "  ⚠️  Backup exists but current hook was modified — keeping both\n",
+		"uninstall.current":       "     Current: %s\n",
+		"uninstall.backup":        "     Backup:  %s\n",
+		"uninstall.state_warn":    "\n  ⚠️  Warning: could not remove %s: %v\n",
+		"uninstall.state_removed": "\n  ✅ Removed state directory\n",
+		"uninstall.done":          "\n🎉 Git AI hooks removed.\n",
+		"uninstall.config_kept":   "Your .git-ai.json configuration was untouched and safely preserved.\n\n",
 
 		// ── retry ──
-		"retry.start":   "🔄 Re-generating commit message for %s...\n",
-		"retry.done":    "✅ Commit message updated:\n   %s\n",
-		"retry.notify":  "Retry: %s",
+		"retry.start":  "🔄 Re-generating commit message for %s...\n",
+		"retry.done":   "✅ Commit message updated:\n   %s\n",
+		"retry.notify": "Retry: %s",
 
 		// ── undo ──
 		"undo.restoring": "⏪ Restoring original message: %q\n",
@@ -59,9 +59,9 @@ var messages = map[string]map[string]string{
 
 		// ── recover ──
 		"recover.nothing_to_recover": "ℹ️  Nothing to recover — no stuck polishing state detected.\n",
-		"recover.rolling_back":        "⏪ Rolling back to original message...\n",
-		"recover.rolled_back":         "✅ Rolled back to: %q\n",
-		"recover.success":             "✅ Recovery complete.\n",
+		"recover.rolling_back":       "⏪ Rolling back to original message...\n",
+		"recover.rolled_back":        "✅ Rolled back to: %q\n",
+		"recover.success":            "✅ Recovery complete.\n",
 
 		// ── config ──
 		"config.set": "✅ Set %s = %s (%s)\n",
@@ -75,8 +75,8 @@ var messages = map[string]map[string]string{
 		"hook.pushed":       "Pushed to %s",
 
 		// ── hook (pre-push) ──
-		"prepush.queued":         "⏳ Git AI: AI is polishing your commit. Push queued — will auto-push when ready. (Please ignore the push failure warning, it will push automatically after polishing.)\n",
-		"prepush.save_warn":      "Git AI: warning: could not save pending push: %v\n",
+		"prepush.queued":    "⏳ Git AI: AI is polishing your commit. Push queued — will auto-push when ready. (Please ignore the push failure warning, it will push automatically after polishing.)\n",
+		"prepush.save_warn": "Git AI: warning: could not save pending push: %v\n",
 
 		// ── errors ──
 		"err.polishing": "AI is currently polishing — please wait",
@@ -100,22 +100,22 @@ var messages = map[string]map[string]string{
 		"init.step4":         "  4. 照常提交即可:   git commit -m \"你的消息\"\n",
 
 		// ── uninstall ──
-		"uninstall.start":          "🗑️  正在从 %s 卸载 Git AI\n\n",
-		"uninstall.removed":        "  ✅ 已移除 %s 钩子\n",
-		"uninstall.skipped":        "  ℹ️  已跳过 %s（非 Git AI 钩子）\n",
-		"uninstall.restored":       "  📦 已从备份恢复 %s 钩子\n",
-		"uninstall.backup_kept":    "  ⚠️  存在备份但当前钩子已被修改 — 两者均保留\n",
-		"uninstall.current":        "     当前: %s\n",
-		"uninstall.backup":         "     备份: %s\n",
-		"uninstall.state_warn":     "\n  ⚠️  警告: 无法移除 %s: %v\n",
-		"uninstall.state_removed":  "\n  ✅ 已移除状态目录\n",
-		"uninstall.done":           "\n🎉 Git AI 钩子已移除。\n",
-		"uninstall.config_kept":    ".git-ai.json 配置文件未受影响，已安全保留。\n\n",
+		"uninstall.start":         "🗑️  正在从 %s 卸载 Git AI\n\n",
+		"uninstall.removed":       "  ✅ 已移除 %s 钩子\n",
+		"uninstall.skipped":       "  ℹ️  已跳过 %s（非 Git AI 钩子）\n",
+		"uninstall.restored":      "  📦 已从备份恢复 %s 钩子\n",
+		"uninstall.backup_kept":   "  ⚠️  存在备份但当前钩子已被修改 — 两者均保留\n",
+		"uninstall.current":       "     当前: %s\n",
+		"uninstall.backup":        "     备份: %s\n",
+		"uninstall.state_warn":    "\n  ⚠️  警告: 无法移除 %s: %v\n",
+		"uninstall.state_removed": "\n  ✅ 已移除状态目录\n",
+		"uninstall.done":          "\n🎉 Git AI 钩子已移除。\n",
+		"uninstall.config_kept":   ".git-ai.json 配置文件未受影响，已安全保留。\n\n",
 
 		// ── retry ──
-		"retry.start":   "🔄 正在为 %s 重新生成提交信息...\n",
-		"retry.done":    "✅ 提交信息已更新:\n   %s\n",
-		"retry.notify":  "已重试: %s",
+		"retry.start":  "🔄 正在为 %s 重新生成提交信息...\n",
+		"retry.done":   "✅ 提交信息已更新:\n   %s\n",
+		"retry.notify": "已重试: %s",
 
 		// ── undo ──
 		"undo.restoring": "⏪ 正在恢复原始信息: %q\n",
@@ -123,9 +123,9 @@ var messages = map[string]map[string]string{
 
 		// ── recover ──
 		"recover.nothing_to_recover": "ℹ️  没有需要恢复的内容 — 未检测到卡住的润色状态。\n",
-		"recover.rolling_back":        "⏪ 正在回滚到原始消息...\n",
-		"recover.rolled_back":         "✅ 已回滚到: %q\n",
-		"recover.success":             "✅ 恢复完成。\n",
+		"recover.rolling_back":       "⏪ 正在回滚到原始消息...\n",
+		"recover.rolled_back":        "✅ 已回滚到: %q\n",
+		"recover.success":            "✅ 恢复完成。\n",
 
 		// ── config ──
 		"config.set": "✅ 已设置 %s = %s（%s）\n",
@@ -139,8 +139,8 @@ var messages = map[string]map[string]string{
 		"hook.pushed":       "已推送到 %s",
 
 		// ── hook (pre-push) ──
-		"prepush.queued":         "⏳ Git AI: AI 正在润色你的提交，推送已排队 — 完成后将自动推送。（请忽略推送失败的警告，消息润色完成后会自动提交推送）\n",
-		"prepush.save_warn":      "Git AI: 警告: 无法保存待推送状态: %v\n",
+		"prepush.queued":    "⏳ Git AI: AI 正在润色你的提交，推送已排队 — 完成后将自动推送。（请忽略推送失败的警告，消息润色完成后会自动提交推送）\n",
+		"prepush.save_warn": "Git AI: 警告: 无法保存待推送状态: %v\n",
 
 		// ── errors ──
 		"err.polishing": "AI 正在润色中 — 请稍候",

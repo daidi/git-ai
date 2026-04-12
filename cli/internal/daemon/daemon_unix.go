@@ -26,9 +26,9 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 		Dir: wd,
 		Env: os.Environ(),
 		Files: []*os.File{
-			os.Stdin,  // stdin  — not used but required
-			f,         // stdout → log file
-			f,         // stderr → log file
+			os.Stdin, // stdin  — not used but required
+			f,        // stdout → log file
+			f,        // stderr → log file
 		},
 		Sys: &syscall.SysProcAttr{
 			Setsid: true, // Create new session — fully detach from terminal.
