@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { LogViewer } from './logViewer';
 import { notifyInfo, notifyError, notifyWarning } from './notifications';
 import { getExecutablePath } from './installer';
+import { t } from './i18n';
 
 /**
  * Manages all git-ai commands callable from the command palette.
@@ -21,9 +22,9 @@ export class CommandManager {
     async init(): Promise<void> {
         const result = await this.runGitAi(['init']);
         if (result.success) {
-            notifyInfo('🎉 git-ai initialized!');
+            notifyInfo(t('cmd.init.success'));
         } else {
-            notifyError(`git-ai init failed: ${result.error}`);
+            notifyError(t('cmd.init.failed', result.error));
         }
     }
 
@@ -33,9 +34,9 @@ export class CommandManager {
     async uninstall(): Promise<void> {
         const result = await this.runGitAi(['uninstall']);
         if (result.success) {
-            notifyInfo('🗑️ git-ai hooks uninstalled.');
+            notifyInfo(t('cmd.uninstall.success'));
         } else {
-            notifyError(`git-ai uninstall failed: ${result.error}`);
+            notifyError(t('cmd.uninstall.failed', result.error));
         }
     }
 
@@ -44,19 +45,19 @@ export class CommandManager {
      */
     async retry(): Promise<void> {
         const confirm = await vscode.window.showWarningMessage(
-            'Re-generate AI commit message for the last commit?',
-            'Yes', 'Cancel'
+            t('cmd.retry.confirm'),
+            t('cmd.retry.yes'), t('cmd.retry.cancel')
         );
-        if (confirm !== 'Yes') { return; }
+        if (confirm !== t('cmd.retry.yes')) { return; }
 
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'git-ai: Retrying...' },
+            { location: vscode.ProgressLocation.Notification, title: t('cmd.retry.progress') },
             async () => {
                 const result = await this.runGitAi(['retry']);
                 if (result.success) {
-                    notifyInfo('✨ git-ai: Commit message re-generated!');
+                    notifyInfo(t('cmd.retry.success'));
                 } else {
-                    notifyError(`git-ai retry failed: ${result.error}`);
+                    notifyError(t('cmd.retry.failed', result.error));
                 }
             }
         );
@@ -67,16 +68,16 @@ export class CommandManager {
      */
     async undo(): Promise<void> {
         const confirm = await vscode.window.showWarningMessage(
-            'Restore the original commit message?',
-            'Yes', 'Cancel'
+            t('cmd.undo.confirm'),
+            t('cmd.undo.yes'), t('cmd.undo.cancel')
         );
-        if (confirm !== 'Yes') { return; }
+        if (confirm !== t('cmd.undo.yes')) { return; }
 
         const result = await this.runGitAi(['undo']);
         if (result.success) {
-            notifyInfo('⏪ git-ai: Original message restored');
+            notifyInfo(t('cmd.undo.success'));
         } else {
-            notifyError(`git-ai undo failed: ${result.error}`);
+            notifyError(t('cmd.undo.failed', result.error));
         }
     }
 
@@ -87,7 +88,7 @@ export class CommandManager {
         try {
             const statePath = path.join(this.workspaceRoot, '.git', 'git-ai', 'state.json');
             if (!fs.existsSync(statePath)) {
-                notifyWarning('git-ai: No active state found');
+                notifyWarning(t('cmd.cancel.noState'));
                 return;
             }
 
@@ -103,12 +104,12 @@ export class CommandManager {
                 const resetState = { current_status: 'idle', original_msg: state.original_msg, last_sha: state.last_sha };
                 fs.writeFileSync(statePath, JSON.stringify(resetState, null, 2));
 
-                notifyInfo('🛑 git-ai: Polishing cancelled');
+                notifyInfo(t('cmd.cancel.success'));
             } else {
-                notifyInfo('git-ai: No polishing in progress');
+                notifyInfo(t('cmd.cancel.noPolishing'));
             }
         } catch (err) {
-            notifyError(`git-ai cancel failed: ${err}`);
+            notifyError(t('cmd.cancel.failed', String(err)));
         }
     }
 
@@ -117,13 +118,13 @@ export class CommandManager {
      */
     async forcePush(): Promise<void> {
         const confirm = await vscode.window.showWarningMessage(
-            'Force push to remote now?',
-            'Yes', 'Cancel'
+            t('cmd.push.confirm'),
+            t('cmd.push.yes'), t('cmd.push.cancel')
         );
-        if (confirm !== 'Yes') { return; }
+        if (confirm !== t('cmd.push.yes')) { return; }
 
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'git-ai: Pushing...' },
+            { location: vscode.ProgressLocation.Notification, title: t('cmd.push.progress') },
             async () => {
                 // Run git push directly with GIT_AI_INTERNAL to bypass hook.
                 const result = await this.runCommand('git', ['push'], {
@@ -141,9 +142,9 @@ export class CommandManager {
                         }
                     } catch { /* ignore */ }
 
-                    notifyInfo('🚀 git-ai: Push completed!');
+                    notifyInfo(t('cmd.push.success'));
                 } else {
-                    notifyError(`Push failed: ${result.error}`);
+                    notifyError(t('cmd.push.failed', result.error));
                 }
             }
         );
@@ -162,13 +163,13 @@ export class CommandManager {
      */
     async testConfig(): Promise<void> {
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'git-ai: Testing LLM connection...' },
+            { location: vscode.ProgressLocation.Notification, title: t('cmd.test.progress') },
             async () => {
                 const result = await this.runGitAi(['config', 'test']);
                 if (result.success) {
-                    vscode.window.showInformationMessage(`✅ git-ai: Test successful!\n\n${result.output}`, { modal: true });
+                    vscode.window.showInformationMessage(t('cmd.test.success', result.output), { modal: true });
                 } else {
-                    vscode.window.showErrorMessage(`❌ git-ai: Test failed:\n\n${result.error}\n${result.output}`, { modal: true });
+                    vscode.window.showErrorMessage(t('cmd.test.failed', result.error, result.output), { modal: true });
                 }
             }
         );

@@ -2,8 +2,12 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -12,9 +16,56 @@ import (
 	"github.com/daidi/git-ai/internal/config"
 )
 
+// debugDoer wraps an HTTP Doer to log request and response bodies.
+type debugDoer struct {
+	inner  openaiDoer
+	logger *log.Logger
+}
+
+// openaiDoer matches the langchaingo openai internal Doer interface.
+type openaiDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func (d *debugDoer) Do(req *http.Request) (*http.Response, error) {
+	// Log request
+	if req.Body != nil {
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err == nil {
+			d.logger.Printf("[DEBUG] >>> HTTP %s %s", req.Method, req.URL.String())
+			d.logger.Printf("[DEBUG] >>> Request Body:\n%s", string(bodyBytes))
+			req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		}
+	}
+
+	resp, err := d.inner.Do(req)
+	if err != nil {
+		d.logger.Printf("[DEBUG] <<< HTTP Error: %v", err)
+		return resp, err
+	}
+
+	// Log response body (read + re-buffer so the caller still gets it)
+	if resp.Body != nil {
+		respBytes, readErr := io.ReadAll(resp.Body)
+		if readErr == nil {
+			d.logger.Printf("[DEBUG] <<< HTTP %d %s", resp.StatusCode, resp.Status)
+			d.logger.Printf("[DEBUG] <<< Response Body:\n%s", string(respBytes))
+			resp.Body = io.NopCloser(bytes.NewBuffer(respBytes))
+		}
+	}
+
+	return resp, nil
+}
+
 // NewLLM creates a langchaingo LLM instance based on the provider config.
 // The "openai" provider works with any OpenAI-compatible API (DeepSeek, OpenRouter, etc.).
 func NewLLM(cfg *config.Config) (llms.Model, error) {
+	return NewLLMWithLogger(cfg, nil)
+}
+
+// NewLLMWithLogger creates a langchaingo LLM instance. When debug is enabled
+// and a logger is provided, all HTTP request/response bodies are logged.
+func NewLLMWithLogger(cfg *config.Config, logger *log.Logger) (llms.Model, error) {
 	switch cfg.Provider {
 	case "ollama":
 		opts := []ollama.Option{
@@ -34,6 +85,13 @@ func NewLLM(cfg *config.Config) (llms.Model, error) {
 		}
 		if cfg.BaseURL != "" {
 			opts = append(opts, openai.WithBaseURL(cfg.BaseURL))
+		}
+		// Inject debug HTTP client when debug mode is enabled.
+		if cfg.IsDebug() && logger != nil {
+			opts = append(opts, openai.WithHTTPClient(&debugDoer{
+				inner:  http.DefaultClient,
+				logger: logger,
+			}))
 		}
 		return openai.New(opts...)
 

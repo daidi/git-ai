@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GitAiState } from './stateWatcher';
+import { t } from './i18n';
 
 /**
  * Webview provider for the git-ai actions panel in the sidebar.
@@ -81,31 +82,31 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
         if (isPolishing) {
             statusHtml = `<div class="status polishing">
                 <i class="codicon codicon-sparkle status-icon"></i>
-                <span>AI 润色中...</span>
+                <span>${t('status.polishing')}</span>
             </div>`;
         } else if (isPushing) {
             statusHtml = `<div class="status pushing">
                 <i class="codicon codicon-cloud-upload status-icon"></i>
-                <span>推送中...</span>
+                <span>${t('status.pushing')}</span>
             </div>`;
         } else if (hasPending) {
             statusHtml = `<div class="status pending">
                 <i class="codicon codicon-clock status-icon"></i>
-                <span>待推送 → ${s.pending_push!.remote}</span>
+                <span>${t('status.pendingPushRemote', s.pending_push!.remote)}</span>
             </div>`;
         } else {
             statusHtml = `<div class="status idle">
                 <i class="codicon codicon-check status-icon"></i>
-                <span>空闲</span>
+                <span>${t('status.idle')}</span>
             </div>`;
         }
 
         let infoHtml = '';
         if (s.last_sha) {
-            infoHtml += `<div class="info-row"><span class="label">Commit:</span> <code>${s.last_sha.substring(0, 8)}</code></div>`;
+            infoHtml += `<div class="info-row"><span class="label">${t('info.commit')}</span> <code>${s.last_sha.substring(0, 8)}</code></div>`;
         }
         if (s.original_msg) {
-            infoHtml += `<div class="info-row"><span class="label">Original:</span> <span class="msg">${this.escapeHtml(s.original_msg)}</span></div>`;
+            infoHtml += `<div class="info-row"><span class="label">${t('info.original')}</span> <span class="msg">${this.escapeHtml(s.original_msg)}</span></div>`;
         }
 
         return /* html */ `<!DOCTYPE html>
@@ -181,29 +182,29 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     ${statusHtml}
     ${infoHtml ? `<div class="info-section">${infoHtml}</div>` : ''}
 
-    <div class="section-title">Actions</div>
+    <div class="section-title">${t('actions.section.actions')}</div>
     <div class="btn-grid">
         <button class="primary" onclick="send('retry')" ${isPolishing || isPushing ? 'disabled' : ''}>
-            <i class="codicon codicon-refresh"></i> Retry AI Polish
+            <i class="codicon codicon-refresh"></i> ${t('actions.btn.retry')}
         </button>
         <button onclick="send('undo')" ${isPolishing || isPushing ? 'disabled' : ''}>
-            <i class="codicon codicon-discard"></i> Undo (Restore Original)
+            <i class="codicon codicon-discard"></i> ${t('actions.btn.undo')}
         </button>
         <button class="danger" onclick="send('cancel')" ${!isPolishing ? 'disabled' : ''}>
-            <i class="codicon codicon-circle-slash"></i> Cancel Polishing
+            <i class="codicon codicon-circle-slash"></i> ${t('actions.btn.cancel')}
         </button>
         <button onclick="send('forcePush')" ${isPushing ? 'disabled' : ''}>
-            <i class="codicon codicon-cloud-upload"></i> Force Push Now
+            <i class="codicon codicon-cloud-upload"></i> ${t('actions.btn.forcePush')}
         </button>
     </div>
 
     <div class="divider"></div>
 
-    <div class="section-title">Tools</div>
+    <div class="section-title">${t('actions.section.tools')}</div>
     <div class="btn-grid">
-        <button onclick="send('showLogs')"><i class="codicon codicon-output"></i> Show Logs</button>
-        <button onclick="send('openConfig')"><i class="codicon codicon-settings-gear"></i> Configuration</button>
-        <button onclick="send('init')"><i class="codicon codicon-tools"></i> Re-initialize</button>
+        <button onclick="send('showLogs')"><i class="codicon codicon-output"></i> ${t('actions.btn.showLogs')}</button>
+        <button onclick="send('openConfig')"><i class="codicon codicon-settings-gear"></i> ${t('actions.btn.config')}</button>
+        <button onclick="send('init')"><i class="codicon codicon-tools"></i> ${t('actions.btn.reinit')}</button>
     </div>
 
     <script>

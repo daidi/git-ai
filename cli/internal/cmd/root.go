@@ -9,6 +9,7 @@ import (
 
 	"github.com/daidi/git-ai/internal/config"
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/update"
 )
 
@@ -26,7 +27,7 @@ var rootCmd = &cobra.Command{
 	Short: "AI-powered Git commit message enhancer",
 	Long: "\033[1;36m✨ Git AI - Async Commit Polisher\033[0m\n\n" +
 `Never wait for AI. Polish your commits in the background while you code.
-git-ai automatically enhances your commit messages using LLMs.
+Git AI automatically enhances your commit messages using LLMs.
 It works asynchronously via post-commit hooks and supports deferred push.`,
 
 	Version: version,
@@ -41,21 +42,32 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 			}
 		}
 		
-		if skipGit {
-			return nil
-		}
-		root, err := git.GetRepoRoot()
-		if err != nil {
-			return fmt.Errorf("not inside a git repository: %w", err)
-		}
-		gitRoot = root
+		// Initialize i18n as early as possible.
+		// Try to load config for ui_language; if unavailable, i18n auto-detects from env.
+		var uiLang string
+		if !skipGit {
+			root, err := git.GetRepoRoot()
+			if err != nil {
+				return fmt.Errorf("not inside a git repository: %w", err)
+			}
+			gitRoot = root
 
-		cfg, _ := config.Load(gitRoot)
-		enabled := true
-		if cfg != nil && cfg.CheckUpdate != nil {
-			enabled = *cfg.CheckUpdate
+			cfg, _ := config.Load(gitRoot)
+			if cfg != nil {
+				uiLang = cfg.UILanguage
+				enabled := true
+				if cfg.CheckUpdate != nil {
+					enabled = *cfg.CheckUpdate
+				}
+				update.BackgroundCheck(enabled)
+			}
+		} else {
+			// Even without a repo, try global config for ui_language.
+			if globalCfg, err := config.LoadFile(config.GlobalConfigPath()); err == nil && globalCfg != nil {
+				uiLang = globalCfg.UILanguage
+			}
 		}
-		update.BackgroundCheck(enabled)
+		i18n.Init(uiLang)
 
 		return nil
 	},

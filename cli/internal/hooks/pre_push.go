@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/state"
 )
 
@@ -53,11 +54,11 @@ func RunPrePush(remote string) error {
 			Timestamp: time.Now().Unix(),
 		}
 		if err := mgr.Save(s); err != nil {
-			fmt.Fprintf(os.Stderr, "git-ai: warning: could not save pending push: %v\n", err)
+			fmt.Fprintf(os.Stderr, i18n.Sprintf("prepush.save_warn", err))
 			// Still block the push to avoid pushing stale commit.
 		}
 
-		fmt.Println("⏳ git-ai: AI is polishing your commit. Push queued — will auto-push when ready.")
+		fmt.Print(i18n.T("prepush.queued"))
 		// Exit 1 to block the synchronous push.
 		os.Exit(1)
 	}

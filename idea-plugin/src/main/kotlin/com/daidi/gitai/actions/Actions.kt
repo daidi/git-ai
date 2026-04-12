@@ -1,5 +1,6 @@
 package com.daidi.gitai.actions
 
+import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiCli
 import com.daidi.gitai.state.GitAiStateService
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -29,19 +30,19 @@ class RetryAction : AnAction() {
         fun execute(project: Project) {
             val confirm = Messages.showYesNoDialog(
                 project,
-                "Re-generate AI commit message for the last commit?",
-                "git-ai: Retry",
+                GitAiBundle.message("action.retry.confirm"),
+                GitAiBundle.message("action.retry.title"),
                 Messages.getQuestionIcon()
             )
             if (confirm != Messages.YES) return
 
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, "git-ai: Retrying...") {
+            ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.retry.progress")) {
                 override fun run(indicator: ProgressIndicator) {
                     val result = GitAiCli.run(project, "retry")
                     if (result.success) {
-                        Messages.showInfoMessage(project, "Commit message re-generated!", "git-ai")
+                        Messages.showInfoMessage(project, GitAiBundle.message("action.retry.success"), GitAiBundle.message("notification.title"))
                     } else {
-                        Messages.showErrorDialog(project, "Retry failed: ${result.stderr}", "git-ai")
+                        Messages.showErrorDialog(project, GitAiBundle.message("action.retry.failed", result.stderr), GitAiBundle.message("notification.title"))
                     }
                 }
             })
@@ -68,17 +69,17 @@ class UndoAction : AnAction() {
         fun execute(project: Project) {
             val confirm = Messages.showYesNoDialog(
                 project,
-                "Restore the original commit message?",
-                "git-ai: Undo",
+                GitAiBundle.message("action.undo.confirm"),
+                GitAiBundle.message("action.undo.title"),
                 Messages.getQuestionIcon()
             )
             if (confirm != Messages.YES) return
 
             val result = GitAiCli.run(project, "undo")
             if (result.success) {
-                Messages.showInfoMessage(project, "Original message restored!", "git-ai")
+                Messages.showInfoMessage(project, GitAiBundle.message("action.undo.success"), GitAiBundle.message("notification.title"))
             } else {
-                Messages.showErrorDialog(project, "Undo failed: ${result.stderr}", "git-ai")
+                Messages.showErrorDialog(project, GitAiBundle.message("action.undo.failed", result.stderr), GitAiBundle.message("notification.title"))
             }
         }
     }
@@ -104,7 +105,7 @@ class CancelAction : AnAction() {
             val state = stateService.state
 
             if (!state.isPolishing) {
-                Messages.showInfoMessage(project, "No polishing in progress.", "git-ai")
+                Messages.showInfoMessage(project, GitAiBundle.message("action.cancel.noPolishing"), GitAiBundle.message("notification.title"))
                 return
             }
 
@@ -128,7 +129,7 @@ class CancelAction : AnAction() {
                 } catch (_: Exception) {}
             }
 
-            Messages.showInfoMessage(project, "Polishing cancelled.", "git-ai")
+            Messages.showInfoMessage(project, GitAiBundle.message("action.cancel.success"), GitAiBundle.message("notification.title"))
         }
     }
 }
@@ -151,13 +152,13 @@ class ForcePushAction : AnAction() {
         fun execute(project: Project) {
             val confirm = Messages.showYesNoDialog(
                 project,
-                "Force push to remote now?",
-                "git-ai: Force Push",
+                GitAiBundle.message("action.push.confirm"),
+                GitAiBundle.message("action.push.title"),
                 Messages.getWarningIcon()
             )
             if (confirm != Messages.YES) return
 
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, "git-ai: Pushing...") {
+            ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.push.progress")) {
                 override fun run(indicator: ProgressIndicator) {
                     val result = GitAiCli.runGitInternal(project, "push")
                     if (result.success) {
@@ -172,9 +173,9 @@ class ForcePushAction : AnAction() {
                                 }
                             } catch (_: Exception) {}
                         }
-                        Messages.showInfoMessage(project, "Push completed!", "git-ai")
+                        Messages.showInfoMessage(project, GitAiBundle.message("action.push.success"), GitAiBundle.message("notification.title"))
                     } else {
-                        Messages.showErrorDialog(project, "Push failed: ${result.stderr}", "git-ai")
+                        Messages.showErrorDialog(project, GitAiBundle.message("action.push.failed", result.stderr), GitAiBundle.message("notification.title"))
                     }
                 }
             })
@@ -189,9 +190,9 @@ class InitAction : AnAction() {
         val project = e.project ?: return
         val result = GitAiCli.run(project, "init")
         if (result.success) {
-            Messages.showInfoMessage(project, "git-ai initialized!\n\n${result.stdout}", "git-ai")
+            Messages.showInfoMessage(project, GitAiBundle.message("action.init.success", result.stdout), GitAiBundle.message("notification.title"))
         } else {
-            Messages.showErrorDialog(project, "Init failed: ${result.stderr}", "git-ai")
+            Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", result.stderr), GitAiBundle.message("notification.title"))
         }
     }
 }

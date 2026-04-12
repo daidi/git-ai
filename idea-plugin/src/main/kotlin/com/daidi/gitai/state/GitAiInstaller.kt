@@ -1,5 +1,6 @@
 package com.daidi.gitai.state
 
+import com.daidi.gitai.GitAiBundle
 import com.intellij.notification.*
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
@@ -23,12 +24,12 @@ object GitAiInstaller {
         val notification = NotificationGroupManager.getInstance()
             .getNotificationGroup("git-ai.notifications")
             .createNotification(
-                "git-ai CLI Missing",
-                "The git-ai CLI tool is required but not found in PATH.",
+                GitAiBundle.message("installer.missing.title"),
+                GitAiBundle.message("installer.missing.content"),
                 NotificationType.WARNING
             )
         
-        notification.addAction(NotificationAction.createSimple("Download & Install") {
+        notification.addAction(NotificationAction.createSimple(GitAiBundle.message("installer.download")) {
             notification.expire()
             installCli(project)
         })
@@ -49,7 +50,7 @@ object GitAiInstaller {
         val fileName = "git-ai_${os}_${arch}.$ext"
         val downloadUrl = "https://github.com/daidi/git-ai/releases/latest/download/$fileName"
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Downloading git-ai CLI...", true) {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("installer.downloading"), true) {
             override fun run(indicator: ProgressIndicator) {
                 try {
                     val homeDir = System.getProperty("user.home")
@@ -63,7 +64,7 @@ object GitAiInstaller {
                     indicator.text = "Downloading $fileName..."
                     HttpRequests.request(downloadUrl).saveToFile(archiveFile, indicator)
                     
-                    indicator.text = "Extracting..."
+                    indicator.text = GitAiBundle.message("installer.extracting")
                     val exeName = if (SystemInfo.isWindows) "git-ai.exe" else "git-ai"
                     val destExe = File(binFolder, exeName)
 
@@ -78,14 +79,14 @@ object GitAiInstaller {
 
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("git-ai.notifications")
-                        .createNotification("git-ai CLI installed successfully!", NotificationType.INFORMATION)
+                        .createNotification(GitAiBundle.message("installer.success"), NotificationType.INFORMATION)
                         .notify(project)
 
                 } catch (e: Exception) {
                     log.warn("Failed to install git-ai", e)
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("git-ai.notifications")
-                        .createNotification("Failed to install git-ai: ${e.message}", NotificationType.ERROR)
+                        .createNotification(GitAiBundle.message("installer.failed", e.message ?: "Unknown error"), NotificationType.ERROR)
                         .notify(project)
                 }
             }

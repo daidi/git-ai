@@ -33,7 +33,9 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gPushPolicy = JComboBox(arrayOf("queue", "block"))
     private val gPromptTemplate = JBTextField()
     private val gMaxDiffTokens = JBTextField()
-    val gTestConfigBtn = JButton("Test LLM Configuration")
+    private val gLogLevel = JComboBox(arrayOf("error", "info", "debug"))
+    private val gUiLanguage = JComboBox(arrayOf("", "en", "zh"))
+    val gTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
 
     // ── Project fields ──
     private val pApiKey = JBPasswordField()
@@ -45,7 +47,9 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pPushPolicy = JComboBox(arrayOf("", "queue", "block"))
     private val pPromptTemplate = JBTextField()
     private val pMaxDiffTokens = JBTextField()
-    val pTestConfigBtn = JButton("Test LLM Configuration")
+    private val pLogLevel = JComboBox(arrayOf("", "error", "info", "debug"))
+    private val pUiLanguage = JComboBox(arrayOf("", "en", "zh"))
+    val pTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
     val pEnabled = JCheckBox(GitAiBundle.message("settings.field.projectEnabled"))
 
     private val globalPanel: JPanel
@@ -128,6 +132,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), gPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), gMaxDiffTokens.apply { columns = 10 })
+            .addLabeledComponent(GitAiBundle.message("settings.field.logLevel"), gLogLevel)
+            .addLabeledComponent(createLabelWithHelp("settings.field.uiLanguage", "settings.hint.uiLanguage"), gUiLanguage)
             .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(gTestConfigBtn)
             
@@ -153,6 +159,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.behavior")))
             .addLabeledComponent(createLabelWithHelp("settings.field.pushPolicy", "settings.hint.pushPolicy"), pPushPolicy)
             .addLabeledComponent(createLabelWithHelp("settings.field.maxDiffTokens", "settings.hint.maxDiffTokens"), pMaxDiffTokens.apply { columns = 10 })
+            .addLabeledComponent(GitAiBundle.message("settings.field.logLevel"), pLogLevel)
+            .addLabeledComponent(createLabelWithHelp("settings.field.uiLanguage", "settings.hint.uiLanguage"), pUiLanguage)
             .addComponent(Box.createVerticalStrut(8) as JComponent)
             .addComponent(pTestConfigBtn)
             
@@ -174,6 +182,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pPushPolicy.isEnabled = enabled
         pPromptTemplate.isEnabled = enabled
         pMaxDiffTokens.isEnabled = enabled
+        pLogLevel.isEnabled = enabled
+        pUiLanguage.isEnabled = enabled
         pTestConfigBtn.isEnabled = enabled
     }
 
@@ -200,9 +210,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
         model = gModel.text.takeIf { it.isNotEmpty() },
         messageFormat = gMessageFormat.selectedItem as? String,
         language = gLanguage.selectedItem as? String,
+        uiLanguage = (gUiLanguage.selectedItem as? String)?.takeIf { it.isNotEmpty() },
         pushPolicy = gPushPolicy.selectedItem as? String,
         promptTemplate = gPromptTemplate.text.takeIf { it.isNotEmpty() },
         maxDiffTokens = gMaxDiffTokens.text.toIntOrNull(),
+        logLevel = gLogLevel.selectedItem as? String,
     )
 
     fun setGlobalConfig(cfg: GitAiConfig) {
@@ -212,9 +224,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gModel.text = cfg.model ?: ""
         gMessageFormat.selectedItem = cfg.messageFormat ?: "conventional"
         gLanguage.selectedItem = cfg.language ?: "en"
+        gUiLanguage.selectedItem = cfg.uiLanguage ?: ""
         gPushPolicy.selectedItem = cfg.pushPolicy ?: "queue"
         gPromptTemplate.text = cfg.promptTemplate ?: ""
         gMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
+        gLogLevel.selectedItem = cfg.logLevel ?: "info"
     }
 
     fun getProjectConfig(): GitAiConfig {
@@ -230,9 +244,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
             model = pModel.text.takeIf { it.isNotEmpty() },
             messageFormat = selectedFormat?.takeIf { it.isNotEmpty() },
             language = selectedLang?.takeIf { it.isNotEmpty() },
+            uiLanguage = (pUiLanguage.selectedItem as? String)?.takeIf { it.isNotEmpty() },
             pushPolicy = selectedPolicy?.takeIf { it.isNotEmpty() },
             promptTemplate = pPromptTemplate.text.takeIf { it.isNotEmpty() },
             maxDiffTokens = pMaxDiffTokens.text.toIntOrNull(),
+            logLevel = (pLogLevel.selectedItem as? String)?.takeIf { it.isNotEmpty() },
         )
     }
 
@@ -254,7 +270,10 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pPromptTemplate.emptyText.setText(inheritedVal(inherited.promptTemplate ?: ""))
         
         pMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
-        pMaxDiffTokens.emptyText.setText(inheritedVal((inherited.maxDiffTokens ?: 4000).toString()))
+        pMaxDiffTokens.emptyText.setText(inheritedVal((inherited.maxDiffTokens ?: 2000).toString()))
+        
+        pLogLevel.selectedItem = cfg.logLevel ?: ""
+        pUiLanguage.selectedItem = cfg.uiLanguage ?: ""
     }
 
     private fun inheritedVal(v: String): String {

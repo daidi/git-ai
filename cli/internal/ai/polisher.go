@@ -46,7 +46,7 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 
 // PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
 func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.Logger) (string, error) {
-	llm, err := NewLLM(cfg)
+	llm, err := NewLLMWithLogger(cfg, logger)
 	if err != nil {
 		return "", fmt.Errorf("create LLM: %w", err)
 	}
@@ -65,6 +65,14 @@ func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.
 
 	logger.Printf("prompt: system=%d chars, user=%d chars (diff≈%d tokens)",
 		len(sysProm), len(userProm), len(trimmedDiff)/4)
+
+	if cfg.IsDebug() {
+		logger.Printf("[DEBUG] === System Prompt ===")
+		logger.Printf("%s", sysProm)
+		logger.Printf("[DEBUG] === User Prompt ===")
+		logger.Printf("%s", userProm)
+		logger.Printf("[DEBUG] === End Prompts ===")
+	}
 
 	// Retry with exponential backoff (only for transient errors).
 	const maxRetries = 3
@@ -101,6 +109,12 @@ func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.
 
 	// Clean up the response — remove markdown fences, leading/trailing whitespace.
 	result = cleanResponse(result)
+
+	if cfg.IsDebug() {
+		logger.Printf("[DEBUG] === LLM Response (cleaned) ===")
+		logger.Printf("%s", result)
+		logger.Printf("[DEBUG] === End Response ===")
+	}
 
 	return result, nil
 }

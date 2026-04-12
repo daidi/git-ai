@@ -24,26 +24,26 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
         
         component?.gTestConfigBtn?.addActionListener {
             if (isModified()) {
-                Messages.showWarningDialog(project, "Please uncheck or 'Apply' settings before testing.", "Unsaved Changes")
+                Messages.showWarningDialog(project, GitAiBundle.message("settings.test.unsaved"), GitAiBundle.message("settings.test.unsaved.title"))
             } else {
                 val result = com.daidi.gitai.state.GitAiCli.run(project, "config", "test")
                 if (result.success) {
-                    Messages.showInfoMessage(project, "Test successful!\n\n${result.stdout}", "LLM Test Passed")
+                    Messages.showInfoMessage(project, GitAiBundle.message("settings.test.success", result.stdout), GitAiBundle.message("settings.test.success.title"))
                 } else {
-                    Messages.showErrorDialog(project, "Test failed:\n\n${result.stderr}\n${result.stdout}", "LLM Test Failed")
+                    Messages.showErrorDialog(project, GitAiBundle.message("settings.test.failed", result.stderr, result.stdout), GitAiBundle.message("settings.test.failed.title"))
                 }
             }
         }
         
         component?.pTestConfigBtn?.addActionListener {
             if (isModified()) {
-                Messages.showWarningDialog(project, "Please uncheck or 'Apply' settings before testing.", "Unsaved Changes")
+                Messages.showWarningDialog(project, GitAiBundle.message("settings.test.unsaved"), GitAiBundle.message("settings.test.unsaved.title"))
             } else {
                 val result = com.daidi.gitai.state.GitAiCli.run(project, "config", "test")
                 if (result.success) {
-                    Messages.showInfoMessage(project, "Test successful!\n\n${result.stdout}", "LLM Test Passed")
+                    Messages.showInfoMessage(project, GitAiBundle.message("settings.test.success", result.stdout), GitAiBundle.message("settings.test.success.title"))
                 } else {
-                    Messages.showErrorDialog(project, "Test failed:\n\n${result.stderr}\n${result.stdout}", "LLM Test Failed")
+                    Messages.showErrorDialog(project, GitAiBundle.message("settings.test.failed", result.stderr, result.stdout), GitAiBundle.message("settings.test.failed.title"))
                 }
             }
         }
@@ -86,7 +86,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
             // Only write the project file if there's at least one non-empty field.
             val hasAny = listOfNotNull(
                 projConfig.apiKey, projConfig.model, projConfig.baseUrl,
-                projConfig.provider, projConfig.language, projConfig.pushPolicy,
+                projConfig.provider, projConfig.language, projConfig.uiLanguage, projConfig.pushPolicy,
                 projConfig.messageFormat, projConfig.promptTemplate,
             ).any { it.isNotEmpty() } || (projConfig.maxDiffTokens != null && projConfig.maxDiffTokens!! > 0)
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/daidi/git-ai/internal/ai"
 	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/internal/i18n"
 )
 
 var configGlobal bool
@@ -44,7 +45,7 @@ var configSetCmd = &cobra.Command{
 		if configGlobal {
 			scope = "global"
 		}
-		Printf("✅ Set %s = %s (%s)\n", key, value, scope)
+		Printf(i18n.Sprintf("config.set", key, value, scope))
 		return nil
 	},
 }
@@ -82,12 +83,14 @@ var configListCmd = &cobra.Command{
 		Printf("%-16s %s\n", "base_url", cfg.BaseURL)
 		Printf("%-16s %s\n", "provider", cfg.Provider)
 		Printf("%-16s %s\n", "language", cfg.Language)
+		Printf("%-16s %s\n", "ui_language", cfg.UILanguage)
 		Printf("%-16s %s\n", "push_policy", cfg.PushPolicy)
 		Printf("%-16s %s\n", "message_format", cfg.MessageFormat)
 		if cfg.PromptTemplate != "" {
 			Printf("%-16s %s\n", "prompt_template", "(custom)")
 		}
 		Printf("%-16s %d\n", "max_diff_tokens", cfg.MaxDiffTokens)
+		Printf("%-16s %s\n", "log_level", cfg.LogLevel)
 		
 		chk := false
 		if cfg.CheckUpdate != nil {

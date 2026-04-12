@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/state"
 )
 
@@ -34,14 +35,14 @@ func runUndo(cmd *cobra.Command, args []string) error {
 	}
 
 	if s.CurrentStatus == state.StatusPolishing {
-		return fmt.Errorf("AI is currently polishing — please wait")
+		return fmt.Errorf(i18n.T("err.polishing"))
 	}
 
 	if s.OriginalMsg == "" {
-		return fmt.Errorf("no original message to restore — nothing to undo")
+		return fmt.Errorf(i18n.T("err.no_undo"))
 	}
 
-	Printf("⏪ Restoring original message: %q\n", s.OriginalMsg)
+	Printf(i18n.Sprintf("undo.restoring", s.OriginalMsg))
 
 	if err := git.Amend(s.OriginalMsg); err != nil {
 		return fmt.Errorf("amend failed: %w", err)
@@ -53,6 +54,6 @@ func runUndo(cmd *cobra.Command, args []string) error {
 		LastSHA:       s.LastSHA,
 	})
 
-	Printf("✅ Original message restored.\n")
+	Printf(i18n.T("undo.done"))
 	return nil
 }

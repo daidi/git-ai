@@ -1,5 +1,6 @@
 package com.daidi.gitai.ui
 
+import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiState
 import com.daidi.gitai.state.GitAiStateService
 import com.intellij.openapi.components.service
@@ -18,7 +19,7 @@ import com.intellij.openapi.ui.popup.ListPopup
  */
 class GitAiStatusWidgetFactory : StatusBarWidgetFactory {
     override fun getId(): String = "GitAiStatusWidget"
-    override fun getDisplayName(): String = "git-ai Status"
+    override fun getDisplayName(): String = GitAiBundle.message("widget.displayName")
     override fun isAvailable(project: Project): Boolean = true
 
     override fun createWidget(project: Project): StatusBarWidget {
@@ -50,9 +51,9 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
 
     override fun getSelectedValue(): String {
         return when {
-            currentState.isPolishing -> "AI 润色中..."
-            currentState.isPushing -> "推送中..."
-            currentState.hasPendingPush -> "待推送..."
+            currentState.isPolishing -> GitAiBundle.message("status.polishing")
+            currentState.isPushing -> GitAiBundle.message("status.pushing")
+            currentState.hasPendingPush -> GitAiBundle.message("status.pendingPush")
             else -> "Git AI"
         }
     }
@@ -70,10 +71,10 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
 
     override fun getTooltipText(): String {
         return when {
-            currentState.isPolishing -> "git-ai: Polishing commit ${currentState.lastSha?.take(8) ?: ""}"
-            currentState.isPushing -> "git-ai: Pushing to ${currentState.pendingPush?.remote ?: "origin"}"
-            currentState.hasPendingPush -> "git-ai: Push pending to ${currentState.pendingPush?.remote ?: "origin"}"
-            else -> "git-ai: Idle"
+            currentState.isPolishing -> GitAiBundle.message("widget.tooltip.polishing", currentState.lastSha?.take(8) ?: "")
+            currentState.isPushing -> GitAiBundle.message("widget.tooltip.pushing", currentState.pendingPush?.remote ?: "origin")
+            currentState.hasPendingPush -> GitAiBundle.message("widget.tooltip.pendingPush", currentState.pendingPush?.remote ?: "origin")
+            else -> GitAiBundle.message("widget.tooltip.idle")
         }
     }
 

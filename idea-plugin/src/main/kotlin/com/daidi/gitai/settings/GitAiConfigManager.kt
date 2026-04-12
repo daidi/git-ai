@@ -14,13 +14,15 @@ data class GitAiConfig(
     @SerializedName("base_url") var baseUrl: String? = null,
     @SerializedName("provider") var provider: String? = null,
     @SerializedName("language") var language: String? = null,
+    @SerializedName("ui_language") var uiLanguage: String? = null,
     @SerializedName("push_policy") var pushPolicy: String? = null,
     @SerializedName("message_format") var messageFormat: String? = null,
     @SerializedName("prompt_template") var promptTemplate: String? = null,
     @SerializedName("max_diff_tokens") var maxDiffTokens: Int? = null,
+    @SerializedName("log_level") var logLevel: String? = null,
 ) {
     fun copy() = GitAiConfig(
-        apiKey, model, baseUrl, provider, language, pushPolicy, messageFormat, promptTemplate, maxDiffTokens,
+        apiKey, model, baseUrl, provider, language, uiLanguage, pushPolicy, messageFormat, promptTemplate, maxDiffTokens, logLevel,
     )
 }
 
@@ -36,10 +38,12 @@ object GitAiConfigManager {
         baseUrl = "https://api.deepseek.com/v1",
         provider = "openai",
         language = "en",
+        uiLanguage = "",
         pushPolicy = "queue",
         messageFormat = "conventional",
         promptTemplate = "",
-        maxDiffTokens = 4000,
+        maxDiffTokens = 2000,
+        logLevel = "info",
     )
 
     fun globalPath(): String {
@@ -69,10 +73,12 @@ object GitAiConfigManager {
         config.baseUrl?.takeIf { it.isNotEmpty() }?.let { map["base_url"] = it }
         config.provider?.takeIf { it.isNotEmpty() }?.let { map["provider"] = it }
         config.language?.takeIf { it.isNotEmpty() }?.let { map["language"] = it }
+        config.uiLanguage?.takeIf { it.isNotEmpty() }?.let { map["ui_language"] = it }
         config.pushPolicy?.takeIf { it.isNotEmpty() }?.let { map["push_policy"] = it }
         config.messageFormat?.takeIf { it.isNotEmpty() }?.let { map["message_format"] = it }
         config.promptTemplate?.takeIf { it.isNotEmpty() }?.let { map["prompt_template"] = it }
         config.maxDiffTokens?.takeIf { it > 0 }?.let { map["max_diff_tokens"] = it }
+        config.logLevel?.takeIf { it.isNotEmpty() }?.let { map["log_level"] = it }
 
         val file = File(path)
         file.parentFile?.mkdirs()
@@ -97,9 +103,11 @@ object GitAiConfigManager {
         src.baseUrl?.takeIf { it.isNotEmpty() }?.let { dst.baseUrl = it }
         src.provider?.takeIf { it.isNotEmpty() }?.let { dst.provider = it }
         src.language?.takeIf { it.isNotEmpty() }?.let { dst.language = it }
+        src.uiLanguage?.takeIf { it.isNotEmpty() }?.let { dst.uiLanguage = it }
         src.pushPolicy?.takeIf { it.isNotEmpty() }?.let { dst.pushPolicy = it }
         src.messageFormat?.takeIf { it.isNotEmpty() }?.let { dst.messageFormat = it }
         src.promptTemplate?.takeIf { it.isNotEmpty() }?.let { dst.promptTemplate = it }
         src.maxDiffTokens?.takeIf { it > 0 }?.let { dst.maxDiffTokens = it }
+        src.logLevel?.takeIf { it.isNotEmpty() }?.let { dst.logLevel = it }
     }
 }

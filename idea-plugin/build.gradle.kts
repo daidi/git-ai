@@ -23,7 +23,14 @@ intellij {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+java {
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks {

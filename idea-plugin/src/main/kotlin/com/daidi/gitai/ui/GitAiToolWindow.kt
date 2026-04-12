@@ -1,5 +1,6 @@
 package com.daidi.gitai.ui
 
+import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiState
 import com.daidi.gitai.state.GitAiStateService
 import com.intellij.openapi.Disposable
@@ -27,11 +28,11 @@ import com.intellij.icons.AllIcons
 class GitAiToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val panel = GitAiToolWindowPanel(project)
-        val content = ContentFactory.getInstance().createContent(panel.component, "Status", false)
+        val content = ContentFactory.getInstance().createContent(panel.component, GitAiBundle.message("toolwindow.tab.status"), false)
         toolWindow.contentManager.addContent(content)
 
         val logsPanel = GitAiLogPanel(project)
-        val logsContent = ContentFactory.getInstance().createContent(logsPanel.component, "Logs", false)
+        val logsContent = ContentFactory.getInstance().createContent(logsPanel.component, GitAiBundle.message("toolwindow.tab.logs"), false)
         toolWindow.contentManager.addContent(logsContent)
 
         Disposer.register(toolWindow.disposable, panel)
@@ -44,7 +45,7 @@ class GitAiToolWindowFactory : ToolWindowFactory, DumbAware {
  */
 class GitAiToolWindowPanel(private val project: Project) : Disposable {
     val component: JPanel
-    private val statusLabel = JLabel("✓ Idle")
+    private val statusLabel = JLabel(GitAiBundle.message("status.idle"))
     private val commitLabel = JLabel("")
     private val originalLabel = JLabel("")
     private val pendingLabel = JLabel("")
@@ -72,16 +73,16 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
 
         // Actions section.
         val actionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0))
-        actionsPanel.add(createButton("Retry", AllIcons.Actions.Refresh) {
+        actionsPanel.add(createButton(GitAiBundle.message("toolwindow.btn.retry"), AllIcons.Actions.Refresh) {
             com.daidi.gitai.actions.RetryAction.execute(project)
         })
-        actionsPanel.add(createButton("Undo", AllIcons.Actions.Undo) {
+        actionsPanel.add(createButton(GitAiBundle.message("toolwindow.btn.undo"), AllIcons.Actions.Undo) {
             com.daidi.gitai.actions.UndoAction.execute(project)
         })
-        actionsPanel.add(createButton("Cancel", AllIcons.Actions.Cancel) {
+        actionsPanel.add(createButton(GitAiBundle.message("toolwindow.btn.cancel"), AllIcons.Actions.Cancel) {
             com.daidi.gitai.actions.CancelAction.execute(project)
         })
-        actionsPanel.add(createButton("Push", AllIcons.Vcs.Push) {
+        actionsPanel.add(createButton(GitAiBundle.message("toolwindow.btn.push"), AllIcons.Vcs.Push) {
             com.daidi.gitai.actions.ForcePushAction.execute(project)
         })
 
@@ -98,27 +99,27 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
         SwingUtilities.invokeLater {
             when {
                 state.isPolishing -> {
-                    statusLabel.text = "AI 润色中..."
+                    statusLabel.text = GitAiBundle.message("status.polishing")
                     statusLabel.icon = AllIcons.Actions.Lightning
                 }
                 state.isPushing -> {
-                    statusLabel.text = "推送中..."
+                    statusLabel.text = GitAiBundle.message("status.pushing")
                     statusLabel.icon = AllIcons.Vcs.Push
                 }
                 state.hasPendingPush -> {
-                    statusLabel.text = "待推送..."
+                    statusLabel.text = GitAiBundle.message("status.pendingPush")
                     statusLabel.icon = AllIcons.Actions.Suspend
                 }
                 else -> {
-                    statusLabel.text = "空闲"
+                    statusLabel.text = GitAiBundle.message("status.idle")
                     statusLabel.icon = AllIcons.Actions.Checked
                 }
             }
 
-            commitLabel.text = if (state.lastSha != null) "Commit: ${state.lastSha.take(8)}" else ""
-            originalLabel.text = if (state.originalMsg != null) "Original: ${state.originalMsg}" else ""
+            commitLabel.text = if (state.lastSha != null) GitAiBundle.message("status.commit", state.lastSha.take(8)) else ""
+            originalLabel.text = if (state.originalMsg != null) GitAiBundle.message("status.original", state.originalMsg) else ""
             pendingLabel.text = if (state.pendingPush != null) {
-                "Pending: ${state.pendingPush.remote}"
+                GitAiBundle.message("status.pending", state.pendingPush.remote)
             } else ""
         }
     }
@@ -150,7 +151,7 @@ class GitAiLogPanel(private val project: Project) : Disposable {
 
         // Refresh button.
         val toolbar = JPanel(FlowLayout(FlowLayout.LEFT))
-        toolbar.add(JButton("Refresh").apply {
+        toolbar.add(JButton(GitAiBundle.message("toolwindow.btn.refresh")).apply {
             addActionListener { loadLatestLog() }
         })
         component.add(toolbar, BorderLayout.NORTH)

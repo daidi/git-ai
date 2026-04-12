@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +29,7 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("find .git dir: %w", err)
 	}
 
-	Printf("🗑️  Uninstalling git-ai from %s\n\n", repoRoot)
+	Printf(i18n.Sprintf("uninstall.start", repoRoot))
 
 	hooksDir := filepath.Join(gitDir, "hooks")
 
@@ -47,9 +48,9 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 					return fmt.Errorf("remove %s: %w", hookName, err)
 				}
 				hookRemoved = true
-				Printf("  ✅ Removed %s hook\n", hookName)
+				Printf(i18n.Sprintf("uninstall.removed", hookName))
 			} else {
-				Printf("  ℹ️  Skipped %s (not a git-ai hook)\n", hookName)
+				Printf(i18n.Sprintf("uninstall.skipped", hookName))
 			}
 		} else if !os.IsNotExist(err) {
 			return fmt.Errorf("read %s: %w", hookName, err)
@@ -64,11 +65,11 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 				if err := os.Rename(backupPath, hookPath); err != nil {
 					return fmt.Errorf("restore backup %s: %w", hookName, err)
 				}
-				Printf("  📦 Restored original %s hook from backup\n", hookName)
+				Printf(i18n.Sprintf("uninstall.restored", hookName))
 			} else {
-				Printf("  ⚠️  Backup exists but current hook was modified - keeping both\n")
-				Printf("     Current: %s\n", hookPath)
-				Printf("     Backup:  %s\n", backupPath)
+				Printf(i18n.T("uninstall.backup_kept"))
+				Printf(i18n.Sprintf("uninstall.current", hookPath))
+				Printf(i18n.Sprintf("uninstall.backup", backupPath))
 			}
 		}
 	}
@@ -77,13 +78,13 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	gitAiDir := filepath.Join(gitDir, "git-ai")
 	if _, err := os.Stat(gitAiDir); err == nil {
 		if err := os.RemoveAll(gitAiDir); err != nil {
-			Printf("\n  ⚠️  Warning: could not remove %s: %v\n", gitAiDir, err)
+			Printf(i18n.Sprintf("uninstall.state_warn", gitAiDir, err))
 		} else {
-			Printf("\n  ✅ Removed state directory\n")
+			Printf(i18n.T("uninstall.state_removed"))
 		}
 	}
 
-	Printf("\n🎉 git-ai hooks removed.\n")
-	Printf("Your .git-ai.json configuration was untouched and safely preserved.\n\n")
+	Printf(i18n.T("uninstall.done"))
+	Printf(i18n.T("uninstall.config_kept"))
 	return nil
 }

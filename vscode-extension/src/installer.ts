@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as https from 'https';
 import { notifyInfo, notifyError, notifyWarning } from './notifications';
+import { t } from './i18n';
 
 export function getExecutablePath(binary: string): string {
     if (binary !== 'git-ai') {
@@ -50,18 +51,18 @@ export async function checkAndPromptInstall(): Promise<void> {
 
 function promptInstall() {
     vscode.window.showWarningMessage(
-        "git-ai CLI was not found in PATH or standard directories.",
-        "Download & Install (Auto)",
-        "Install via Homebrew",
-        "Install via Go",
-        "Cancel"
+        t('installer.missing'),
+        t('installer.download'),
+        t('installer.homebrew'),
+        t('installer.go'),
+        t('installer.cancel')
     ).then(selection => {
-        if (!selection || selection === "Cancel") {
-            notifyWarning("git-ai CLI installation skipped. Some features may not work.");
+        if (!selection || selection === t('installer.cancel')) {
+            notifyWarning(t('installer.skipped'));
             return;
         }
 
-        if (selection === "Download & Install (Auto)") {
+        if (selection === t('installer.download')) {
             installCliAuto();
             return;
         }
@@ -69,9 +70,9 @@ function promptInstall() {
         const terminal = vscode.window.createTerminal('git-ai Installer');
         terminal.show();
         
-        if (selection === "Install via Homebrew") {
+        if (selection === t('installer.homebrew')) {
             terminal.sendText('brew install daidi/tap/git-ai');
-        } else if (selection === "Install via Go") {
+        } else if (selection === t('installer.go')) {
             terminal.sendText('go install github.com/daidi/git-ai/cli/cmd/git-ai@latest');
         }
     });
@@ -79,7 +80,7 @@ function promptInstall() {
 
 async function installCliAuto() {
     await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: 'git-ai: Installing CLI...', cancellable: false },
+        { location: vscode.ProgressLocation.Notification, title: t('installer.progress'), cancellable: false },
         async (progress) => {
             try {
                 const platform = os.platform();
@@ -107,7 +108,7 @@ async function installCliAuto() {
                 progress.report({ message: `Downloading ${fileName}...` });
                 await downloadFile(downloadUrl, archivePath);
 
-                progress.report({ message: 'Extracting...' });
+                progress.report({ message: t('installer.progress') });
                 const exeName = platform === 'win32' ? 'git-ai.exe' : 'git-ai';
                 const destExe = path.join(binFolder, exeName);
 
@@ -122,9 +123,9 @@ async function installCliAuto() {
                 }
                 
                 fs.unlinkSync(archivePath);
-                notifyInfo("✨ git-ai CLI installed successfully!");
+                notifyInfo(t('installer.success'));
             } catch (err: any) {
-                notifyError(`Failed to install CLI: ${err.message}`);
+                notifyError(t('installer.failed', err.message));
             }
         }
     );
@@ -171,11 +172,11 @@ export async function autoInitialize(workspaceRoot: string): Promise<void> {
     
     if (!isHooked) {
         const confirm = await vscode.window.showInformationMessage(
-            "git-ai is not initialized for this repository. Enable AI commit polishing?",
-            "Enable git-ai",
-            "Not now"
+            t('installer.prompt'),
+            t('installer.enable'),
+            t('installer.notNow')
         );
-        if (confirm === "Enable git-ai") {
+        if (confirm === t('installer.enable')) {
             vscode.commands.executeCommand('git-ai.init');
         }
     }

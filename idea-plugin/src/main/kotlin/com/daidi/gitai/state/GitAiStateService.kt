@@ -1,5 +1,6 @@
 package com.daidi.gitai.state
 
+import com.daidi.gitai.GitAiBundle
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.intellij.notification.NotificationGroupManager
@@ -150,17 +151,17 @@ class GitAiStateService(private val project: Project) : Disposable {
 
         // Show IDE notifications for important transitions.
         if (prevStatus == "polishing" && newState.isIdle) {
-            showNotification("✨ Commit message polished!", NotificationType.INFORMATION)
+            showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
         }
         if (prevStatus == "pushing" && newState.isIdle) {
-            showNotification("🚀 Push completed!", NotificationType.INFORMATION)
+            showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
         }
     }
 
     private fun showNotification(content: String, type: NotificationType) {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("git-ai.notifications")
-            .createNotification("git-ai", content, type)
+            .createNotification(GitAiBundle.message("notification.title"), content, type)
             .notify(project)
     }
 

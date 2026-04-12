@@ -22,8 +22,8 @@ export class LogViewer implements vscode.Disposable {
         this.outputChannel.show(true);
 
         if (!fs.existsSync(logDir)) {
-            this.outputChannel.appendLine('[git-ai] No logs directory found.');
-            this.outputChannel.appendLine(`[git-ai] Expected at: ${logDir}`);
+            this.outputChannel.appendLine('[Git AI] No logs directory found.');
+            this.outputChannel.appendLine(`[Git AI] Expected at: ${logDir}`);
             return;
         }
 
@@ -34,7 +34,7 @@ export class LogViewer implements vscode.Disposable {
             .reverse();
 
         if (files.length === 0) {
-            this.outputChannel.appendLine('[git-ai] No log files found.');
+            this.outputChannel.appendLine('[Git AI] No log files found.');
             return;
         }
 
@@ -55,7 +55,7 @@ export class LogViewer implements vscode.Disposable {
         this.lastReadPosition = 0;
 
         this.outputChannel.clear();
-        this.outputChannel.appendLine(`[git-ai] Watching: ${filePath}`);
+        this.outputChannel.appendLine(`[Git AI] Watching: ${filePath}`);
         this.outputChannel.appendLine('─'.repeat(60));
 
         // Initial read.

@@ -32,10 +32,10 @@ class GitAiStartupActivity : ProjectActivity {
             ApplicationManager.getApplication().invokeLater {
                 val result = Messages.showYesNoDialog(
                     project,
-                    "git-ai is not initialized for this repository.\nWould you like to automatically inject the AI commit hook?",
-                    "Initialize git-ai",
-                    "Enable git-ai",
-                    "Not now",
+                    GitAiBundle.message("startup.prompt.message"),
+                    GitAiBundle.message("startup.prompt.title"),
+                    GitAiBundle.message("startup.prompt.yes"),
+                    GitAiBundle.message("startup.prompt.no"),
                     Messages.getInformationIcon()
                 )
                 if (result == Messages.YES) {

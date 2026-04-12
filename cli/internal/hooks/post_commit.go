@@ -11,6 +11,7 @@ import (
 	"github.com/daidi/git-ai/internal/config"
 	"github.com/daidi/git-ai/internal/daemon"
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/notify"
 	"github.com/daidi/git-ai/internal/state"
 )
@@ -43,7 +44,7 @@ func RunPostCommit(isDaemon bool) error {
 		if err != nil {
 			return fmt.Errorf("start daemon: %w", err)
 		}
-		fmt.Printf("✨ git-ai: polishing in background (PID %d)\n", pid)
+		fmt.Printf(i18n.Sprintf("hook.forked", pid))
 		return nil
 	}
 
@@ -59,6 +60,9 @@ func RunPostCommit(isDaemon bool) error {
 		logger.Printf("config error: %v", err)
 		return err
 	}
+
+	// Initialize i18n in daemon process.
+	i18n.Init(cfg.UILanguage)
 
 	// Acquire lock.
 	if err := mgr.Lock(); err != nil {
@@ -101,7 +105,7 @@ func RunPostCommit(isDaemon bool) error {
 	polished, err := ai.PolishWithLogger(diff, origMsg, cfg, logger)
 	if err != nil {
 		logger.Printf("AI error: %v", err)
-		notify.Send("⚠️ git-ai", fmt.Sprintf("AI polishing failed: %v", err))
+		notify.Send("Git AI", i18n.Sprintf("hook.ai_failed", err))
 		// Reset state so we don't block future operations.
 		_ = mgr.Reset()
 		return err
@@ -112,12 +116,12 @@ func RunPostCommit(isDaemon bool) error {
 	// Amend the commit.
 	if err := git.Amend(polished); err != nil {
 		logger.Printf("amend error: %v", err)
-		notify.Send("⚠️ git-ai", fmt.Sprintf("Amend failed: %v", err))
+		notify.Send("Git AI", i18n.Sprintf("hook.amend_failed", err))
 		_ = mgr.Reset()
 		return err
 	}
 
-	notify.Send("✨ git-ai", fmt.Sprintf("Commit polished: %s", truncate(polished, 60)))
+	notify.Send("Git AI", i18n.Sprintf("hook.polished", truncate(polished, 60)))
 
 	// Check for pending push.
 	s, _ = mgr.Load()
@@ -129,9 +133,9 @@ func RunPostCommit(isDaemon bool) error {
 
 		if err := git.Push(s.PendingPush.Remote, s.PendingPush.RefSpecs); err != nil {
 			logger.Printf("push error: %v", err)
-			notify.Send("❌ git-ai", fmt.Sprintf("Push failed: %v", err))
+			notify.Send("Git AI", i18n.Sprintf("hook.push_failed", err))
 		} else {
-			notify.Send("🚀 git-ai", fmt.Sprintf("Pushed to %s", s.PendingPush.Remote))
+			notify.Send("Git AI", i18n.Sprintf("hook.pushed", s.PendingPush.Remote))
 		}
 	}
 

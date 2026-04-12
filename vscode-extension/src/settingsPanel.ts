@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { notifyInfo } from './notifications';
+import { t } from './i18n';
 
 /** Shape of config.json / .git-ai.json. */
 interface GitAiConfig {
@@ -10,10 +11,12 @@ interface GitAiConfig {
     base_url?: string;
     provider?: string;
     language?: string;
+    ui_language?: string;
     push_policy?: string;
     message_format?: string;
     prompt_template?: string;
     max_diff_tokens?: number;
+    log_level?: string;
 }
 
 const DEFAULTS: Required<GitAiConfig> = {
@@ -22,116 +25,13 @@ const DEFAULTS: Required<GitAiConfig> = {
     base_url: 'https://api.deepseek.com/v1',
     provider: 'openai',
     language: 'en',
+    ui_language: '',
     push_policy: 'queue',
     message_format: 'conventional',
     prompt_template: '',
     max_diff_tokens: 2000,
+    log_level: 'info',
 };
-
-// ── I18N ──────────────────────────────────────────────
-
-const TRANSLATIONS: Record<string, Record<string, string>> = {
-    en: {
-        'settings.title': 'git-ai Settings',
-        'settings.subtitle': 'Configure AI commit message polishing. Project settings override Global.',
-        'settings.tab.global': 'Global',
-        'settings.tab.project': 'Project',
-        'settings.badge.shared': 'shared',
-        'settings.badge.override': 'override',
-        
-        'settings.section.auth': 'Authentication & Provider',
-        'settings.section.format': 'Commit Format',
-        'settings.section.behavior': 'Push Behavior',
-        
-        'settings.field.apiKey': 'API Key',
-        'settings.field.provider': 'Provider',
-        'settings.field.baseUrl': 'Base URL',
-        'settings.field.model': 'Model',
-        'settings.field.messageFormat': 'Message Format',
-        'settings.field.language': 'Language',
-        'settings.field.promptTemplate': 'Custom Prompt',
-        'settings.field.pushPolicy': 'Push Policy',
-        'settings.field.maxDiffTokens': 'Max Diff Tokens',
-        'settings.field.projectEnabled': 'Enable git-ai',
-        
-        'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
-        'settings.hint.projectNote': 'Project settings override Global for this repo only. Leave fields empty to inherit.',
-        'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
-        'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
-        'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
-        'settings.hint.projectEnabled': 'Install / Uninstall physical webhooks for this repository.',
-        
-        'settings.inherit.label': '\u2190 Inherited from Global',
-        'settings.inherit.val': '(inherit: {0})',
-        
-        'settings.btn.saveGlobal': 'Save Global',
-        'settings.btn.saveProject': 'Save Project',
-        'settings.btn.testConfig': 'Test LLM Config',
-        'settings.btn.reset': 'Reset',
-        'settings.msg.saved': '✅ git-ai: {0} config saved',
-        'settings.msg.reset': '🗑️ git-ai: {0} config reset',
-        'settings.confirm.reset': 'Reset all {0} settings? This cannot be undone.'
-    },
-    'zh-cn': {
-        'settings.title': 'git-ai 偏好设置',
-        'settings.subtitle': '配置 AI 提交润色行为。项目级设定将覆盖全局设定。',
-        'settings.tab.global': '全局',
-        'settings.tab.project': '当前项目',
-        'settings.badge.shared': '全域共享',
-        'settings.badge.override': '项目覆盖',
-        
-        'settings.section.auth': '鉴权与大模型供应商',
-        'settings.section.format': 'Commit 格式化规范',
-        'settings.section.behavior': '自动推送行为',
-        
-        'settings.field.apiKey': 'API 密钥 (API Key)',
-        'settings.field.provider': '接口通道 (Provider)',
-        'settings.field.baseUrl': '服务基址 (Base URL)',
-        'settings.field.model': '模型标识 (Model)',
-        'settings.field.messageFormat': '消息结构 (Format)',
-        'settings.field.language': '生成语言 (Language)',
-        'settings.field.promptTemplate': '自定义提示词 (Prompt)',
-        'settings.field.pushPolicy': '推送时机 (Push Policy)',
-        'settings.field.maxDiffTokens': 'Diff 截断阈值 (Tokens)',
-        'settings.field.projectEnabled': '启用 git-ai',
-        
-        'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
-        'settings.hint.projectNote': '项目级设定仅对当前代码库生效。留空将自动继承全局设定。',
-        'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
-        'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
-        'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
-        'settings.hint.projectEnabled': '在当前代码仓库物理安装 / 卸载 Git Hook。',
-        
-        'settings.inherit.label': '\u2190 继承自全局设定',
-        'settings.inherit.val': '(继承: {0})',
-        
-        'settings.btn.saveGlobal': '保存全局配置',
-        'settings.btn.saveProject': '保存项目配置',
-        'settings.btn.testConfig': '测试连通性',
-        'settings.btn.reset': '重置',
-        'settings.msg.saved': '✅ git-ai: {0} 配置已保存',
-        'settings.msg.reset': '🗑️ git-ai: {0} 配置已被清空',
-        'settings.confirm.reset': '确定要清空并重置所有 {0} 的设置吗？此操作不可撤销。'
-    }
-};
-
-function getBaseLang(): string {
-    const lang = vscode.env.language.toLowerCase();
-    if (lang === 'zh-cn' || lang === 'zh-tw' || lang === 'zh-hk') {
-        return 'zh-cn';
-    }
-    return 'en';
-}
-
-function t(key: string, ...args: string[]): string {
-    const lang = getBaseLang();
-    const dictionary = TRANSLATIONS[lang] || TRANSLATIONS['en'];
-    let str = dictionary[key] || TRANSLATIONS['en'][key] || key;
-    args.forEach((arg, i) => {
-        str = str.replace(`{${i}}`, arg);
-    });
-    return str;
-}
 
 /**
  * Full-screen webview panel for editing git-ai configuration.
@@ -471,6 +371,8 @@ export class SettingsPanel {
         <div class="divider"></div>
         ${this.renderSelect('g', 'push_policy', t('settings.field.pushPolicy'), ['queue', 'block'], DEFAULTS.push_policy, global.push_policy, '', t('settings.hint.pushPolicy'))}
         ${this.renderField('g', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', String(DEFAULTS.max_diff_tokens), global.max_diff_tokens !== undefined ? String(global.max_diff_tokens) : '', '', t('settings.hint.maxDiffTokens'))}
+        ${this.renderSelect('g', 'log_level', t('settings.field.logLevel'), ['error', 'info', 'debug'], DEFAULTS.log_level, global.log_level, '')}
+        ${this.renderSelect('g', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', global.ui_language, '', t('settings.hint.uiLanguage'))}
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('global')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveGlobal')}</button>
@@ -487,7 +389,7 @@ export class SettingsPanel {
             <span>${t('settings.hint.projectNote')}</span>
         </div>
         
-        <div class="section-title"><i class="codicon codicon-plug"></i>Installation</div>
+        <div class="section-title"><i class="codicon codicon-plug"></i>${t('settings.section.installation')}</div>
         <div class="divider"></div>
         ${this.renderCheckbox('p', 'install_hook', t('settings.field.projectEnabled'), hookState)}
 
@@ -508,6 +410,8 @@ export class SettingsPanel {
         <div class="divider"></div>
         ${this.renderSelect('p', 'push_policy', t('settings.field.pushPolicy'), ['', 'queue', 'block'], '', project.push_policy, merged.push_policy)}
         ${this.renderField('p', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', '', project.max_diff_tokens !== undefined ? String(project.max_diff_tokens) : '', String(merged.max_diff_tokens))}
+        ${this.renderSelect('p', 'log_level', t('settings.field.logLevel'), ['', 'error', 'info', 'debug'], '', project.log_level, merged.log_level)}
+        ${this.renderSelect('p', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', project.ui_language, merged.ui_language)}
 
         <div class="actions">
             <button class="btn btn-primary" onclick="save('project')"><i class="codicon codicon-save"></i> ${t('settings.btn.saveProject')}</button>

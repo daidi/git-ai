@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GitAiState } from './stateWatcher';
+import { t } from './i18n';
 
 /**
  * Tree data provider for the git-ai status view in the sidebar.
@@ -27,14 +28,14 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
         // Status indicator.
         const statusIcon = this.getStatusIcon();
         const statusLabel = this.getStatusLabel();
-        items.push(new StatusItem(statusLabel, statusIcon, 'Status'));
+        items.push(new StatusItem(statusLabel, statusIcon, t('tree.category.status')));
 
         // Last SHA.
         if (this.state.last_sha) {
             items.push(new StatusItem(
                 this.state.last_sha.substring(0, 8),
                 '$(git-commit)',
-                'Last Commit'
+                t('tree.category.lastCommit')
             ));
         }
 
@@ -43,7 +44,7 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
             items.push(new StatusItem(
                 this.state.original_msg,
                 '$(comment)',
-                'Original Message'
+                t('tree.category.originalMsg')
             ));
         }
 
@@ -51,18 +52,18 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
         if (this.state.pending_push) {
             const ts = new Date(this.state.pending_push.timestamp * 1000);
             items.push(new StatusItem(
-                `${this.state.pending_push.remote} (queued ${ts.toLocaleTimeString()})`,
+                t('tree.pendingPush.queued', this.state.pending_push.remote, ts.toLocaleTimeString()),
                 '$(cloud-upload)',
-                'Pending Push'
+                t('tree.category.pendingPush')
             ));
         }
 
         // Daemon PID.
         if (this.state.pid) {
             items.push(new StatusItem(
-                `PID ${this.state.pid}`,
+                t('tree.daemon.pid', String(this.state.pid)),
                 '$(server-process)',
-                'Daemon'
+                t('tree.category.daemon')
             ));
         }
 
@@ -79,11 +80,11 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
 
     private getStatusLabel(): string {
         switch (this.state.current_status) {
-            case 'polishing': return 'AI 润色中...';
-            case 'pushing': return '推送中...';
+            case 'polishing': return t('status.polishing');
+            case 'pushing': return t('status.pushing');
             default:
-                if (this.state.pending_push) { return '待推送'; }
-                return '空闲';
+                if (this.state.pending_push) { return t('status.pendingPush'); }
+                return t('status.idle');
         }
     }
 }

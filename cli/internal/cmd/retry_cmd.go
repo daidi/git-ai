@@ -9,6 +9,7 @@ import (
 	"github.com/daidi/git-ai/internal/ai"
 	"github.com/daidi/git-ai/internal/config"
 	"github.com/daidi/git-ai/internal/git"
+	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/notify"
 	"github.com/daidi/git-ai/internal/state"
 )
@@ -43,7 +44,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if s.CurrentStatus == state.StatusPolishing {
-		return fmt.Errorf("AI is currently polishing — please wait")
+		return fmt.Errorf(i18n.T("err.polishing"))
 	}
 
 	// Get current commit info.
@@ -62,7 +63,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		userMsg = s.OriginalMsg
 	}
 
-	Printf("🔄 Re-generating commit message for %s...\n", sha[:8])
+	Printf(i18n.Sprintf("retry.start", sha[:8]))
 
 	// Get diff.
 	diff, err := git.GetDiff(sha)
@@ -89,7 +90,7 @@ func runRetry(cmd *cobra.Command, args []string) error {
 		PID:           os.Getpid(),
 	})
 
-	Printf("✅ Commit message updated:\n   %s\n", polished)
-	notify.Send("✨ git-ai", fmt.Sprintf("Retry: %s", polished))
+	Printf(i18n.Sprintf("retry.done", polished))
+	notify.Send("Git AI", i18n.Sprintf("retry.notify", polished))
 	return nil
 }

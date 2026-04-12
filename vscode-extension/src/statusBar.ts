@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GitAiState } from './stateWatcher';
+import { t } from './i18n';
 
 /**
  * Manages the status bar item that shows git-ai state.
@@ -13,7 +14,7 @@ export class StatusBarManager implements vscode.Disposable {
             100
         );
         this.statusBarItem.command = 'git-ai.showLogs';
-        this.statusBarItem.tooltip = 'git-ai status (click for logs)';
+        this.statusBarItem.tooltip = t('statusBar.tooltip.default');
         this.update({ current_status: 'idle' });
         this.statusBarItem.show();
     }
@@ -24,33 +25,33 @@ export class StatusBarManager implements vscode.Disposable {
     update(state: GitAiState): void {
         switch (state.current_status) {
             case 'polishing':
-                this.statusBarItem.text = '$(sparkle) AI 润色中...';
+                this.statusBarItem.text = t('statusBar.polishing');
                 this.statusBarItem.backgroundColor = new vscode.ThemeColor(
                     'statusBarItem.warningBackground'
                 );
-                this.statusBarItem.tooltip = `git-ai: Polishing commit ${state.last_sha?.substring(0, 8) ?? ''}`;
+                this.statusBarItem.tooltip = t('statusBar.tooltip.polishing', state.last_sha?.substring(0, 8) ?? '');
                 break;
 
             case 'pushing':
-                this.statusBarItem.text = '$(cloud-upload) 推送中...';
+                this.statusBarItem.text = t('statusBar.pushing');
                 this.statusBarItem.backgroundColor = new vscode.ThemeColor(
                     'statusBarItem.warningBackground'
                 );
-                this.statusBarItem.tooltip = `git-ai: Pushing to ${state.pending_push?.remote ?? 'origin'}`;
+                this.statusBarItem.tooltip = t('statusBar.tooltip.pushing', state.pending_push?.remote ?? 'origin');
                 break;
 
             case 'idle':
             default:
                 if (state.pending_push) {
-                    this.statusBarItem.text = '$(clock) 待推送...';
+                    this.statusBarItem.text = t('statusBar.pendingPush');
                     this.statusBarItem.backgroundColor = new vscode.ThemeColor(
                         'statusBarItem.warningBackground'
                     );
-                    this.statusBarItem.tooltip = `git-ai: Push pending to ${state.pending_push.remote}`;
+                    this.statusBarItem.tooltip = t('statusBar.tooltip.pendingPush', state.pending_push.remote);
                 } else {
-                    this.statusBarItem.text = '$(check) git-ai';
+                    this.statusBarItem.text = t('statusBar.idle');
                     this.statusBarItem.backgroundColor = undefined;
-                    this.statusBarItem.tooltip = 'git-ai: Idle';
+                    this.statusBarItem.tooltip = t('statusBar.tooltip.idle');
                 }
                 break;
         }

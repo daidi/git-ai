@@ -15,11 +15,18 @@ type Config struct {
 	BaseURL        string `json:"base_url,omitempty"`
 	Provider       string `json:"provider,omitempty"`
 	Language       string `json:"language,omitempty"`
+	UILanguage     string `json:"ui_language,omitempty"`
 	PushPolicy     string `json:"push_policy,omitempty"`
 	MessageFormat  string `json:"message_format,omitempty"`
 	PromptTemplate string `json:"prompt_template,omitempty"`
 	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
+	LogLevel       string `json:"log_level,omitempty"`
 	CheckUpdate    *bool  `json:"check_update,omitempty"`
+}
+
+// IsDebug returns true when the log level is set to "debug".
+func (c *Config) IsDebug() bool {
+	return c.LogLevel == "debug"
 }
 
 // Defaults returns a Config with default values.
@@ -33,6 +40,7 @@ func Defaults() *Config {
 		PushPolicy:    "queue",
 		MessageFormat: "conventional",
 		MaxDiffTokens: 2000,
+		LogLevel:      "info",
 		CheckUpdate:   &tru,
 	}
 }
@@ -119,12 +127,16 @@ func Set(path, key, value string) error {
 		cfg.Provider = value
 	case "language":
 		cfg.Language = value
+	case "ui_language":
+		cfg.UILanguage = value
 	case "push_policy":
 		cfg.PushPolicy = value
 	case "message_format":
 		cfg.MessageFormat = value
 	case "prompt_template":
 		cfg.PromptTemplate = value
+	case "log_level":
+		cfg.LogLevel = value
 	case "check_update":
 		b := value == "true"
 		cfg.CheckUpdate = &b
@@ -148,12 +160,16 @@ func Get(cfg *Config, key string) (string, error) {
 		return cfg.Provider, nil
 	case "language":
 		return cfg.Language, nil
+	case "ui_language":
+		return cfg.UILanguage, nil
 	case "push_policy":
 		return cfg.PushPolicy, nil
 	case "message_format":
 		return cfg.MessageFormat, nil
 	case "prompt_template":
 		return cfg.PromptTemplate, nil
+	case "log_level":
+		return cfg.LogLevel, nil
 	case "check_update":
 		if cfg.CheckUpdate != nil && *cfg.CheckUpdate {
 			return "true", nil
@@ -168,7 +184,8 @@ func Get(cfg *Config, key string) (string, error) {
 func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider",
-		"language", "push_policy", "message_format", "prompt_template", "check_update",
+		"language", "ui_language", "push_policy", "message_format", "prompt_template",
+		"log_level", "check_update",
 	}
 }
 
@@ -198,6 +215,9 @@ func mergeConfig(dst, src *Config) {
 	if src.Language != "" {
 		dst.Language = src.Language
 	}
+	if src.UILanguage != "" {
+		dst.UILanguage = src.UILanguage
+	}
 	if src.PushPolicy != "" {
 		dst.PushPolicy = src.PushPolicy
 	}
@@ -209,6 +229,9 @@ func mergeConfig(dst, src *Config) {
 	}
 	if src.MaxDiffTokens > 0 {
 		dst.MaxDiffTokens = src.MaxDiffTokens
+	}
+	if src.LogLevel != "" {
+		dst.LogLevel = src.LogLevel
 	}
 	if src.CheckUpdate != nil {
 		dst.CheckUpdate = src.CheckUpdate
@@ -231,5 +254,11 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("GIT_AI_LANGUAGE"); v != "" {
 		cfg.Language = v
+	}
+	if v := os.Getenv("GIT_AI_UI_LANGUAGE"); v != "" {
+		cfg.UILanguage = v
+	}
+	if v := os.Getenv("GIT_AI_LOG_LEVEL"); v != "" {
+		cfg.LogLevel = v
 	}
 }
