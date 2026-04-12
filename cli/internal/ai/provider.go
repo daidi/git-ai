@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -87,11 +89,27 @@ func NewLLMWithLogger(cfg *config.Config, logger *log.Logger) (llms.Model, error
 			opts = append(opts, openai.WithBaseURL(cfg.BaseURL))
 		}
 		// Inject debug HTTP client when debug mode is enabled.
+		// Use a custom client with reasonable timeouts to avoid hanging.
+		httpClient := &http.Client{
+			Timeout: 60 * time.Second, // Overall request timeout
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second, // Connection timeout
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 30 * time.Second,
+				IdleConnTimeout:       90 * time.Second,
+			},
+		}
 		if cfg.IsDebug() && logger != nil {
 			opts = append(opts, openai.WithHTTPClient(&debugDoer{
-				inner:  http.DefaultClient,
+				inner:  httpClient,
 				logger: logger,
 			}))
+		} else {
+			// Also use the same client in non-debug mode for consistency
+			opts = append(opts, openai.WithHTTPClient(httpClient))
 		}
 		return openai.New(opts...)
 

@@ -46,10 +46,8 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 
 // PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
 func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.Logger) (string, error) {
-	llm, err := NewLLMWithLogger(cfg, logger)
-	if err != nil {
-		return "", fmt.Errorf("create LLM: %w", err)
-	}
+	// Use direct HTTP client instead of langchaingo for better control
+	client := NewOpenAIClient(cfg, logger)
 
 	// Trim the diff to stay within token budget.
 	trimmedDiff := TrimDiff(diff, cfg.MaxDiffTokens)
@@ -87,7 +85,7 @@ func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		result, lastErr = GenerateMessage(ctx, llm, sysProm, userProm)
+		result, lastErr = client.GenerateCompletion(ctx, sysProm, userProm)
 		cancel()
 
 		if lastErr == nil {
