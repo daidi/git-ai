@@ -21,12 +21,14 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.provider': 'Provider',
         'settings.field.baseUrl': 'Base URL',
         'settings.field.model': 'Model',
+        'settings.field.messageFormat': 'Message Format',
         'settings.field.language': 'Language',
         'settings.field.explain': 'Explain Why',
         'settings.field.promptTemplate': 'Custom Prompt',
         'settings.field.pushPolicy': 'Push Policy',
         'settings.field.maxDiffTokens': 'Max Diff Tokens',
         'settings.field.logLevel': 'Log Level',
+        'settings.field.uiLanguage': 'UI Language',
         'settings.field.projectEnabled': 'Enable Git AI',
         
         'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
@@ -35,6 +37,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
         'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
         'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
+        'settings.hint.uiLanguage': 'Language for CLI output and git-ai messages (e.g. en, zh)',
         'settings.hint.projectEnabled': 'Install / Uninstall physical webhooks for this repository.',
         'settings.hint.disabledTemplate': 'Disabled because Custom Prompt takes over formatting.',
 
@@ -165,6 +168,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.pushPolicy': '推送时机 (Push Policy)',
         'settings.field.maxDiffTokens': 'Diff 截断阈值 (Tokens)',
         'settings.field.logLevel': '日志级别 (Log Level)',
+        'settings.field.uiLanguage': '交互界面语言 (UI Language)',
         'settings.field.projectEnabled': '启用 Git AI',
         
         'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
@@ -173,6 +177,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
         'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
         'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
+        'settings.hint.uiLanguage': 'CLI 输出及 Git AI 提示消息所用的语言（如 en, zh）',
         'settings.hint.projectEnabled': '在当前代码仓库物理安装 / 卸载 Git Hook。',
         'settings.hint.disabledTemplate': '已禁用（因为您填写了自定义提示词模板，它将接管所有格式化规则）',
         
