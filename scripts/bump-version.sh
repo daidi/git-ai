@@ -38,8 +38,14 @@ fi
 
 echo "✅ All version files updated to $VERSION"
 echo ""
-echo "Next steps:"
-echo "1. Run: git add vscode-extension/package.json idea-plugin/gradle.properties"
-echo "2. Run: git commit -m \"chore: bump version to $VERSION\""
-echo "3. Run: git tag v$VERSION"
-echo "4. Run: git push origin main v$VERSION"
+echo "📦 Committing and tagging release v$VERSION..."
+
+git add vscode-extension/package.json idea-plugin/gradle.properties
+GIT_AI_SKIP=true git commit --no-verify -m "chore: bump version to $VERSION"
+
+git tag "v$VERSION"
+git push origin main "v$VERSION"
+
+echo ""
+echo "🚀 Release triggered successfully!"
+echo "👉 Check GitHub Actions progress here: https://github.com/daidi/git-ai/actions"
