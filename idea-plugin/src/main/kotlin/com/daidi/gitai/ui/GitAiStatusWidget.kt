@@ -60,8 +60,8 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
 
     override fun getIcon(): Icon? {
         return when {
-            currentState.isPolishing -> AllIcons.Actions.Lightning
-            currentState.isPushing -> AllIcons.Vcs.Push
+            currentState.isPolishing -> com.intellij.ui.AnimatedIcon.Default.INSTANCE
+            currentState.isPushing -> com.intellij.ui.AnimatedIcon.Default.INSTANCE
             currentState.hasPendingPush -> AllIcons.Actions.Suspend
             else -> AllIcons.Actions.Checked
         }
