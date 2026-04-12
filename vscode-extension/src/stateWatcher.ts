@@ -17,6 +17,7 @@ export interface GitAiState {
         timestamp: number;
     };
     pid?: number;
+    skip_next?: boolean;
 }
 
 type StateChangeCallback = (state: GitAiState) => void;
@@ -142,6 +143,22 @@ export class StateWatcher {
         }
         if (prevStatus === 'pushing' && newState.current_status === 'idle') {
             notifyInfo(t('notification.pushCompleted'));
+        }
+    }
+
+    /**
+     * Update and save the state to state.json.
+     */
+    saveState(newState: GitAiState): void {
+        try {
+            const dir = path.dirname(this.statePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(this.statePath, JSON.stringify(newState, null, 2), 'utf-8');
+            this.emitIfChanged(newState);
+        } catch {
+            // Ignore write errors.
         }
     }
 }

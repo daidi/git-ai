@@ -11,5 +11,6 @@
   "submenu.gitai": "git-ai",
   "config.pollingInterval": "状态文件轮询间隔（毫秒）",
   "config.binaryPath": "git-ai 可执行文件路径",
-  "config.notificationMode": "通知显示方式"
+  "config.notificationMode": "通知显示方式",
+  "command.skipNextCommit": "下一次提交跳过 AI"
 }

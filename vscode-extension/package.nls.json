@@ -11,5 +11,6 @@
   "submenu.gitai": "git-ai",
   "config.pollingInterval": "State file polling interval in milliseconds",
   "config.binaryPath": "Path to the git-ai binary",
-  "config.notificationMode": "How notifications are displayed"
+  "config.notificationMode": "How notifications are displayed",
+  "command.skipNextCommit": "Skip AI for next commit/push"
 }

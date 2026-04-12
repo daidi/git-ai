@@ -6,6 +6,8 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 
 class SkipNextCommitAction : ToggleAction() {
+    override fun getActionUpdateThread() = com.intellij.openapi.actionSystem.ActionUpdateThread.BGT
+
     override fun isSelected(e: AnActionEvent): Boolean {
         val project = e.project ?: return false
         val stateService = project.service<GitAiStateService>()
