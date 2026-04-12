@@ -16,8 +16,8 @@ import (
 // It reads the pre-push stdin protocol and decides whether to queue or allow the push.
 // Arguments: remote name, remote URL (passed by Git).
 func RunPrePush(remote string) error {
-	// Guard: skip if this is an internal push.
-	if os.Getenv("GIT_AI_INTERNAL") == "true" {
+	// Guard: skip if this is an internal push or explicitly bypassed.
+	if os.Getenv("GIT_AI_INTERNAL") == "true" || os.Getenv("GIT_AI_SKIP") == "true" {
 		return nil
 	}
 

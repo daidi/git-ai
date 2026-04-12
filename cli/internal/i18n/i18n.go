@@ -57,6 +57,12 @@ var messages = map[string]map[string]string{
 		"undo.restoring": "⏪ Restoring original message: %q\n",
 		"undo.done":      "✅ Original message restored.\n",
 
+		// ── recover ──
+		"recover.nothing_to_recover": "ℹ️  Nothing to recover — no stuck polishing state detected.\n",
+		"recover.rolling_back":        "⏪ Rolling back to original message...\n",
+		"recover.rolled_back":         "✅ Rolled back to: %q\n",
+		"recover.success":             "✅ Recovery complete.\n",
+
 		// ── config ──
 		"config.set": "✅ Set %s = %s (%s)\n",
 
@@ -114,6 +120,12 @@ var messages = map[string]map[string]string{
 		// ── undo ──
 		"undo.restoring": "⏪ 正在恢复原始信息: %q\n",
 		"undo.done":      "✅ 已恢复原始提交信息。\n",
+
+		// ── recover ──
+		"recover.nothing_to_recover": "ℹ️  没有需要恢复的内容 — 未检测到卡住的润色状态。\n",
+		"recover.rolling_back":        "⏪ 正在回滚到原始消息...\n",
+		"recover.rolled_back":         "✅ 已回滚到: %q\n",
+		"recover.success":             "✅ 恢复完成。\n",
 
 		// ── config ──
 		"config.set": "✅ 已设置 %s = %s（%s）\n",

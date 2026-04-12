@@ -10,6 +10,7 @@ import (
 	"github.com/daidi/git-ai/internal/config"
 	"github.com/daidi/git-ai/internal/git"
 	"github.com/daidi/git-ai/internal/i18n"
+	"github.com/daidi/git-ai/internal/state"
 	"github.com/daidi/git-ai/internal/update"
 )
 
@@ -51,6 +52,15 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 				return fmt.Errorf("not inside a git repository: %w", err)
 			}
 			gitRoot = root
+
+			// Clean up zombie polishing states on startup.
+			gitDir, _ := git.GetGitDir()
+			if gitDir != "" {
+				mgr := state.NewManager(gitDir)
+				if cleaned, _ := mgr.CleanZombieState(); cleaned && verbose {
+					fmt.Fprintln(os.Stderr, "cleaned up stale polishing state")
+				}
+			}
 
 			cfg, _ := config.Load(gitRoot)
 			if cfg != nil {

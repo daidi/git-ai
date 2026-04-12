@@ -27,6 +27,8 @@ type State struct {
 	LastSHA       string       `json:"last_sha,omitempty"`
 	PendingPush   *PendingPush `json:"pending_push,omitempty"`
 	PID           int          `json:"pid,omitempty"`
+	StartedAt     int64        `json:"started_at,omitempty"` // Unix timestamp when polishing started
+	SkipNext      bool         `json:"skip_next,omitempty"` // Whether to bypass git-ai on next hook trigger
 }
 
 // PendingPush holds deferred push details captured from pre-push stdin.
@@ -142,6 +144,44 @@ func (m *Manager) WithLock(fn func() error) error {
 // Reset sets the state back to idle.
 func (m *Manager) Reset() error {
 	return m.Save(&State{CurrentStatus: StatusIdle})
+}
+
+// CleanZombieState checks for stale polishing state and recovers if needed.
+// Returns true if cleanup was performed.
+func (m *Manager) CleanZombieState() (bool, error) {
+	s, err := m.Load()
+	if err != nil {
+		return false, err
+	}
+
+	// Only clean up if status is polishing.
+	if s.CurrentStatus != StatusPolishing {
+		return false, nil
+	}
+
+	// Check if the process is still alive.
+	if s.PID > 0 && isProcessAlive(s.PID) {
+		// Check for timeout (60 seconds).
+		if s.StartedAt > 0 {
+			elapsed := time.Now().Unix() - s.StartedAt
+			if elapsed < 60 {
+				// Process is alive and not timed out - not a zombie.
+				return false, nil
+			}
+		} else {
+			// No timestamp - not a zombie (yet).
+			return false, nil
+		}
+	}
+
+	// This is a zombie state - reset to idle.
+	// Note: We can't rollback the commit message here since we don't have git access.
+	// The actual rollback should be done by the recover command.
+	if err := m.Reset(); err != nil {
+		return false, fmt.Errorf("reset zombie state: %w", err)
+	}
+
+	return true, nil
 }
 
 // isProcessAlive checks whether a process with the given PID is still running.

@@ -27,6 +27,7 @@ data class GitAiState(
     @SerializedName("last_sha") val lastSha: String? = null,
     @SerializedName("pending_push") val pendingPush: PendingPush? = null,
     @SerializedName("pid") val pid: Int? = null,
+    @SerializedName("skip_next") val skipNext: Boolean? = null,
 ) {
     val isPolishing get() = currentStatus == "polishing"
     val isPushing get() = currentStatus == "pushing"
@@ -131,6 +132,24 @@ class GitAiStateService(private val project: Project) : Disposable {
         } catch (e: Exception) {
             // File may be locked or malformed — ignore.
             log.debug("Failed to read state.json: ${e.message}")
+        }
+    }
+
+    /**
+     * Writes the given state to state.json.
+     */
+    fun saveState(newState: GitAiState) {
+        try {
+            val statePath = getStatePath() ?: return
+            val file = File(statePath)
+            if (!file.parentFile.exists()) {
+                file.parentFile.mkdirs()
+            }
+            val content = gson.toJson(newState)
+            file.writeText(content)
+            updateState(newState)
+        } catch (e: Exception) {
+            log.error("Failed to write state.json", e)
         }
     }
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/daidi/git-ai/internal/ai"
@@ -20,8 +22,8 @@ import (
 // If isDaemon is false, it forks a background daemon and exits.
 // If isDaemon is true, it runs the actual polishing logic.
 func RunPostCommit(isDaemon bool) error {
-	// Guard: skip if this is an internal amend.
-	if os.Getenv("GIT_AI_INTERNAL") == "true" {
+	// Guard: skip if this is an internal amend or explicitly bypassed.
+	if os.Getenv("GIT_AI_INTERNAL") == "true" || os.Getenv("GIT_AI_SKIP") == "true" {
 		return nil
 	}
 
@@ -33,6 +35,13 @@ func RunPostCommit(isDaemon bool) error {
 	mgr := state.NewManager(gitDir)
 
 	if !isDaemon {
+		// Check for skip flag
+		if s, err := mgr.Load(); err == nil && s.SkipNext {
+			s.SkipNext = false
+			_ = mgr.Save(s)
+			return nil
+		}
+
 		// Fork a daemon and exit immediately so the commit doesn't block.
 		binary, err := daemon.FindBinary()
 		if err != nil {
@@ -87,6 +96,7 @@ func RunPostCommit(isDaemon bool) error {
 		OriginalMsg:   origMsg,
 		LastSHA:       sha,
 		PID:           os.Getpid(),
+		StartedAt:     time.Now().Unix(),
 	}
 	if err := mgr.Save(s); err != nil {
 		return err
@@ -102,6 +112,19 @@ func RunPostCommit(isDaemon bool) error {
 	} else {
 		logger.Printf("added loading prefix to commit message")
 	}
+
+	// Register signal handler to rollback on interruption.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		logger.Printf("interrupted - rolling back to original message")
+		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
+			logger.Printf("rollback error: %v", rollbackErr)
+		}
+		_ = mgr.Reset()
+		os.Exit(1)
+	}()
 
 	// Get diff.
 	diff, err := git.GetDiff(sha)
