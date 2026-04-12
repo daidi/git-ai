@@ -75,7 +75,7 @@ var messages = map[string]map[string]string{
 		"hook.pushed":       "Pushed to %s",
 
 		// ── hook (pre-push) ──
-		"prepush.queued":         "⏳ Git AI: AI is polishing your commit. Push queued — will auto-push when ready.\n",
+		"prepush.queued":         "⏳ Git AI: AI is polishing your commit. Push queued — will auto-push when ready. (Please ignore the push failure warning, it will push automatically after polishing.)\n",
 		"prepush.save_warn":      "Git AI: warning: could not save pending push: %v\n",
 
 		// ── errors ──
@@ -139,7 +139,7 @@ var messages = map[string]map[string]string{
 		"hook.pushed":       "已推送到 %s",
 
 		// ── hook (pre-push) ──
-		"prepush.queued":         "⏳ Git AI: AI 正在润色你的提交，推送已排队 — 完成后将自动推送。\n",
+		"prepush.queued":         "⏳ Git AI: AI 正在润色你的提交，推送已排队 — 完成后将自动推送。（请忽略推送失败的警告，消息润色完成后会自动提交推送）\n",
 		"prepush.save_warn":      "Git AI: 警告: 无法保存待推送状态: %v\n",
 
 		// ── errors ──
