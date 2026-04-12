@@ -84,6 +84,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'actions.btn.showLogs': 'Show Logs',
         'actions.btn.config': 'Configuration',
         'actions.btn.reinit': 'Re-initialize',
+        'actions.btn.skipNext': 'Skip AI (Next Commit)',
 
         // Commands
         'cmd.init.success': '🎉 git-ai initialized!',
@@ -218,6 +219,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'actions.btn.showLogs': '查看日志',
         'actions.btn.config': '配置',
         'actions.btn.reinit': '重新初始化',
+        'actions.btn.skipNext': '跳过 AI (下一次)',
 
         // Commands
         'cmd.init.success': '🎉 git-ai 已初始化！',

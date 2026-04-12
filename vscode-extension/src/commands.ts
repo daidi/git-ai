@@ -159,6 +159,16 @@ export class CommandManager {
     }
 
     /**
+     * Skip AI polishing for the next commit/push.
+     */
+    async skipNextCommit(stateWatcher: import('./stateWatcher').StateWatcher): Promise<void> {
+        const currentState = stateWatcher.getState();
+        const newState = { ...currentState, skip_next: true };
+        stateWatcher.saveState(newState);
+        notifyInfo(t('command.skipNextCommit') + " applied");
+    }
+
+    /**
      * Test the LLM configuration connectivity.
      */
     async testConfig(): Promise<void> {

@@ -125,7 +125,7 @@ func (c *OpenAIClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 		c.logger.Printf("[DEBUG] <<< HTTP Error: %v", err)
 		return "", fmt.Errorf("request timeout: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	respBody, err := io.ReadAll(resp.Body)

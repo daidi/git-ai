@@ -69,6 +69,11 @@
         "command": "git-ai.uninstall",
         "title": "%command.uninstall%",
         "category": "git-ai"
+      },
+      {
+        "command": "git-ai.skipNextCommit",
+        "title": "%command.skipNextCommit%",
+        "category": "git-ai"
       }
     ],
     "icons": {
@@ -156,6 +161,10 @@
         },
         {
           "command": "git-ai.forcePush",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.skipNextCommit",
           "group": "1_actions"
         },
         {

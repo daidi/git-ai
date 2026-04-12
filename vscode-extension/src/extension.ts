@@ -53,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('git-ai.uninstall', () => commands.uninstall()),
         vscode.commands.registerCommand('git-ai.config.test', () => commands.testConfig()),
+        vscode.commands.registerCommand('git-ai.skipNextCommit', () => commands.skipNextCommit(stateWatcher!)),
     );
 
     // Listen for state changes.
