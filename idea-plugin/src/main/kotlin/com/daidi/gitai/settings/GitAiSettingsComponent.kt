@@ -13,6 +13,8 @@ import java.awt.FlowLayout
 import java.awt.Font
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import javax.swing.event.DocumentEvent
+import com.intellij.ui.DocumentAdapter
 
 /**
  * Swing component for the git-ai settings form.
@@ -114,6 +116,17 @@ class GitAiSettingsComponent(private val basePath: String?) {
         mainPanel.add(header, BorderLayout.NORTH)
         mainPanel.add(scrollPane, BorderLayout.CENTER)
         mainPanel.preferredSize = Dimension(600, 520)
+        
+        setupListeners()
+    }
+
+    private fun setupListeners() {
+        gPromptTemplate.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) { updateGlobalFieldsState() }
+        })
+        pPromptTemplate.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) { updateProjectFieldsState() }
+        })
     }
 
     // ── Build forms ──
@@ -175,20 +188,37 @@ class GitAiSettingsComponent(private val basePath: String?) {
         return form
     }
 
+    private fun updateGlobalFieldsState() {
+        val hasCustomPrompt = gPromptTemplate.text.isNotEmpty()
+        gMessageFormat.isEnabled = !hasCustomPrompt
+        gExplain.isEnabled = !hasCustomPrompt
+        
+        val tooltip = if (hasCustomPrompt) GitAiBundle.message("settings.hint.disabledTemplate") else null
+        gMessageFormat.toolTipText = tooltip
+        gExplain.toolTipText = tooltip
+    }
+
     private fun updateProjectFieldsState() {
         val enabled = pEnabled.isSelected
         pApiKey.isEnabled = enabled
         pProvider.isEnabled = enabled
         pBaseUrl.isEnabled = enabled
         pModel.isEnabled = enabled
-        pMessageFormat.isEnabled = enabled
+        
+        val hasCustomPrompt = pPromptTemplate.text.isNotEmpty()
+        pMessageFormat.isEnabled = enabled && !hasCustomPrompt
+        pExplain.isEnabled = enabled && !hasCustomPrompt
+        
+        val tooltip = if (hasCustomPrompt && enabled) GitAiBundle.message("settings.hint.disabledTemplate") else null
+        pMessageFormat.toolTipText = tooltip
+        pExplain.toolTipText = tooltip
+        
         pLanguage.isEnabled = enabled
         pPushPolicy.isEnabled = enabled
         pPromptTemplate.isEnabled = enabled
         pMaxDiffTokens.isEnabled = enabled
         pLogLevel.isEnabled = enabled
         pUiLanguage.isEnabled = enabled
-        pExplain.isEnabled = enabled
         pTestConfigBtn.isEnabled = enabled
     }
 
@@ -236,6 +266,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
         gLogLevel.selectedItem = cfg.logLevel ?: "info"
         gExplain.selectedItem = cfg.explain?.toString() ?: "false"
+        updateGlobalFieldsState()
     }
 
     fun getProjectConfig(): GitAiConfig {
@@ -284,6 +315,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pUiLanguage.selectedItem = cfg.uiLanguage ?: ""
         
         pExplain.selectedItem = cfg.explain?.toString() ?: ""
+        updateProjectFieldsState()
     }
 
     private fun inheritedVal(v: String): String {
