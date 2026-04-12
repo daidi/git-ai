@@ -81,7 +81,7 @@ func RunPostCommit(isDaemon bool) error {
 		return err
 	}
 
-	// Save state: polishing.
+	// Save state: polishing (with original message for rollback).
 	s := &state.State{
 		CurrentStatus: state.StatusPolishing,
 		OriginalMsg:   origMsg,
@@ -93,6 +93,15 @@ func RunPostCommit(isDaemon bool) error {
 	}
 
 	logger.Printf("polishing commit %s: %q", sha[:8], origMsg)
+
+	// Immediately mark the commit with loading icon for visibility.
+	tempMsg := "[⏳] " + origMsg
+	if err := git.Amend(tempMsg); err != nil {
+		logger.Printf("warning: failed to add loading prefix: %v", err)
+		// Not fatal - continue with polishing
+	} else {
+		logger.Printf("added loading prefix to commit message")
+	}
 
 	// Get diff.
 	diff, err := git.GetDiff(sha)
@@ -106,6 +115,12 @@ func RunPostCommit(isDaemon bool) error {
 	if err != nil {
 		logger.Printf("AI error: %v", err)
 		notify.Send("Git AI", i18n.Sprintf("hook.ai_failed", err))
+		// Rollback: restore original message to avoid leaving [⏳] prefix.
+		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
+			logger.Printf("rollback error: %v", rollbackErr)
+		} else {
+			logger.Printf("rolled back to original message")
+		}
 		// Reset state so we don't block future operations.
 		_ = mgr.Reset()
 		return err
@@ -113,10 +128,16 @@ func RunPostCommit(isDaemon bool) error {
 
 	logger.Printf("polished message: %q", polished)
 
-	// Amend the commit.
+	// Amend the commit with polished message.
 	if err := git.Amend(polished); err != nil {
 		logger.Printf("amend error: %v", err)
 		notify.Send("Git AI", i18n.Sprintf("hook.amend_failed", err))
+		// Rollback: restore original message.
+		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
+			logger.Printf("rollback error: %v", rollbackErr)
+		} else {
+			logger.Printf("rolled back to original message")
+		}
 		_ = mgr.Reset()
 		return err
 	}
