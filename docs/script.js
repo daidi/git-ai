@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // OS Selector Logic
-    const osSelector = document.getElementById('os-selector');
+    const osSelector = document.querySelector('.os-selector-wrap');
     const updateInstallCmd = (os) => {
         const cmdEl = document.getElementById('install-cmd');
         if (!cmdEl) return;
@@ -354,19 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const osBtns = osSelector.querySelectorAll('.os-btn');
         osBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                osBtns.forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = 'transparent';
-                    b.style.color = 'var(--text-muted)';
-                    b.style.borderColor = 'transparent';
-                });
-                
+                osBtns.forEach(b => b.classList.remove('active'));
                 const target = e.target;
                 target.classList.add('active');
-                target.style.background = 'var(--bg-elevated)';
-                target.style.color = 'var(--text-main)';
-                target.style.borderColor = 'var(--border-standard)';
-                
                 updateInstallCmd(target.getAttribute('data-os'));
             });
             

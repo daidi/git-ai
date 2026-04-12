@@ -2,6 +2,7 @@
     --bg-base: #0f0f0f;
     --bg-surface: #171717;
     --bg-hover: #1c1c1c;
+    --bg-elevated: #262626;
     
     --border-subtle: #242424;
     --border-standard: #2e2e2e;
@@ -345,8 +346,55 @@ body {
     margin: 0 auto;
 }
 
+.install-box {
+    margin-bottom: 16px;
+    padding: 16px 24px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-sm);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.cta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+}
+
 @media (max-width: 768px) {
     .features-grid { grid-template-columns: 1fr; }
+    
+    .cta-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        text-align: center;
+    }
+    .cta-grid > div {
+        text-align: center !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .cta-grid .install-box {
+        margin: 0 auto 16px auto;
+        text-align: center !important;
+    }
+    .cta-grid .os-selector-wrap, .cta-grid .install-box + div {
+        justify-content: center !important;
+    }
+    
+    .footer-top {
+        flex-direction: column;
+        gap: 40px;
+    }
+    .footer-links {
+        flex-wrap: wrap;
+        gap: 40px;
+    }
 }
 
 .f-card {
@@ -413,3 +461,32 @@ body {
 .link-col strong { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
 .link-col a { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; transition: var(--transition); }
 .link-col a:hover { color: var(--text-primary); }
+
+/* OS Selector */
+.os-selector-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.os-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.os-btn:hover {
+    color: var(--text-secondary);
+}
+
+.os-btn.active {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-standard);
+}
