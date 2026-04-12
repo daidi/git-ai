@@ -32,7 +32,7 @@ func Defaults() *Config {
 		Language:      "en",
 		PushPolicy:    "queue",
 		MessageFormat: "conventional",
-		MaxDiffTokens: 4000,
+		MaxDiffTokens: 2000,
 		CheckUpdate:   &tru,
 	}
 }

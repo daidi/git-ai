@@ -3,14 +3,49 @@ package ai
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/daidi/git-ai/internal/config"
 )
 
+// isNonRetryableError checks if an error indicates a permanent failure
+// that will never succeed on retry (e.g., wrong API key, invalid model).
+func isNonRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	// HTTP status codes embedded in error messages from langchaingo / OpenAI-compatible APIs.
+	nonRetryablePatterns := []string{
+		"401",              // Unauthorized — bad API key
+		"403",              // Forbidden — key lacks permission
+		"404",              // Not Found — wrong model name or base URL
+		"invalid_api_key",  // OpenAI-specific
+		"authentication",   // Generic auth failure
+		"Unauthorized",     // HTTP status text
+		"Forbidden",        // HTTP status text
+		"model_not_found",  // OpenAI-specific
+		"does not exist",   // Model does not exist
+		"unsupported",      // Unsupported model/provider
+	}
+	lower := strings.ToLower(msg)
+	for _, p := range nonRetryablePatterns {
+		if strings.Contains(lower, strings.ToLower(p)) {
+			return true
+		}
+	}
+	return false
+}
+
 // Polish generates an AI-polished commit message for the given diff and original message.
 func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
+	return PolishWithLogger(diff, originalMsg, cfg, log.Default())
+}
+
+// PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
+func PolishWithLogger(diff, originalMsg string, cfg *config.Config, logger *log.Logger) (string, error) {
 	llm, err := NewLLM(cfg)
 	if err != nil {
 		return "", fmt.Errorf("create LLM: %w", err)
@@ -28,13 +63,22 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 	}
 	userProm := UserPrompt(originalMsg, trimmedDiff)
 
-	// Retry with exponential backoff.
+	logger.Printf("prompt: system=%d chars, user=%d chars (diff≈%d tokens)",
+		len(sysProm), len(userProm), len(trimmedDiff)/4)
+
+	// Retry with exponential backoff (only for transient errors).
+	const maxRetries = 3
 	var result string
 	delays := []time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
 	var lastErr error
 
-	for attempt := 0; attempt <= len(delays); attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			logger.Printf("retry %d/%d (waiting %v)...", attempt, maxRetries, delays[attempt-1])
+			time.Sleep(delays[attempt-1])
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		result, lastErr = GenerateMessage(ctx, llm, sysProm, userProm)
 		cancel()
 
@@ -42,13 +86,17 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 			break
 		}
 
-		if attempt < len(delays) {
-			time.Sleep(delays[attempt])
+		logger.Printf("attempt %d failed: %v", attempt+1, lastErr)
+
+		// Don't retry errors that will never succeed (auth, model not found, etc.)
+		if isNonRetryableError(lastErr) {
+			logger.Printf("non-retryable error detected, aborting immediately")
+			return "", fmt.Errorf("AI polishing failed (non-retryable): %w", lastErr)
 		}
 	}
 
 	if lastErr != nil {
-		return "", fmt.Errorf("AI polishing failed after %d attempts: %w", len(delays)+1, lastErr)
+		return "", fmt.Errorf("AI polishing failed after %d attempts: %w", maxRetries+1, lastErr)
 	}
 
 	// Clean up the response — remove markdown fences, leading/trailing whitespace.
@@ -60,7 +108,7 @@ func Polish(diff, originalMsg string, cfg *config.Config) (string, error) {
 // TrimDiff implements 3-tier diff trimming to stay within the token budget.
 func TrimDiff(rawDiff string, maxTokens int) string {
 	if maxTokens <= 0 {
-		maxTokens = 4000
+		maxTokens = 2000
 	}
 
 	estimatedTokens := len(rawDiff) / 4

@@ -25,7 +25,7 @@ const DEFAULTS: Required<GitAiConfig> = {
     push_policy: 'queue',
     message_format: 'conventional',
     prompt_template: '',
-    max_diff_tokens: 4000,
+    max_diff_tokens: 2000,
 };
 
 // ── I18N ──────────────────────────────────────────────

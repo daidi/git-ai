@@ -98,7 +98,7 @@ func RunPostCommit(isDaemon bool) error {
 	}
 
 	// Call AI.
-	polished, err := ai.Polish(diff, origMsg, cfg)
+	polished, err := ai.PolishWithLogger(diff, origMsg, cfg, logger)
 	if err != nil {
 		logger.Printf("AI error: %v", err)
 		notify.Send("⚠️ git-ai", fmt.Sprintf("AI polishing failed: %v", err))
