@@ -18,7 +18,6 @@ type Cache struct {
 }
 
 const checkInterval = 24 * time.Hour
-const repo = "daidi/git-ai"
 
 func cachePath() string {
 	home, _ := os.UserHomeDir()
