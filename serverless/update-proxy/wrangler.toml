@@ -1,0 +1,9 @@
+name = "git-ai-update-proxy"
+main = "worker.js"
+compatibility_date = "2024-04-14"
+
+# Using a dedicated subdomain is safer and skips path limitation errors.
+# Cloudflare will auto-create the git-ai.codegg.org DNS record for you.
+routes = [
+  { pattern = "git-ai.codegg.org", custom_domain = true }
+]

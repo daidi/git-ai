@@ -65,9 +65,10 @@ type ReleaseMetadata struct {
 	} `json:"assets"`
 }
 
-// FetchLatestRelease pulls the latest release from GitHub
+// FetchLatestRelease pulls the latest release
 func FetchLatestRelease() (*ReleaseMetadata, error) {
-	resp, err := http.Get("https://api.github.com/repos/" + repo + "/releases/latest")
+	// Ping custom proxy instead of GitHub directly to track DAU counts securely
+	resp, err := http.Get("https://git-ai.codegg.org/releases/latest")
 	if err != nil {
 		return nil, err
 	}
