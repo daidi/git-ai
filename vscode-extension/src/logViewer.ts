@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { t } from './i18n';
 
 /**
  * Output channel for viewing git-ai daemon logs.
@@ -22,8 +23,8 @@ export class LogViewer implements vscode.Disposable {
         this.outputChannel.show(true);
 
         if (!fs.existsSync(logDir)) {
-            this.outputChannel.appendLine('[Git AI] No logs directory found.');
-            this.outputChannel.appendLine(`[Git AI] Expected at: ${logDir}`);
+            this.outputChannel.appendLine(t('logViewer.noDir'));
+            this.outputChannel.appendLine(t('logViewer.expectedAt', logDir));
             return;
         }
 
@@ -34,7 +35,7 @@ export class LogViewer implements vscode.Disposable {
             .reverse();
 
         if (files.length === 0) {
-            this.outputChannel.appendLine('[Git AI] No log files found.');
+            this.outputChannel.appendLine(t('logViewer.noLogs'));
             return;
         }
 
@@ -55,7 +56,7 @@ export class LogViewer implements vscode.Disposable {
         this.lastReadPosition = 0;
 
         this.outputChannel.clear();
-        this.outputChannel.appendLine(`[Git AI] Watching: ${filePath}`);
+        this.outputChannel.appendLine(t('logViewer.watching', filePath));
         this.outputChannel.appendLine('─'.repeat(60));
 
         // Initial read.

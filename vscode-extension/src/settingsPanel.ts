@@ -333,7 +333,9 @@ export class SettingsPanel {
 <script>
     const i18n = {
         confirmReset: "${t('settings.confirm.reset', '{0}')}",
-        disabledHint: "${t('settings.hint.disabledTemplate')}"
+        disabledHint: "${t('settings.hint.disabledTemplate')}",
+        globalTab: "${t('settings.tab.global')}",
+        projectTab: "${t('settings.tab.project')}"
     };
 </script>
 </head>
@@ -499,7 +501,7 @@ export class SettingsPanel {
         }
 
         function resetScope(scope) {
-            const msg = i18n.confirmReset.replace('{0}', scope === 'global' ? 'Global' : 'Project');
+            const msg = i18n.confirmReset.replace('{0}', scope === 'global' ? i18n.globalTab : i18n.projectTab);
             if (!confirm(msg)) return;
             vscode.postMessage({ command: 'reset', scope });
         }
@@ -534,7 +536,7 @@ export class SettingsPanel {
     ): string {
         const val = currentVal ?? '';
         const optionsHtml = options.map(o => {
-            const display = o === '' ? (inheritedVal ? t('settings.inherit.val', inheritedVal) : '(inherit)') : o;
+            const display = o === '' ? (inheritedVal ? t('settings.inherit.val', inheritedVal) : t('settings.inherit.empty')) : o;
             return `<option value="${this.escapeAttr(o)}" ${val === o ? 'selected' : ''}>${this.escapeAttr(display)}</option>`;
         }).join('');
 

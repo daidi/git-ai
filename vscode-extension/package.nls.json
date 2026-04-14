@@ -1,4 +1,6 @@
 {
+  "extension.displayName": "Git AI - Async Commit Polisher",
+  "extension.description": "AI-powered Git commit message enhancer — status, controls, and logs directly in VS Code",
   "command.init": "Initialize Git AI",
   "command.retry": "Retry AI polishing",
   "command.undo": "Undo AI polishing",

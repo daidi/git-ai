@@ -165,7 +165,7 @@ export class CommandManager {
         const currentState = stateWatcher.getState();
         const newState = { ...currentState, skip_next: true };
         stateWatcher.saveState(newState);
-        notifyInfo(t('command.skipNextCommit') + " applied");
+        notifyInfo(t('cmd.skipNext.success'));
     }
 
     /**

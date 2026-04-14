@@ -71,52 +71,38 @@
     </extensions>
 
     <actions>
-        <group id="GitAi.ActionGroup" text="Git AI" popup="true"
+        <group id="GitAi.ActionGroup" popup="true"
                icon="com.daidi.gitai.Icons.GitAi">
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
 
             <action id="GitAi.SkipNextCommit"
                     class="com.daidi.gitai.actions.SkipNextCommitAction"
-                    text="Skip AI (Direct Commit)"
-                    description="Bypass Git AI for the next commit and push directly"
                     icon="AllIcons.Actions.Suspend"/>
 
 
             <action id="GitAi.Retry"
                     class="com.daidi.gitai.actions.RetryAction"
-                    text="Retry AI Polish"
-                    description="Re-generate AI commit message"
                     icon="AllIcons.Actions.Refresh"/>
 
             <action id="GitAi.Undo"
                     class="com.daidi.gitai.actions.UndoAction"
-                    text="Undo AI Polish"
-                    description="Restore original commit message"
                     icon="AllIcons.Actions.Undo"/>
 
             <action id="GitAi.Cancel"
                     class="com.daidi.gitai.actions.CancelAction"
-                    text="Cancel Polishing"
-                    description="Kill the background polishing daemon"
                     icon="AllIcons.Actions.Cancel"/>
 
             <action id="GitAi.ForcePush"
                     class="com.daidi.gitai.actions.ForcePushAction"
-                    text="Force Push Now"
-                    description="Push immediately, bypassing deferred push"
                     icon="AllIcons.Vcs.Push"/>
 
             <action id="GitAi.Init"
                     class="com.daidi.gitai.actions.InitAction"
-                    text="Initialize Git AI"
-                    description="Set up Git AI hooks in this repository"
                     icon="AllIcons.General.Add"/>
 
             <action id="GitAi.OpenConfig"
                     class="com.daidi.gitai.actions.OpenConfigAction"
-                    text="Open Configuration"
-                    description="Open Git AI configuration file"
                     icon="AllIcons.General.Settings"/>
         </group>
     </actions>

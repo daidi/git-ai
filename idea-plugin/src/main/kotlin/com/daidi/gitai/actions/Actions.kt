@@ -10,6 +10,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
@@ -39,10 +40,12 @@ class RetryAction : AnAction() {
             ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.retry.progress")) {
                 override fun run(indicator: ProgressIndicator) {
                     val result = GitAiCli.run(project, "retry")
-                    if (result.success) {
-                        Messages.showInfoMessage(project, GitAiBundle.message("action.retry.success"), GitAiBundle.message("notification.title"))
-                    } else {
-                        Messages.showErrorDialog(project, GitAiBundle.message("action.retry.failed", result.stderr), GitAiBundle.message("notification.title"))
+                    ApplicationManager.getApplication().invokeLater {
+                        if (result.success) {
+                            Messages.showInfoMessage(project, GitAiBundle.message("action.retry.success"), GitAiBundle.message("notification.title"))
+                        } else {
+                            Messages.showErrorDialog(project, GitAiBundle.message("action.retry.failed", result.stderr), GitAiBundle.message("notification.title"))
+                        }
                     }
                 }
             })
@@ -173,9 +176,13 @@ class ForcePushAction : AnAction() {
                                 }
                             } catch (_: Exception) {}
                         }
-                        Messages.showInfoMessage(project, GitAiBundle.message("action.push.success"), GitAiBundle.message("notification.title"))
+                        ApplicationManager.getApplication().invokeLater {
+                            Messages.showInfoMessage(project, GitAiBundle.message("action.push.success"), GitAiBundle.message("notification.title"))
+                        }
                     } else {
-                        Messages.showErrorDialog(project, GitAiBundle.message("action.push.failed", result.stderr), GitAiBundle.message("notification.title"))
+                        ApplicationManager.getApplication().invokeLater {
+                            Messages.showErrorDialog(project, GitAiBundle.message("action.push.failed", result.stderr), GitAiBundle.message("notification.title"))
+                        }
                     }
                 }
             })

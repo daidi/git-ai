@@ -72,7 +72,7 @@ function promptInstall() {
             return;
         }
 
-        const terminal = vscode.window.createTerminal('Git AI Installer');
+        const terminal = vscode.window.createTerminal(t('installer.terminal'));
         terminal.show();
         
         if (selection === t('installer.homebrew')) {
@@ -110,7 +110,7 @@ async function installCliAuto() {
 
                 const archivePath = path.join(os.tmpdir(), fileName);
                 
-                progress.report({ message: `Downloading ${fileName}...` });
+                progress.report({ message: t('installer.downloading', fileName) });
                 await downloadFile(downloadUrl, archivePath);
 
                 progress.report({ message: t('installer.progress') });
@@ -145,7 +145,7 @@ function downloadFile(url: string, dest: string): Promise<void> {
                 return;
             }
             if (res.statusCode !== 200) {
-                reject(new Error(`Failed to download: ${res.statusCode}`));
+                reject(new Error(t('installer.downloadFailed', String(res.statusCode))));
                 return;
             }
             res.pipe(file);

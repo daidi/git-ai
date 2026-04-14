@@ -43,6 +43,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
 
         'settings.inherit.label': '\u2190 Inherited from Global',
         'settings.inherit.val': '(inherit: {0})',
+        'settings.inherit.empty': '(inherit)',
         
         'settings.btn.saveGlobal': 'Save Global',
         'settings.btn.saveProject': 'Save Project',
@@ -117,6 +118,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.push.progress': 'Git AI: Pushing...',
         'cmd.push.success': '🚀 Git AI: Push completed!',
         'cmd.push.failed': 'Push failed: {0}',
+        'cmd.skipNext.success': '⏭️ Git AI: AI polishing skipped for the next commit',
         'cmd.test.progress': 'Git AI: Testing LLM connection...',
         'cmd.test.success': '✅ Git AI: Test successful!\n\n{0}',
         'cmd.test.failed': '❌ Git AI: Test failed:\n\n{0}\n{1}',
@@ -133,6 +135,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'installer.cancel': 'Cancel',
         'installer.skipped': 'Git AI CLI installation skipped. Some features may not work.',
         'installer.progress': 'Git AI: Installing CLI...',
+        'installer.terminal': 'Git AI Installer',
+        'installer.downloading': 'Downloading {0}...',
+        'installer.downloadFailed': 'Failed to download: {0}',
         'installer.success': '✨ Git AI CLI installed successfully!',
         'installer.failed': 'Failed to install CLI: {0}',
         'installer.prompt': 'Git AI is not initialized for this repository. Enable AI commit polishing?',
@@ -142,6 +147,12 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         // Info labels (webview)
         'info.commit': 'Commit:',
         'info.original': 'Original:',
+
+        // Log Viewer
+        'logViewer.noDir': '[Git AI] No logs directory found.',
+        'logViewer.expectedAt': '[Git AI] Expected at: {0}',
+        'logViewer.noLogs': '[Git AI] No log files found.',
+        'logViewer.watching': '[Git AI] Watching: {0}',
     },
     'zh-cn': {
         // Settings Panel
@@ -183,6 +194,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         
         'settings.inherit.label': '\u2190 继承自全局设定',
         'settings.inherit.val': '(继承: {0})',
+        'settings.inherit.empty': '(继承)',
         
         'settings.btn.saveGlobal': '保存全局配置',
         'settings.btn.saveProject': '保存项目配置',
@@ -257,6 +269,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.push.progress': 'Git AI: 推送中...',
         'cmd.push.success': '🚀 Git AI: 推送完成！',
         'cmd.push.failed': '推送失败: {0}',
+        'cmd.skipNext.success': '⏭️ Git AI: 已跳过下一次 Commit 的自动润色',
         'cmd.test.progress': 'Git AI: 正在测试 LLM 连通性...',
         'cmd.test.success': '✅ Git AI: 测试成功！\n\n{0}',
         'cmd.test.failed': '❌ Git AI: 测试失败：\n\n{0}\n{1}',
@@ -273,6 +286,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'installer.cancel': '取消',
         'installer.skipped': 'Git AI CLI 安装已跳过。部分功能可能不可用。',
         'installer.progress': 'Git AI: 正在安装 CLI...',
+        'installer.terminal': 'Git AI 安装器',
+        'installer.downloading': '正在下载 {0}...',
+        'installer.downloadFailed': '下载失败: {0}',
         'installer.success': '✨ Git AI CLI 安装成功！',
         'installer.failed': 'CLI 安装失败: {0}',
         'installer.prompt': '当前仓库尚未初始化 Git AI。是否启用 AI 提交润色？',
@@ -282,6 +298,12 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         // Info labels (webview)
         'info.commit': 'Commit:',
         'info.original': '原始消息:',
+
+        // Log Viewer
+        'logViewer.noDir': '[Git AI] 未找到日志目录。',
+        'logViewer.expectedAt': '[Git AI] 预期路径: {0}',
+        'logViewer.noLogs': '[Git AI] 没有找到任何日志文件。',
+        'logViewer.watching': '[Git AI] 正在监视: {0}',
     },
     'zh-tw': {
         'settings.title': 'Git AI 偏好設定', 'settings.subtitle': '配置 AI 提交潤飾行為。專案級設定將覆蓋全域設定。', 'settings.tab.global': '全域', 'settings.tab.project': '目前專案', 'settings.badge.shared': '全域共用', 'settings.badge.override': '專案覆蓋',
