@@ -301,8 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (termContent && steps.length > 0) {
         let activeStep = 0;
-        
-        termContent.style.transition = 'opacity 0.2s ease-in-out';
+        let currentRenderId = 0;
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -314,14 +313,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     entry.target.classList.add('is-active');
                     
                     if (stepNum !== activeStep) {
+                        const isForward = stepNum > activeStep;
                         activeStep = stepNum;
+                        currentRenderId++;
+                        const renderId = currentRenderId;
                         
-                        // Crossfade terminal content
-                        termContent.style.opacity = '0';
-                        setTimeout(() => {
-                            termContent.innerHTML = getStepContent(stepNum);
-                            termContent.style.opacity = '1';
-                        }, 200);
+                        termContent.style.opacity = '1';
+                        
+                        const rawHtml = getStepContent(stepNum).replace(/class="t-line visible"/g, 'class="t-line"');
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = rawHtml;
+                        const newLines = Array.from(tempDiv.querySelectorAll('.t-line'));
+                        
+                        const currentLinesCount = termContent.querySelectorAll('.t-line').length;
+                        termContent.innerHTML = '';
+                        
+                        newLines.forEach((line, index) => {
+                            if (!isForward || index < currentLinesCount) {
+                                line.classList.add('visible');
+                            }
+                            termContent.appendChild(line);
+                        });
+                        
+                        if (isForward) {
+                            let delay = 0;
+                            newLines.forEach((line, index) => {
+                                if (index >= currentLinesCount) {
+                                    setTimeout(() => {
+                                        if (currentRenderId === renderId) {
+                                            line.classList.add('visible');
+                                            termContent.scrollTop = termContent.scrollHeight;
+                                        }
+                                    }, delay);
+                                    delay += 200;
+                                }
+                            });
+                        } else {
+                            termContent.scrollTop = termContent.scrollHeight;
+                        }
                     }
                 }
             });
