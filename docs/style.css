@@ -351,6 +351,12 @@ body::before {
     color: var(--text-primary);
     overflow-y: auto;
     flex: 1;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.term-body::-webkit-scrollbar {
+    display: none;
 }
 
 .t-line { opacity: 0; padding-bottom: 8px; }
