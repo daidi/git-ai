@@ -61,8 +61,9 @@ If you habitually push immediately, Git AI elegantly queues the push, waits for 
 
 ## 💡 Why It's Better
 
-| | Traditional AI Tools | Git AI |
+| Feature | Traditional AI Tools (aicommits, Copilot) | Git AI |
 |:---|:---|:---|
+| **Best For** | Those who want to manually review/edit AI messages | Developers prioritizing "Flow State" and zero waiting |
 | **Workflow** | Generate → wait → review → commit | Commit → code → polish in background |
 | **Latency** | 2–5s blocking wait | **Zero. You keep coding.** |
 | **If AI fails?** | No commit happens | Your commit is safe regardless |

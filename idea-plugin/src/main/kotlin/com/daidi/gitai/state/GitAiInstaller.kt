@@ -37,7 +37,7 @@ object GitAiInstaller {
         notification.notify(project)
     }
 
-    private fun installCli(project: Project) {
+    fun installCli(project: Project) {
         val os = when {
             SystemInfo.isMac -> "darwin"
             SystemInfo.isWindows -> "windows"

@@ -7,6 +7,7 @@ import { StatusTreeProvider } from './statusTree';
 import { ActionsWebviewProvider } from './actionsWebview';
 import { SettingsPanel } from './settingsPanel';
 import { checkAndPromptInstall, autoInitialize } from './installer';
+import { checkForCliUpdate } from './updateChecker';
 
 let stateWatcher: StateWatcher | undefined;
 let statusBar: StatusBarManager | undefined;
@@ -15,6 +16,9 @@ let logViewer: LogViewer | undefined;
 export function activate(context: vscode.ExtensionContext) {
     // Check if CLI is installed asynchronously
     checkAndPromptInstall();
+
+    // IDE-side update check (works even with old CLI versions)
+    checkForCliUpdate(context);
 
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {

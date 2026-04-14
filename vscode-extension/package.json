@@ -21,7 +21,12 @@
     "ai",
     "commit",
     "conventional-commits",
-    "gitmoji"
+    "gitmoji",
+    "copilot",
+    "chatgpt",
+    "deepseek",
+    "llm",
+    "automation"
   ],
   "icon": "resources/icon.png",
   "activationEvents": [

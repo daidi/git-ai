@@ -136,6 +136,14 @@ async function installCliAuto() {
     );
 }
 
+/**
+ * Public entry point for updating the CLI from IDE notifications.
+ * Reuses the same download-and-extract logic as the initial installation.
+ */
+export async function installCliUpdate(): Promise<void> {
+    await installCliAuto();
+}
+
 function downloadFile(url: string, dest: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);

@@ -215,6 +215,21 @@ body::before {
     max-width: 800px;
 }
 
+.hero-title span {
+    background-image: linear-gradient(135deg, #FF0080, #7928CA, #0070F3, #38bdf8, #FF0080);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: aurora 8s linear infinite;
+    display: inline-block;
+}
+
+@keyframes aurora {
+    to {
+        background-position: 200% center;
+    }
+}
+
 .hero-desc {
     font-size: 1.125rem;
     color: var(--text-secondary);
