@@ -114,6 +114,10 @@
           "id": "git-ai.actions",
           "name": "%view.actions.name%",
           "type": "webview"
+        },
+        {
+          "id": "git-ai.history",
+          "name": "%view.history.name%"
         }
       ]
     },

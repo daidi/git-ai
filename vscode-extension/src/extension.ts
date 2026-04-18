@@ -5,6 +5,7 @@ import { CommandManager } from './commands';
 import { LogViewer } from './logViewer';
 import { StatusTreeProvider } from './statusTree';
 import { ActionsWebviewProvider } from './actionsWebview';
+import { HistoryTreeProvider } from './historyTree';
 import { SettingsPanel } from './settingsPanel';
 import { checkAndPromptInstall, autoInitialize } from './installer';
 import { checkForCliUpdate } from './updateChecker';
@@ -37,6 +38,10 @@ export function activate(context: vscode.ExtensionContext) {
     const statusTreeProvider = new StatusTreeProvider();
     vscode.window.registerTreeDataProvider('git-ai.status', statusTreeProvider);
 
+    // Register tree view for AI History.
+    const historyTreeProvider = new HistoryTreeProvider(workspaceRoot);
+    vscode.window.registerTreeDataProvider('git-ai.history', historyTreeProvider);
+
     // Register webview provider for actions panel.
     const actionsProvider = new ActionsWebviewProvider(context.extensionUri, workspaceRoot);
     context.subscriptions.push(
@@ -61,11 +66,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('git-ai.clean', () => commands.clean()),
     );
 
-    // Listen for state changes.
+    let isPolishing = false;
     stateWatcher.onStateChange((state) => {
         statusBar!.update(state);
         statusTreeProvider.update(state);
         actionsProvider.updateState(state);
+
+        // Refresh history tree after a polish or push completes
+        if (isPolishing && state.current_status === 'idle') {
+            historyTreeProvider.refresh();
+        }
+        isPolishing = state.current_status === 'polishing';
     });
 
     // Start watching.

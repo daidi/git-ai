@@ -19,5 +19,6 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "Status",
   "view.actions.name": "Actions",
+  "view.history.name": "AI History",
   "config.title": "Git AI"
 }

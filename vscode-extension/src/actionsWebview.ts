@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { GitAiState } from './stateWatcher';
 import { t } from './i18n';
+import * as cp from 'child_process';
+import * as path from 'path';
 
 /**
  * Webview provider for the git-ai actions panel in the sidebar.
@@ -9,11 +11,14 @@ import { t } from './i18n';
 export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     private webviewView: vscode.WebviewView | undefined;
     private state: GitAiState = { current_status: 'idle' };
+    private stats: any = null;
 
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly workspaceRoot: string,
-    ) {}
+    ) {
+        this.fetchStats();
+    }
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -62,8 +67,31 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
      * Update the webview with the latest state.
      */
     updateState(state: GitAiState): void {
+        const wasPolishing = this.state.current_status === 'polishing';
         this.state = state;
-        this.renderHtml();
+        
+        // Refresh stats if a commit just finished
+        if (wasPolishing && state.current_status === 'idle') {
+            this.fetchStats();
+        } else {
+            this.renderHtml();
+        }
+    }
+
+    private fetchStats(): void {
+        const config = vscode.workspace.getConfiguration('git-ai');
+        const binaryPath = config.get<string>('binaryPath') || 'git-ai';
+
+        cp.execFile(binaryPath, ['stats', '--json'], { cwd: this.workspaceRoot }, (error, stdout) => {
+            if (!error && stdout) {
+                try {
+                    this.stats = JSON.parse(stdout);
+                } catch (e) {
+                    // Ignore parsing errors
+                }
+            }
+            this.renderHtml();
+        });
     }
 
     private renderHtml(): void {
@@ -211,6 +239,8 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
         <button onclick="send('init')"><i class="codicon codicon-tools"></i> ${t('actions.btn.reinit')}</button>
     </div>
 
+    ${this.getStatsHtml()}
+
     <script>
         const vscode = acquireVsCodeApi();
         function send(cmd) { vscode.postMessage({ command: cmd }); }
@@ -221,5 +251,42 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
     private escapeHtml(s: string): string {
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    private getStatsHtml(): string {
+        if (!this.stats || !this.stats.records || this.stats.records.length === 0) {
+            return '';
+        }
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        let totalCommits = 0;
+        let totalTimeSavedS = 0;
+        
+        for (const r of this.stats.records) {
+            if (new Date(r.timestamp) > thirtyDaysAgo) {
+                totalCommits++;
+                totalTimeSavedS += r.estimated_time_saved_s || 120;
+            }
+        }
+
+        const hoursSaved = (totalTimeSavedS / 3600).toFixed(1);
+
+        return /* html */ `
+            <div class="divider"></div>
+            <div class="section-title"><i class="codicon codicon-graph"></i> Productivity (Last 30 Days)</div>
+            <div style="background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 10px; margin-bottom: 12px; text-align: center;">
+                <div style="font-size: 24px; font-weight: 600; color: var(--vscode-textLink-foreground); margin-bottom: 4px;">\${hoursSaved}h</div>
+                <div style="font-size: 11px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 0.5px;">Estimated Time Saved</div>
+                
+                <div style="display: flex; justify-content: space-around; margin-top: 12px; border-top: 1px solid var(--vscode-panel-border); padding-top: 8px;">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600;">\${totalCommits}</div>
+                        <div style="font-size: 10px; color: var(--vscode-descriptionForeground);">Commits AI-Polished</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 }
