@@ -189,4 +189,20 @@ export class StateWatcher {
             // Ignore fs errors
         }
     }
+
+    /**
+     * Update and save the state to state.json.
+     */
+    saveState(newState: GitAiState): void {
+        try {
+            const dir = path.dirname(this.statePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(this.statePath, JSON.stringify(newState, null, 2), 'utf-8');
+            this.emitIfChanged(newState);
+        } catch {
+            // Ignore write errors.
+        }
+    }
 }
