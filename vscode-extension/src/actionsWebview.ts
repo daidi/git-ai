@@ -57,6 +57,9 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
                 case 'openConfig':
                     vscode.commands.executeCommand('git-ai.openConfig');
                     break;
+                case 'clean':
+                    vscode.commands.executeCommand('git-ai.clean');
+                    break;
             }
         });
 
@@ -234,6 +237,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     <div class="section-title">${t('actions.section.tools')}</div>
     <div class="btn-grid">
         <button onclick="send('skipNext')"><i class="codicon codicon-stop-circle"></i> ${t('actions.btn.skipNext')}</button>
+        <button onclick="send('clean')"><i class="codicon codicon-trash"></i> ${t('actions.btn.clean')}</button>
         <button onclick="send('showLogs')"><i class="codicon codicon-output"></i> ${t('actions.btn.showLogs')}</button>
         <button onclick="send('openConfig')"><i class="codicon codicon-settings-gear"></i> ${t('actions.btn.config')}</button>
         <button onclick="send('init')"><i class="codicon codicon-tools"></i> ${t('actions.btn.reinit')}</button>

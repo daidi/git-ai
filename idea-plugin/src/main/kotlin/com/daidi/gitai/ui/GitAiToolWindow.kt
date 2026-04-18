@@ -3,6 +3,7 @@ package com.daidi.gitai.ui
 import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiState
 import com.daidi.gitai.state.GitAiStateService
+import com.daidi.gitai.state.GitAiCli
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.intellij.icons.AllIcons
@@ -91,9 +92,35 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
             com.daidi.gitai.actions.ForcePushAction.execute(project)
         })
 
+        // Tools section
+        val toolsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0))
+        toolsPanel.add(createButton(GitAiBundle.message("action.GitAi.SkipNextCommit.text"), AllIcons.Actions.Suspend) {
+            val stateService = project.service<GitAiStateService>()
+            val newState = stateService.state.copy(skipNext = true)
+            Thread { stateService.saveState(newState) }.start()
+        })
+        toolsPanel.add(createButton(GitAiBundle.message("action.clean.title"), AllIcons.Actions.GC) {
+            com.daidi.gitai.actions.CleanCommitsAction.execute(project)
+        })
+        toolsPanel.add(createButton(GitAiBundle.message("action.GitAi.OpenConfig.text"), AllIcons.General.Settings) {
+            com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, "com.daidi.gitai.settings")
+        })
+        toolsPanel.add(createButton(GitAiBundle.message("action.GitAi.Init.text"), AllIcons.General.GearPlain) {
+            val result = GitAiCli.run(project, "init")
+            if (result.success) {
+                Messages.showInfoMessage(project, GitAiBundle.message("action.init.success", result.stdout), GitAiBundle.message("notification.title"))
+            } else {
+                Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", result.stderr), GitAiBundle.message("notification.title"))
+            }
+        })
+
+        val bottomWrap = JPanel(BorderLayout())
+        bottomWrap.add(actionsPanel, BorderLayout.NORTH)
+        bottomWrap.add(toolsPanel, BorderLayout.SOUTH)
+
         component.add(statusPanel, BorderLayout.NORTH)
         component.add(infoPanel, BorderLayout.CENTER)
-        component.add(actionsPanel, BorderLayout.SOUTH)
+        component.add(bottomWrap, BorderLayout.SOUTH)
 
         val stateService = project.service<GitAiStateService>()
         stateService.addListener { state -> updateUI(state) }
