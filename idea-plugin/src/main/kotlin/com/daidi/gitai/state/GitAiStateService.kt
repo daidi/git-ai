@@ -171,6 +171,7 @@ class GitAiStateService(private val project: Project) : Disposable {
         // Show IDE notifications for important transitions.
         if (prevStatus == "polishing" && newState.isIdle) {
             showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
+            checkForUpdatesInLog()
         }
         if (prevStatus == "pushing" && newState.isIdle) {
             showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
@@ -182,6 +183,47 @@ class GitAiStateService(private val project: Project) : Disposable {
             .getNotificationGroup("git-ai.notifications")
             .createNotification(GitAiBundle.message("notification.title"), content, type)
             .notify(project)
+    }
+    
+    private fun checkForUpdatesInLog() {
+        try {
+            val logDir = getLogDir() ?: return
+            val dir = File(logDir)
+            if (!dir.exists() || !dir.isDirectory) return
+
+            val latestLog = dir.listFiles()
+                ?.filter { it.name.endsWith(".log") }
+                ?.maxByOrNull { it.name }
+                ?: return
+
+            val content = latestLog.readText().replace(Regex("""\x1b\[[0-9;]*m"""), "")
+            val match = Regex("""Update available for git-ai: (v[\d\.]+) → (v[\d\.]+)""").find(content)
+            
+            if (match != null) {
+                val currentVersion = match.groupValues[1]
+                val latestVersion = match.groupValues[2]
+                
+                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                    val notification = NotificationGroupManager.getInstance()
+                        .getNotificationGroup("git-ai.notifications")
+                        .createNotification(
+                            GitAiBundle.message("notification.title"),
+                            GitAiBundle.message("notification.updateAvailable", currentVersion, latestVersion),
+                            NotificationType.INFORMATION
+                        )
+                    notification.addAction(com.intellij.notification.NotificationAction.createSimple(GitAiBundle.message("notification.updateNow")) {
+                        notification.expire()
+                        com.daidi.gitai.state.GitAiInstaller.installCli(project)
+                    })
+                    notification.addAction(com.intellij.notification.NotificationAction.createSimple(GitAiBundle.message("notification.updateDismiss")) {
+                        notification.expire()
+                    })
+                    notification.notify(project)
+                }
+            }
+        } catch (e: Exception) {
+            log.debug("Failed to check for updates in log", e)
+        }
     }
 
     override fun dispose() {
