@@ -80,6 +80,10 @@
                     class="com.daidi.gitai.actions.SkipNextCommitAction"
                     icon="AllIcons.Actions.Suspend"/>
 
+            <action id="GitAi.CleanCommits"
+                    class="com.daidi.gitai.actions.CleanCommitsAction"
+                    icon="AllIcons.Actions.GC"/>
+
 
             <action id="GitAi.Retry"
                     class="com.daidi.gitai.actions.RetryAction"

@@ -7,6 +7,7 @@
   "command.showLogs": "查看日志",
   "command.openConfig": "前往配置页面",
   "command.uninstall": "卸载 Git Hooks",
+  "command.clean": "清理卡住的历史提交",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",
   "config.pollingInterval": "状态文件轮询间隔（毫秒）",

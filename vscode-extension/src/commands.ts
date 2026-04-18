@@ -11,6 +11,40 @@ import { t } from './i18n';
  * Manages all git-ai commands callable from the command palette.
  */
 export class CommandManager {
+	/**
+	 * Clean stuck loading prefixes from historical commits.
+	 */
+	async clean(force: boolean = false): Promise<void> {
+		const args = ['clean'];
+		if (force) {
+			args.push('--force');
+		}
+
+		await vscode.window.withProgress(
+			{ location: vscode.ProgressLocation.Notification, title: t('cmd.clean.progress') },
+			async () => {
+				const result = await this.runGitAi(args);
+				if (result.success) {
+					notifyInfo(t('cmd.clean.success', result.output));
+				} else {
+					if (result.error.includes("ERR_PUSHED_COMMITS")) {
+						// Warning: pushed commits detected
+						const confirm = await vscode.window.showWarningMessage(
+							t('cmd.clean.pushedWarning'),
+							t('cmd.clean.forceYes'), t('cmd.clean.cancel')
+						);
+						if (confirm === t('cmd.clean.forceYes')) {
+							// Try again with force
+							await this.clean(true);
+						}
+					} else {
+						notifyError(t('cmd.clean.failed', result.error || result.output));
+					}
+				}
+			}
+		);
+	}
+
     constructor(
         private workspaceRoot: string,
         private logViewer: LogViewer,

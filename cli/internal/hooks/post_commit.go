@@ -27,6 +27,17 @@ func RunPostCommit(isDaemon bool) error {
 		return nil
 	}
 
+	// Guard: skip if we are in the middle of a rebase, merge, or other special state.
+	// We don't want to asynchronously amend commits while Git is manipulating history.
+	if git.IsRebaseOrMergeInProgress() {
+		return nil
+	}
+
+	// Guard: skip if this commit is a merge commit (has multiple parents).
+	if isMerge, err := git.IsMergeCommit(); err == nil && isMerge {
+		return nil
+	}
+
 	gitDir, err := git.GetGitDir()
 	if err != nil {
 		return fmt.Errorf("not in a git repo: %w", err)

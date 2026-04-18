@@ -195,6 +195,37 @@ func CanPushSilently(remote string) (bool, string) {
 	return true, ""
 }
 
+// IsMergeCommit checks if HEAD is a merge commit (has more than one parent).
+func IsMergeCommit() (bool, error) {
+	out, err := runGit("show", "-s", "--format=%P", "HEAD")
+	if err != nil {
+		return false, err
+	}
+	return strings.Contains(strings.TrimSpace(out), " "), nil
+}
+
+// IsRebaseOrMergeInProgress checks if a rebase, merge, cherry-pick, revert, or bisect is in progress.
+func IsRebaseOrMergeInProgress() bool {
+	gitDir, err := GetGitDir()
+	if err != nil {
+		return false
+	}
+	paths := []string{
+		"rebase-merge",
+		"rebase-apply",
+		"CHERRY_PICK_HEAD",
+		"REVERT_HEAD",
+		"BISECT_LOG",
+		"MERGE_HEAD",
+	}
+	for _, p := range paths {
+		if _, err := os.Stat(filepath.Join(gitDir, p)); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // runGit executes a git command and returns its stdout.
 func runGit(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)

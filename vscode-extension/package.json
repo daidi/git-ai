@@ -79,6 +79,11 @@
         "command": "git-ai.skipNextCommit",
         "title": "%command.skipNextCommit%",
         "category": "%category.gitai%"
+      },
+      {
+        "command": "git-ai.clean",
+        "title": "%command.clean%",
+        "category": "%category.gitai%"
       }
     ],
     "icons": {
@@ -173,6 +178,10 @@
         },
         {
           "command": "git-ai.skipNextCommit",
+          "group": "1_actions"
+        },
+        {
+          "command": "git-ai.clean",
           "group": "1_actions"
         },
         {

@@ -9,6 +9,7 @@
   "command.showLogs": "Show Logs",
   "command.openConfig": "Open Configuration",
   "command.uninstall": "Uninstall Hooks",
+  "command.clean": "Clean Stuck Commits",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",
   "config.pollingInterval": "State file polling interval in milliseconds",
