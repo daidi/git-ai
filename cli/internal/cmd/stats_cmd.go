@@ -79,7 +79,7 @@ var statsCmd = &cobra.Command{
 		if bestModel != "" {
 			fmt.Printf("Most Used Model:        %s (%d uses)\n", bestModel, maxCount)
 		}
-		
+
 		return nil
 	},
 }

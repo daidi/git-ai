@@ -11,13 +11,13 @@ import (
 
 // Record represents a single item in the telemetry log.
 type Record struct {
-	Timestamp            string `json:"timestamp"`
-	Repo                 string `json:"repo"`
-	Model                string `json:"model"`
-	TimeWaitedMs         int64  `json:"time_waited_ms"`
-	OriginalMsgLen       int    `json:"original_msg_len"`
-	NewMsgLen            int    `json:"new_msg_len"`
-	EstimatedTimeSavedS  int    `json:"estimated_time_saved_s"`
+	Timestamp           string `json:"timestamp"`
+	Repo                string `json:"repo"`
+	Model               string `json:"model"`
+	TimeWaitedMs        int64  `json:"time_waited_ms"`
+	OriginalMsgLen      int    `json:"original_msg_len"`
+	NewMsgLen           int    `json:"new_msg_len"`
+	EstimatedTimeSavedS int    `json:"estimated_time_saved_s"`
 }
 
 // Stats holds the in-memory/serializable representation of all records.
@@ -72,7 +72,7 @@ func Load() (*Stats, error) {
 			return nil, err
 		}
 	}
-	
+
 	if stats.Records == nil {
 		stats.Records = make([]Record, 0)
 	}
@@ -94,7 +94,7 @@ func SaveRecord(r Record) error {
 	if r.Timestamp == "" {
 		r.Timestamp = time.Now().Format(time.RFC3339)
 	}
-	
+
 	// Assume 2 minutes average time saved per commit logic matching plan
 	if r.EstimatedTimeSavedS == 0 {
 		r.EstimatedTimeSavedS = 120
