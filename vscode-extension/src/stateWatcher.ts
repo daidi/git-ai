@@ -140,6 +140,7 @@ export class StateWatcher {
         // Show VS Code notifications for important transitions.
         if (prevStatus === 'polishing' && newState.current_status === 'idle') {
             notifyInfo(t('notification.polished'));
+            this.checkForUpdatesInLog();
         }
         if (prevStatus === 'pushing' && newState.current_status === 'idle') {
             notifyInfo(t('notification.pushCompleted'));
@@ -147,18 +148,45 @@ export class StateWatcher {
     }
 
     /**
-     * Update and save the state to state.json.
+     * Scan the latest daemon.log for an update notice safely without HTTP overhead.
      */
-    saveState(newState: GitAiState): void {
+    private checkForUpdatesInLog(): void {
         try {
-            const dir = path.dirname(this.statePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
+            const logDir = path.join(this.workspaceRoot, '.git', 'git-ai', 'logs');
+            if (!fs.existsSync(logDir)) return;
+
+            const files = fs.readdirSync(logDir)
+                .filter(f => f.endsWith('.log'))
+                .sort()
+                .reverse();
+            
+            if (files.length === 0) return;
+
+            const latestLog = path.join(logDir, files[0]);
+            let content = fs.readFileSync(latestLog, 'utf-8');
+            
+            // Strip ANSI codes
+            content = content.replace(/\x1b\[[0-9;]*m/g, '');
+
+            const updateMatch = content.match(/Update available for git-ai: (v[\d\.]+) → (v[\d\.]+)/);
+            if (updateMatch) {
+                const current = updateMatch[1];
+                const latest = updateMatch[2];
+                
+                vscode.window.showInformationMessage(
+                    t('notification.updateAvailable', current, latest),
+                    t('notification.updateNow'),
+                    t('notification.updateDismiss')
+                ).then(async selection => {
+                    if (selection === t('notification.updateNow')) {
+                        // Dynamically import to avoid circular dependencies if any
+                        const { installCliUpdate } = await import('./installer');
+                        await installCliUpdate();
+                    }
+                });
             }
-            fs.writeFileSync(this.statePath, JSON.stringify(newState, null, 2), 'utf-8');
-            this.emitIfChanged(newState);
         } catch {
-            // Ignore write errors.
+            // Ignore fs errors
         }
     }
 }

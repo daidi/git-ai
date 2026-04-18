@@ -42,7 +42,7 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<CommitItem> 
             const config = vscode.workspace.getConfiguration('git-ai');
             const binaryPath = config.get<string>('binaryPath') || 'git-ai';
 
-            cp.execFile(binaryPath, ['log', '--json'], { cwd: this.workspaceRoot }, (error, stdout) => {
+            cp.execFile(binaryPath, ['log'], { cwd: this.workspaceRoot }, (error, stdout) => {
                 if (error) {
                     resolve([new CommitItem("Error loading history", "", false)]);
                     return;
