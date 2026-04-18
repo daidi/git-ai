@@ -139,6 +139,14 @@ func Amend(msg string) error {
 	return cmd.Run()
 }
 
+// AddNotes adds or overwrites git notes for a specific commit.
+func AddNotes(sha string, noteMsg string) error {
+	cmd := exec.Command("git", "notes", "--ref=git-ai", "add", "-f", "-m", noteMsg, sha)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // Push pushes to the specified remote. Sets GIT_AI_INTERNAL=true.
 func Push(remote string, refSpecs []string) error {
 	args := []string{"push", remote}

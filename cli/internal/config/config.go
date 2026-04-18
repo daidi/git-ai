@@ -4,8 +4,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 // Config holds all git-ai configuration values.
@@ -40,7 +42,7 @@ func Defaults() *Config {
 		Language:      "en",
 		PushPolicy:    "queue",
 		MessageFormat: "conventional",
-		MaxDiffTokens: 2000,
+		MaxDiffTokens: 8000,
 		LogLevel:      "info",
 		CheckUpdate:   &tru,
 	}
@@ -138,6 +140,12 @@ func Set(path, key, value string) error {
 		cfg.PromptTemplate = value
 	case "log_level":
 		cfg.LogLevel = value
+	case "max_diff_tokens":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			cfg.MaxDiffTokens = v
+		} else {
+			return fmt.Errorf("invalid max_diff_tokens value: %s", value)
+		}
 	case "check_update":
 		b := value == "true"
 		cfg.CheckUpdate = &b
@@ -173,6 +181,8 @@ func Get(cfg *Config, key string) (string, error) {
 		return cfg.PromptTemplate, nil
 	case "log_level":
 		return cfg.LogLevel, nil
+	case "max_diff_tokens":
+		return strconv.Itoa(cfg.MaxDiffTokens), nil
 	case "check_update":
 		if cfg.CheckUpdate != nil && *cfg.CheckUpdate {
 			return "true", nil
@@ -193,7 +203,7 @@ func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider",
 		"language", "ui_language", "push_policy", "message_format", "prompt_template",
-		"log_level", "check_update", "explain",
+		"max_diff_tokens", "log_level", "check_update", "explain",
 	}
 }
 
@@ -271,6 +281,11 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("GIT_AI_LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
+	}
+	if v := os.Getenv("GIT_AI_MAX_DIFF_TOKENS"); v != "" {
+		if iv, err := strconv.Atoi(v); err == nil && iv > 0 {
+			cfg.MaxDiffTokens = iv
+		}
 	}
 	if v := os.Getenv("GIT_AI_EXPLAIN"); v == "true" {
 		cfg.Explain = true

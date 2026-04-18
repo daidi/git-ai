@@ -16,6 +16,7 @@ import (
 	"github.com/daidi/git-ai/internal/i18n"
 	"github.com/daidi/git-ai/internal/notify"
 	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/internal/telemetry"
 )
 
 // RunPostCommit is called by the post-commit hook.
@@ -125,7 +126,7 @@ func runDaemon(mgr *state.Manager) error {
 	}
 
 	// Amend the commit with polished message.
-	if err := applyPolishedMessage(mgr, logger, origMsg, polished); err != nil {
+	if err := applyPolishedMessage(mgr, logger, origMsg, polished, cfg, startTime, repoRoot); err != nil {
 		return err
 	}
 
@@ -205,7 +206,7 @@ func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sh
 	return polished, nil
 }
 
-func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polished string) error {
+func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polished string, cfg *config.Config, startTime time.Time, repoRoot string) error {
 	logger.Printf("polished message: %q", polished)
 
 	if err := git.Amend(polished); err != nil {
@@ -219,6 +220,35 @@ func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polis
 		}
 		_ = mgr.Reset()
 		return err
+	}
+
+	// Calculate telemetry metrics
+	timeTaken := time.Since(startTime)
+
+	// Add JSON git note
+	noteJSON := fmt.Sprintf(`{"model":%q, "generation_time_ms":%d, "original_message":%q, "estimated_time_saved_s":120}`,
+		cfg.Model, timeTaken.Milliseconds(), origMsg)
+
+	// We need HEAD's new SHA to add the note, since Amend changed it
+	newSha, _ := git.GetLastCommitSHA()
+	if newSha != "" {
+		if err := git.AddNotes(newSha, noteJSON); err != nil {
+			logger.Printf("warning: failed to add git note: %v", err)
+		} else {
+			logger.Printf("added git note with telemetry")
+		}
+	}
+
+	record := telemetry.Record{
+		Repo:                repoRoot,
+		Model:               cfg.Model,
+		TimeWaitedMs:        timeTaken.Milliseconds(),
+		OriginalMsgLen:      len(origMsg),
+		NewMsgLen:           len(polished),
+		EstimatedTimeSavedS: 120,
+	}
+	if err := telemetry.SaveRecord(record); err != nil {
+		logger.Printf("warning: failed to save telemetry: %v", err)
 	}
 
 	notify.Send("Git AI", i18n.Sprintf("hook.polished", truncate(polished, 60)))

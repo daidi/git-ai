@@ -159,7 +159,7 @@ PromptsReady:
 // TrimDiff implements 3-tier diff trimming to stay within the token budget.
 func TrimDiff(rawDiff string, maxTokens int) string {
 	if maxTokens <= 0 {
-		maxTokens = 2000
+		maxTokens = 8000
 	}
 
 	estimatedTokens := len(rawDiff) / 4
