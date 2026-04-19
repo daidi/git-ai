@@ -281,12 +281,12 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
             <div class="divider"></div>
             <div class="section-title"><i class="codicon codicon-graph"></i> Productivity (Last 30 Days)</div>
             <div style="background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 10px; margin-bottom: 12px; text-align: center;">
-                <div style="font-size: 24px; font-weight: 600; color: var(--vscode-textLink-foreground); margin-bottom: 4px;">\${hoursSaved}h</div>
+                <div style="font-size: 24px; font-weight: 600; color: var(--vscode-textLink-foreground); margin-bottom: 4px;">${hoursSaved}h</div>
                 <div style="font-size: 11px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 0.5px;">Estimated Time Saved</div>
                 
                 <div style="display: flex; justify-content: space-around; margin-top: 12px; border-top: 1px solid var(--vscode-panel-border); padding-top: 8px;">
                     <div>
-                        <div style="font-size: 14px; font-weight: 600;">\${totalCommits}</div>
+                        <div style="font-size: 14px; font-weight: 600;">${totalCommits}</div>
                         <div style="font-size: 10px; color: var(--vscode-descriptionForeground);">Commits AI-Polished</div>
                     </div>
                 </div>
