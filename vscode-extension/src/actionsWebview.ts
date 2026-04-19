@@ -277,17 +277,51 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
         const hoursSaved = (totalTimeSavedS / 3600).toFixed(1);
 
+        const titleText = t('stats.title');
+        const timeSavedText = t('stats.timeSaved');
+        const commitsHtml = t('stats.commitsPolished', `<strong style="font-size: 14px; color: inherit;">${totalCommits}</strong>`);
+
         return /* html */ `
             <div class="divider"></div>
-            <div class="section-title"><i class="codicon codicon-graph"></i> Productivity (Last 30 Days)</div>
-            <div style="background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 10px; margin-bottom: 12px; text-align: center;">
-                <div style="font-size: 24px; font-weight: 600; color: var(--vscode-textLink-foreground); margin-bottom: 4px;">${hoursSaved}h</div>
-                <div style="font-size: 11px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 0.5px;">Estimated Time Saved</div>
+            <div class="section-title" style="display:flex; align-items:center; gap:6px; margin-bottom: 10px;">
+                <i class="codicon codicon-graph" style="color: var(--vscode-charts-purple);"></i> ${titleText}
+            </div>
+            <div style="
+                background: linear-gradient(145deg, var(--vscode-editor-background), var(--vscode-sideBar-background));
+                border: 1px solid var(--vscode-panel-border); 
+                border-radius: 8px; 
+                padding: 16px; 
+                margin-bottom: 12px; 
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transition: transform 0.2s, box-shadow 0.2s;
+                cursor: default;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
                 
-                <div style="display: flex; justify-content: space-around; margin-top: 12px; border-top: 1px solid var(--vscode-panel-border); padding-top: 8px;">
-                    <div>
-                        <div style="font-size: 14px; font-weight: 600;">${totalCommits}</div>
-                        <div style="font-size: 10px; color: var(--vscode-descriptionForeground);">Commits AI-Polished</div>
+                <div style="
+                    font-size: 32px; 
+                    font-weight: 700; 
+                    background: -webkit-linear-gradient(45deg, var(--vscode-charts-blue), var(--vscode-charts-purple));
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin-bottom: 4px;
+                    text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                ">${hoursSaved}<span style="font-size: 16px; color: var(--vscode-descriptionForeground); -webkit-text-fill-color: initial;">h</span></div>
+                
+                <div style="font-size: 11px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                    ${timeSavedText}
+                </div>
+                
+                <div style="
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center;
+                    margin-top: 16px; 
+                    border-top: 1px dashed var(--vscode-panel-border); 
+                    padding-top: 12px;
+                ">
+                    <div style="font-size: 12px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); padding: 4px 12px; border-radius: 12px; font-weight: 500; display: flex; align-items: center; gap: 4px;">
+                        <i class="codicon codicon-sparkle" style="font-size: 12px;"></i> ${commitsHtml}
                     </div>
                 </div>
             </div>

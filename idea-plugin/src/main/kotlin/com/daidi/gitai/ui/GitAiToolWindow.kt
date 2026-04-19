@@ -238,27 +238,30 @@ data class TelemetryStats(
 
 class GitAiStatsPanel(private val project: Project) : Disposable {
     val component: JPanel = JPanel(BorderLayout(0, 10))
-    private val hoursLabel = JLabel("0.0h", SwingConstants.CENTER).apply {
-        font = font.deriveFont(Font.BOLD, 36f)
+    private val htmlViewer = JEditorPane().apply {
+        contentType = "text/html"
+        isEditable = false
+        isOpaque = false // crucial for inheriting the background theme seamlessly
+        putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+        addHyperlinkListener { e ->
+            if (e.eventType == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
+                com.intellij.ide.BrowserUtil.browse(e.url)
+            }
+        }
     }
-    private val commitsLabel = JLabel("0 Commits", SwingConstants.CENTER)
     private var isPolishing = false
 
     init {
-        component.border = EmptyBorder(20, 20, 20, 20)
+        component.border = com.intellij.util.ui.JBUI.Borders.empty(16)
         
-        val centerPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            hoursLabel.alignmentX = java.awt.Component.CENTER_ALIGNMENT
-            commitsLabel.alignmentX = java.awt.Component.CENTER_ALIGNMENT
-            add(hoursLabel)
-            add(Box.createVerticalStrut(10))
-            add(commitsLabel)
+        val centerPanel = JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(htmlViewer, BorderLayout.CENTER)
         }
         
         component.add(centerPanel, BorderLayout.CENTER)
         
-        val toolbar = JPanel(FlowLayout(FlowLayout.LEFT))
+        val toolbar = JPanel(FlowLayout(FlowLayout.LEFT)).apply { isOpaque = false }
         toolbar.add(JButton(GitAiBundle.message("toolwindow.btn.refresh")).apply {
             addActionListener { refreshData() }
         })
@@ -270,7 +273,42 @@ class GitAiStatsPanel(private val project: Project) : Disposable {
             }
             isPolishing = state.isPolishing
         }
+        renderHtml(0.0, 0)
         refreshData()
+    }
+    
+    private fun renderHtml(hours: Double, count: Int) {
+        val titleText = GitAiBundle.message("stats.title")
+        val hoursSavedText = GitAiBundle.message("stats.hoursSaved")
+        val commitsPolishedText = GitAiBundle.message("stats.commitsPolished", count)
+        
+        // Retrieve dynamic theme colors from UIUtil to seamlessly swap on Dark/Light modes
+        val fgColor = String.format("#%06x", com.intellij.util.ui.UIUtil.getLabelForeground().rgb and 0xFFFFFF)
+        val subColor = String.format("#%06x", com.intellij.util.ui.UIUtil.getContextHelpForeground().rgb and 0xFFFFFF)
+        val accentColor = String.format("#%06x", com.intellij.util.ui.JBUI.CurrentTheme.Link.Foreground.ENABLED.rgb and 0xFFFFFF)
+        
+        htmlViewer.text = """
+            <html>
+            <body style="font-family: ${com.intellij.util.ui.UIUtil.getLabelFont().family}; text-align: center; margin: 0; padding: 20px;">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 24px; color: ' + subColor + ';">$titleText</div>
+                
+                <div style="font-size: 48px; font-weight: bold; color: $accentColor;">
+                    ${String.format("%.1f", hours)}<span style="font-size: 20px; color: $subColor;">h</span>
+                </div>
+                <div style="font-size: 11px; font-weight: bold; margin-top: 8px; color: $subColor; text-transform: uppercase;">
+                    $hoursSavedText
+                </div>
+                
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px; margin-bottom: 20px;">
+                    <tr><td style="border-top: 1px dashed $subColor; height: 1px;"></td></tr>
+                </table>
+                
+                <div style="font-size: 14px; font-weight: bold; color: $fgColor;">
+                    ✨ $commitsPolishedText
+                </div>
+            </body>
+            </html>
+        """.trimIndent()
     }
     
     private fun refreshData() {
@@ -297,8 +335,7 @@ class GitAiStatsPanel(private val project: Project) : Disposable {
                     
                     val hours = totalTime / 3600.0
                     SwingUtilities.invokeLater {
-                        hoursLabel.text = String.format("%.1fh", hours)
-                        commitsLabel.text = "$count Commits AI-Polished"
+                        renderHtml(hours, count)
                     }
                 } catch (_: Exception) {}
             }

@@ -163,6 +163,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'logViewer.expectedAt': '[Git AI] Expected at: {0}',
         'logViewer.noLogs': '[Git AI] No log files found.',
         'logViewer.watching': '[Git AI] Watching: {0}',
+
+        // Stats
+        'stats.title': 'Productivity (Last 30 Days)',
+        'stats.timeSaved': 'Estimated Time Saved',
+        'stats.commitsPolished': '{0} Commits AI-Polished',
     },
     'zh-cn': {
         // Settings Panel
@@ -324,6 +329,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'logViewer.expectedAt': '[Git AI] 预期路径: {0}',
         'logViewer.noLogs': '[Git AI] 没有找到任何日志文件。',
         'logViewer.watching': '[Git AI] 正在监视: {0}',
+    
+        // Stats
+        'stats.title': '生产力核心数据 (近 30 天)',
+        'stats.hoursSaved': '预估节省摸鱼时间',
+        'stats.commitsPolished': '{0} 次 AI 自动润色',
     },
     'zh-tw': {
         'settings.title': 'Git AI 偏好設定', 'settings.subtitle': '配置 AI 提交潤飾行為。專案級設定將覆蓋全域設定。', 'settings.tab.global': '全域', 'settings.tab.project': '目前專案', 'settings.badge.shared': '全域共用', 'settings.badge.override': '專案覆蓋',
@@ -339,7 +349,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI 已初始化！', 'cmd.init.failed': '初始化失敗: {0}', 'cmd.uninstall.success': '🗑️ Hooks 已解除安裝。', 'cmd.uninstall.failed': '解除安裝失敗: {0}', 'cmd.retry.confirm': '重新產生 AI 提交語？', 'cmd.retry.yes': '是', 'cmd.retry.cancel': '取消', 'cmd.retry.progress': 'Git AI: 重試中...', 'cmd.retry.success': '✅ 訊息已重新產生！', 'cmd.retry.failed': '重試失敗: {0}', 'cmd.undo.confirm': '恢復原始 Commit 訊息？', 'cmd.undo.yes': '是', 'cmd.undo.cancel': '取消', 'cmd.undo.success': '⏪ 原始訊息已恢復', 'cmd.undo.failed': '復原失敗: {0}', 'cmd.cancel.noState': 'Git AI: 未找到狀態', 'cmd.cancel.success': '🛑 潤飾已取消', 'cmd.cancel.noPolishing': '目前沒有進行中的潤飾', 'cmd.cancel.failed': '取消失敗: {0}', 'cmd.push.confirm': '強制推播？', 'cmd.push.yes': '是', 'cmd.push.cancel': '取消', 'cmd.push.progress': '推播中...', 'cmd.push.success': '🚀 推播完成！', 'cmd.push.failed': '推播失敗: {0}', 'cmd.test.progress': '測試中...', 'cmd.test.success': '✅ 測試成功！\n\n{0}', 'cmd.test.failed': '❌ 測試失敗：\n\n{0}\n{1}',
         'notification.polished': '✨ Git AI: Commit Message 已潤飾！', 'notification.pushCompleted': '🚀 Git AI: 推播完成！', 'notification.updateAvailable': '🆕 Git AI CLI 有新版本: v{0} → v{1}', 'notification.updateNow': '立即更新', 'notification.updateDismiss': '稍後',
         'installer.missing': 'Git AI CLI 遺失。', 'installer.download': '下載並安裝', 'installer.homebrew': 'Homebrew 安裝', 'installer.go': 'Go 安裝', 'installer.cancel': '取消', 'installer.skipped': 'CLI 安裝略過。', 'installer.progress': '安裝中...', 'installer.success': '✨ CLI 安裝成功！', 'installer.failed': '安裝失敗: {0}', 'installer.prompt': '尚未初始化 Git AI。是否啟用？', 'installer.enable': '啟用', 'installer.notNow': '稍後',
-        'info.commit': 'Commit:', 'info.original': '原始訊息:'
+        'info.commit': 'Commit:', 'info.original': '原始訊息:',
+        // Stats
+        'stats.title': '生產力統計 (近 30 天)',
+        'stats.hoursSaved': '預估節省時間',
+        'stats.commitsPolished': '{0} 次 AI 自動潤飾',
     },
     'fr': {
         'settings.title': 'Paramètres Git AI', 'settings.subtitle': 'Configurer l\'IA de commit. Projet annule Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projet', 'settings.badge.shared': 'partagé', 'settings.badge.override': 'écraser',
@@ -355,7 +369,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI initialisé !', 'cmd.init.failed': 'Erreur initialisation: {0}', 'cmd.uninstall.success': '🗑️ Hooks supprimés.', 'cmd.uninstall.failed': 'Erreur désinstallation: {0}', 'cmd.retry.confirm': 'Régénérer le message IA ?', 'cmd.retry.yes': 'Oui', 'cmd.retry.cancel': 'Annuler', 'cmd.retry.progress': 'Réessai...', 'cmd.retry.success': '✅ Message régénéré', 'cmd.retry.failed': 'Échec: {0}', 'cmd.undo.confirm': 'Restaurer le message original ?', 'cmd.undo.yes': 'Oui', 'cmd.undo.cancel': 'Annuler', 'cmd.undo.success': '⏪ Restauré', 'cmd.undo.failed': 'Échec: {0}', 'cmd.cancel.noState': 'Aucun statut actif', 'cmd.cancel.success': '🛑 Polissage annulé', 'cmd.cancel.noPolishing': 'Aucun polissage en cours', 'cmd.cancel.failed': 'Échec: {0}', 'cmd.push.confirm': 'Forcer le Push ?', 'cmd.push.yes': 'Oui', 'cmd.push.cancel': 'Annuler', 'cmd.push.progress': 'Push...', 'cmd.push.success': '🚀 Push terminé !', 'cmd.push.failed': 'Échec: {0}', 'cmd.test.progress': 'Test en cours...', 'cmd.test.success': '✅ Succès de l\'IA !\n\n{0}', 'cmd.test.failed': '❌ Échec:\n\n{0}\n{1}',
         'notification.polished': '✨ Message de commit poli !', 'notification.pushCompleted': '🚀 Push terminé !', 'notification.updateAvailable': '🆕 Mise à jour Git AI CLI disponible : v{0} → v{1}', 'notification.updateNow': 'Mettre à jour', 'notification.updateDismiss': 'Plus tard',
         'installer.missing': 'Git AI CLI introuvable.', 'installer.download': 'Télécharger', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Annuler', 'installer.skipped': 'Installation ignorée.', 'installer.progress': 'Installation...', 'installer.success': '✨ CLI installée !', 'installer.failed': 'Échec: {0}', 'installer.prompt': 'Git AI n\'est pas initialisé. Activer ?', 'installer.enable': 'Activer', 'installer.notNow': 'Plus tard',
-        'info.commit': 'Commit:', 'info.original': 'Original:'
+        'info.commit': 'Commit:', 'info.original': 'Original:',
+        // Stats
+        'stats.title': 'Productivité (30 derniers jours)',
+        'stats.hoursSaved': 'Temps estimé gagné',
+        'stats.commitsPolished': '{0} Commits polis par l\'IA',
     },
     'it': {
         'settings.title': 'Impostazioni Git AI', 'settings.subtitle': 'Configura l\'IA per i commit.', 'settings.tab.global': 'Globale', 'settings.tab.project': 'Progetto', 'settings.badge.shared': 'condiviso', 'settings.badge.override': 'locale',
@@ -371,7 +389,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI pronto!', 'cmd.init.failed': 'Errore: {0}', 'cmd.uninstall.success': '🗑️ Hooks rimossi.', 'cmd.uninstall.failed': 'Errore: {0}', 'cmd.retry.confirm': 'Rigenerare il messaggio?', 'cmd.retry.yes': 'Sì', 'cmd.retry.cancel': 'Annulla', 'cmd.retry.progress': 'In corso...', 'cmd.retry.success': '✅ Rigenerato', 'cmd.retry.failed': 'Fallito: {0}', 'cmd.undo.confirm': 'Ripristinare l\'originale?', 'cmd.undo.yes': 'Sì', 'cmd.undo.cancel': 'No', 'cmd.undo.success': '⏪ Originale', 'cmd.undo.failed': 'Fallito: {0}', 'cmd.cancel.noState': 'Nessun processo attivo', 'cmd.cancel.success': '🛑 Annullato', 'cmd.cancel.noPolishing': 'Libero', 'cmd.cancel.failed': 'Errore: {0}', 'cmd.push.confirm': 'Forzare Push?', 'cmd.push.yes': 'Sì', 'cmd.push.cancel': 'No', 'cmd.push.progress': 'Push...', 'cmd.push.success': '🚀 Completato', 'cmd.push.failed': 'Errore: {0}', 'cmd.test.progress': 'Test...', 'cmd.test.success': '✅ OK!\n\n{0}', 'cmd.test.failed': '❌ Errore:\n\n{0}\n{1}',
         'notification.polished': '✨ Commit lucidato!', 'notification.pushCompleted': '🚀 Push OK!', 'notification.updateAvailable': '🆕 Aggiornamento Git AI CLI disponibile: v{0} → v{1}', 'notification.updateNow': 'Aggiorna ora', 'notification.updateDismiss': 'Dopo',
         'installer.missing': 'CLI non trovata.', 'installer.download': 'Scarica', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Annulla', 'installer.skipped': 'Ignorato.', 'installer.progress': 'Installazione...', 'installer.success': '✨ CLI OK!', 'installer.failed': 'Errore: {0}', 'installer.prompt': 'Inizializzare Git AI?', 'installer.enable': 'Abilita', 'installer.notNow': 'Dopo',
-        'info.commit': 'Commit:', 'info.original': 'Originale:'
+        'info.commit': 'Commit:', 'info.original': 'Originale:',
+        // Stats
+        'stats.title': 'Produttività (Ultimi 30 giorni)',
+        'stats.hoursSaved': 'Tempo stimato risparmiato',
+        'stats.commitsPolished': '{0} Commit migliorati dall\'IA',
     },
     'de': {
         'settings.title': 'Git AI Einstellungen', 'settings.subtitle': 'Projekt überschreibt Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projekt', 'settings.badge.shared': 'geteilt', 'settings.badge.override': 'lokal',
@@ -387,7 +409,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI fertig!', 'cmd.init.failed': 'Fehler: {0}', 'cmd.uninstall.success': '🗑️ Hooks entfernt.', 'cmd.uninstall.failed': 'Fehler: {0}', 'cmd.retry.confirm': 'Nochmals generieren?', 'cmd.retry.yes': 'Ja', 'cmd.retry.cancel': 'Nein', 'cmd.retry.progress': 'Dauert...', 'cmd.retry.success': '✅ Neu generiert', 'cmd.retry.failed': 'Fehler: {0}', 'cmd.undo.confirm': 'Original wiederherstellen?', 'cmd.undo.yes': 'Ja', 'cmd.undo.cancel': 'Nein', 'cmd.undo.success': '⏪ Wiederhergestellt', 'cmd.undo.failed': 'Fehler: {0}', 'cmd.cancel.noState': 'Kein Zustand', 'cmd.cancel.success': '🛑 Abgebrochen', 'cmd.cancel.noPolishing': 'Nichts aktiv', 'cmd.cancel.failed': 'Fehler: {0}', 'cmd.push.confirm': 'Erzwingen?', 'cmd.push.yes': 'Ja', 'cmd.push.cancel': 'Nein', 'cmd.push.progress': 'Pushen...', 'cmd.push.success': '🚀 Push ok!', 'cmd.push.failed': 'Fehler: {0}', 'cmd.test.progress': 'Test...', 'cmd.test.success': '✅ OK!\n\n{0}', 'cmd.test.failed': '❌ Fehler:\n\n{0}\n{1}',
         'notification.polished': '✨ Commit poliert!', 'notification.pushCompleted': '🚀 Push erledigt!', 'notification.updateAvailable': '🆕 Git AI CLI Update verfügbar: v{0} → v{1}', 'notification.updateNow': 'Jetzt aktualisieren', 'notification.updateDismiss': 'Später',
         'installer.missing': 'CLI fehlt.', 'installer.download': 'Herunterladen', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Abbrechen', 'installer.skipped': 'Übersprungen.', 'installer.progress': 'Installation...', 'installer.success': '✨ CLI installiert!', 'installer.failed': 'Fehler: {0}', 'installer.prompt': 'Modul Git AI starten?', 'installer.enable': 'OK', 'installer.notNow': 'Später',
-        'info.commit': 'Commit:', 'info.original': 'Original:'
+        'info.commit': 'Commit:', 'info.original': 'Original:',
+        // Stats
+        'stats.title': 'Produktivität (Letzte 30 Tage)',
+        'stats.hoursSaved': 'Geschätzte gesparte Zeit',
+        'stats.commitsPolished': '{0} KI-polierte Commits',
     },
     'es': {
         'settings.title': 'Ajustes de Git AI', 'settings.subtitle': 'Configurar IA. Proyecto sobrescribe Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Proyecto', 'settings.badge.shared': 'compartido', 'settings.badge.override': 'local',
@@ -403,7 +429,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI listo.', 'cmd.init.failed': 'Error: {0}', 'cmd.uninstall.success': '🗑️ Hooks removidos.', 'cmd.uninstall.failed': 'Error: {0}', 'cmd.retry.confirm': '¿Generar de nuevo?', 'cmd.retry.yes': 'Sí', 'cmd.retry.cancel': 'No', 'cmd.retry.progress': 'Cargando...', 'cmd.retry.success': '✅ Regenerado', 'cmd.retry.failed': 'Fallido: {0}', 'cmd.undo.confirm': '¿Restaurar original?', 'cmd.undo.yes': 'Sí', 'cmd.undo.cancel': 'No', 'cmd.undo.success': '⏪ Original', 'cmd.undo.failed': 'Fallido: {0}', 'cmd.cancel.noState': 'Sin proceso', 'cmd.cancel.success': '🛑 Cancelado', 'cmd.cancel.noPolishing': 'Inactivo', 'cmd.cancel.failed': 'Error: {0}', 'cmd.push.confirm': '¿Forzar Push?', 'cmd.push.yes': 'Sí', 'cmd.push.cancel': 'No', 'cmd.push.progress': 'Push...', 'cmd.push.success': '🚀 Completado', 'cmd.push.failed': 'Error: {0}', 'cmd.test.progress': 'Prueba...', 'cmd.test.success': '✅ ¡Éxito!\n\n{0}', 'cmd.test.failed': '❌ Error:\n\n{0}\n{1}',
         'notification.polished': '✨ Commit mejorado!', 'notification.pushCompleted': '🚀 Push exitoso!', 'notification.updateAvailable': '🆕 Actualización de Git AI CLI disponible: v{0} → v{1}', 'notification.updateNow': 'Actualizar ahora', 'notification.updateDismiss': 'Después',
         'installer.missing': 'CLI no encontrado.', 'installer.download': 'Descargar', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Cancelar', 'installer.skipped': 'Omitido.', 'installer.progress': 'Instalando...', 'installer.success': '✨ CLI instalado!', 'installer.failed': 'Error: {0}', 'installer.prompt': '¿Activar Git AI?', 'installer.enable': 'Activar', 'installer.notNow': 'Mas tarde',
-        'info.commit': 'Commit:', 'info.original': 'Original:'
+        'info.commit': 'Commit:', 'info.original': 'Original:',
+        // Stats
+        'stats.title': 'Productividad (Últimos 30 días)',
+        'stats.hoursSaved': 'Tiempo estimado ahorrado',
+        'stats.commitsPolished': '{0} Commits pulidos por IA',
     },
     'ja': {
         'settings.title': 'Git AI 設定', 'settings.subtitle': 'AIコミットを構成します。プロジェクト設定はグローバルを上書きします。', 'settings.tab.global': 'グローバル', 'settings.tab.project': 'プロジェクト', 'settings.badge.shared': '共有', 'settings.badge.override': '上書き',
@@ -419,7 +449,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Git AI 初期化完了！', 'cmd.init.failed': 'エラー: {0}', 'cmd.uninstall.success': '🗑️ フックを削除しました。', 'cmd.uninstall.failed': 'エラー: {0}', 'cmd.retry.confirm': '再生成しますか？', 'cmd.retry.yes': 'はい', 'cmd.retry.cancel': 'キャンセル', 'cmd.retry.progress': '再試行中...', 'cmd.retry.success': '✅ 再生成しました！', 'cmd.retry.failed': '失敗: {0}', 'cmd.undo.confirm': '元のメッセージに戻しますか？', 'cmd.undo.yes': 'はい', 'cmd.undo.cancel': 'キャンセル', 'cmd.undo.success': '⏪ 復元しました', 'cmd.undo.failed': '失敗: {0}', 'cmd.cancel.noState': 'アクティブな状態がありません', 'cmd.cancel.success': '🛑 キャンセルしました', 'cmd.cancel.noPolishing': '推敲中ではありません', 'cmd.cancel.failed': '失敗: {0}', 'cmd.push.confirm': '強制プッシュしますか？', 'cmd.push.yes': 'はい', 'cmd.push.cancel': 'キャンセル', 'cmd.push.progress': 'プッシュ中...', 'cmd.push.success': '🚀 完了！', 'cmd.push.failed': '失敗: {0}', 'cmd.test.progress': 'テスト中...', 'cmd.test.success': '✅ 成功！\n\n{0}', 'cmd.test.failed': '❌ 失敗：\n\n{0}\n{1}',
         'notification.polished': '✨ メッセージを推敲しました！', 'notification.pushCompleted': '🚀 プッシュ完了！', 'notification.updateAvailable': '🆕 Git AI CLI の更新があります: v{0} → v{1}', 'notification.updateNow': '今すぐ更新', 'notification.updateDismiss': '後で',
         'installer.missing': 'CLIが見つかりません。', 'installer.download': 'ダウンロード', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'キャンセル', 'installer.skipped': 'スキップしました。', 'installer.progress': 'インストール中...', 'installer.success': '✨ インストール成功！', 'installer.failed': '失敗: {0}', 'installer.prompt': 'Git AIを初期化しますか？', 'installer.enable': '有効化', 'installer.notNow': '後で',
-        'info.commit': 'コミット:', 'info.original': '元のメッセージ:'
+        'info.commit': 'コミット:', 'info.original': '元のメッセージ:',
+        // Stats
+        'stats.title': '生産性 (過去30日間)',
+        'stats.hoursSaved': '推定節約時間',
+        'stats.commitsPolished': '{0} 件のAI推敲済みコミット',
     },
     'ko': {
         'settings.title': 'Git AI 설정', 'settings.subtitle': 'AI 커밋 구성을 조정합니다. 프로젝트 설정이 전체 설정을 덮어씁니다.', 'settings.tab.global': '글로벌', 'settings.tab.project': '프로젝트', 'settings.badge.shared': '공유됨', 'settings.badge.override': '덮어쓰기',
@@ -435,7 +469,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 초기화 완료!', 'cmd.init.failed': '초기화 실패: {0}', 'cmd.uninstall.success': '🗑️ 훅 제거 완료.', 'cmd.uninstall.failed': '제거 실패: {0}', 'cmd.retry.confirm': '메시지를 다시 생성하시겠습니까?', 'cmd.retry.yes': '예', 'cmd.retry.cancel': '취소', 'cmd.retry.progress': '시도 중...', 'cmd.retry.success': '✅ 재생성 완료!', 'cmd.retry.failed': '실패: {0}', 'cmd.undo.confirm': '원본으로 되돌리시겠습니까?', 'cmd.undo.yes': '예', 'cmd.undo.cancel': '취소', 'cmd.undo.success': '⏪ 복원 완료', 'cmd.undo.failed': '실패: {0}', 'cmd.cancel.noState': '상태 없음', 'cmd.cancel.success': '🛑 취소 완료', 'cmd.cancel.noPolishing': '윤색 중 아님', 'cmd.cancel.failed': '실패: {0}', 'cmd.push.confirm': '강제 푸시하시겠습니까?', 'cmd.push.yes': '예', 'cmd.push.cancel': '취소', 'cmd.push.progress': '푸시 중...', 'cmd.push.success': '🚀 푸시 완료!', 'cmd.push.failed': '실패: {0}', 'cmd.test.progress': '테스트 중...', 'cmd.test.success': '✅ 성공!\n\n{0}', 'cmd.test.failed': '❌ 실패:\n\n{0}\n{1}',
         'notification.polished': '✨ 메시지 윤색 완료!', 'notification.pushCompleted': '🚀 푸시 완료!', 'notification.updateAvailable': '🆕 Git AI CLI 업데이트 가능: v{0} → v{1}', 'notification.updateNow': '지금 업데이트', 'notification.updateDismiss': '나중에',
         'installer.missing': 'CLI를 찾을 수 없습니다.', 'installer.download': '다운로드', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': '취소', 'installer.skipped': '건너뜀.', 'installer.progress': '설치 중...', 'installer.success': '✨ 설치 성공!', 'installer.failed': '실패: {0}', 'installer.prompt': 'Git AI를 초기화할까요?', 'installer.enable': '활성화', 'installer.notNow': '나중에',
-        'info.commit': '커밋:', 'info.original': '원본:'
+        'info.commit': '커밋:', 'info.original': '원본:',
+        // Stats
+        'stats.title': '생산성 (최근 30일)',
+        'stats.hoursSaved': '예상 절약 시간',
+        'stats.commitsPolished': '{0}개의 AI 윤색 커밋',
     },
     'pt': {
         'settings.title': 'Configurações Git AI', 'settings.subtitle': 'Configurar IA de commit. O Projeto substitui Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projeto', 'settings.badge.shared': 'compartilhado', 'settings.badge.override': 'local',
@@ -451,7 +489,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Pronto!', 'cmd.init.failed': 'Erro: {0}', 'cmd.uninstall.success': '🗑️ Removido.', 'cmd.uninstall.failed': 'Erro: {0}', 'cmd.retry.confirm': 'Regerar?', 'cmd.retry.yes': 'Sim', 'cmd.retry.cancel': 'Não', 'cmd.retry.progress': 'Executando...', 'cmd.retry.success': '✅ Sucesso!', 'cmd.retry.failed': 'Erro: {0}', 'cmd.undo.confirm': 'Restaurar?', 'cmd.undo.yes': 'Sim', 'cmd.undo.cancel': 'Não', 'cmd.undo.success': '⏪ Feito', 'cmd.undo.failed': 'Erro: {0}', 'cmd.cancel.noState': 'Nada ativo', 'cmd.cancel.success': '🛑 Cancelado', 'cmd.cancel.noPolishing': 'Livre', 'cmd.cancel.failed': 'Erro: {0}', 'cmd.push.confirm': 'Forçar Push?', 'cmd.push.yes': 'Sim', 'cmd.push.cancel': 'Não', 'cmd.push.progress': 'Push...', 'cmd.push.success': '🚀 Sucesso!', 'cmd.push.failed': 'Erro: {0}', 'cmd.test.progress': 'Testando...', 'cmd.test.success': '✅ OK!\n\n{0}', 'cmd.test.failed': '❌ Erro:\n\n{0}\n{1}',
         'notification.polished': '✨ Polido!', 'notification.pushCompleted': '🚀 Push OK!', 'notification.updateAvailable': '🆕 Atualização do Git AI CLI disponível: v{0} → v{1}', 'notification.updateNow': 'Atualizar agora', 'notification.updateDismiss': 'Depois',
         'installer.missing': 'CLI não encontrado.', 'installer.download': 'Baixar', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Cancelar', 'installer.skipped': 'Pulado.', 'installer.progress': 'Instalando...', 'installer.success': '✨ Sucesso!', 'installer.failed': 'Erro: {0}', 'installer.prompt': 'Ativar Git AI?', 'installer.enable': 'OK', 'installer.notNow': 'Depois',
-        'info.commit': 'Commit:', 'info.original': 'Original:'
+        'info.commit': 'Commit:', 'info.original': 'Original:',
+        // Stats
+        'stats.title': 'Produtividade (Últimos 30 dias)',
+        'stats.hoursSaved': 'Tempo estimado economizado',
+        'stats.commitsPolished': '{0} Commits polidos por IA',
     },
     'ru': {
         'settings.title': 'Настройки Git AI', 'settings.subtitle': 'Настройка ИИ. Проект переопределяет Глобальные.', 'settings.tab.global': 'Глобальные', 'settings.tab.project': 'Проект', 'settings.badge.shared': 'общие', 'settings.badge.override': 'локальные',
@@ -467,7 +509,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Готово!', 'cmd.init.failed': 'Ошибка: {0}', 'cmd.uninstall.success': '🗑️ Хуки удалены.', 'cmd.uninstall.failed': 'Ошибка: {0}', 'cmd.retry.confirm': 'Перегенерировать?', 'cmd.retry.yes': 'Да', 'cmd.retry.cancel': 'Нет', 'cmd.retry.progress': 'Ожидайте...', 'cmd.retry.success': '✅ Перегенерировано', 'cmd.retry.failed': 'Ошибка: {0}', 'cmd.undo.confirm': 'Восстановить оригинал?', 'cmd.undo.yes': 'Да', 'cmd.undo.cancel': 'Нет', 'cmd.undo.success': '⏪ Оригинал восстановлен', 'cmd.undo.failed': 'Ошибка: {0}', 'cmd.cancel.noState': 'Нет процесса', 'cmd.cancel.success': '🛑 Отменено', 'cmd.cancel.noPolishing': 'Работа не ведется', 'cmd.cancel.failed': 'Ошибка: {0}', 'cmd.push.confirm': 'Отправить сейчас?', 'cmd.push.yes': 'Да', 'cmd.push.cancel': 'Нет', 'cmd.push.progress': 'Отправка...', 'cmd.push.success': '🚀 Успешно!', 'cmd.push.failed': 'Ошибка: {0}', 'cmd.test.progress': 'Тест...', 'cmd.test.success': '✅ OK!\n\n{0}', 'cmd.test.failed': '❌ Ошибка:\n\n{0}\n{1}',
         'notification.polished': '✨ Коммит улучшен!', 'notification.pushCompleted': '🚀 Push завершен!', 'notification.updateAvailable': '🆕 Доступно обновление Git AI CLI: v{0} → v{1}', 'notification.updateNow': 'Обновить сейчас', 'notification.updateDismiss': 'Позже',
         'installer.missing': 'CLI не найден.', 'installer.download': 'Скачать', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Отмена', 'installer.skipped': 'Пропущено.', 'installer.progress': 'Установка...', 'installer.success': '✨ Готово!', 'installer.failed': 'Ошибка: {0}', 'installer.prompt': 'Включить Git AI?', 'installer.enable': 'ОК', 'installer.notNow': 'Позже',
-        'info.commit': 'Коммит:', 'info.original': 'Оригинал:'
+        'info.commit': 'Коммит:', 'info.original': 'Оригинал:',
+        // Stats
+        'stats.title': 'Продуктивность (Последние 30 дней)',
+        'stats.hoursSaved': 'Сэкономленное время',
+        'stats.commitsPolished': '{0} коммитов отшлифовано ИИ',
     },
     'ar': {
         'settings.title': 'إعدادات Git AI', 'settings.subtitle': 'إعداد الذكاء الاصطناعي للإيداع.', 'settings.tab.global': 'عام', 'settings.tab.project': 'مشروع', 'settings.badge.shared': 'مشترك', 'settings.badge.override': 'تجاوز',
@@ -483,7 +529,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 تم بنجاح!', 'cmd.init.failed': 'فشل: {0}', 'cmd.uninstall.success': '🗑️ تم إلغاء التثبيت.', 'cmd.uninstall.failed': 'فشل: {0}', 'cmd.retry.confirm': 'هل تريد إعادة الإنشاء؟', 'cmd.retry.yes': 'نعم', 'cmd.retry.cancel': 'إلغاء', 'cmd.retry.progress': 'جاري...', 'cmd.retry.success': '✅ تم إعادة الإنشاء', 'cmd.retry.failed': 'فشل: {0}', 'cmd.undo.confirm': 'استعادة الأصلي؟', 'cmd.undo.yes': 'نعم', 'cmd.undo.cancel': 'إلغاء', 'cmd.undo.success': '⏪ تم الاسترجاع', 'cmd.undo.failed': 'فشل: {0}', 'cmd.cancel.noState': 'لا يوجد شيء نشط', 'cmd.cancel.success': '🛑 تم الإلغاء', 'cmd.cancel.noPolishing': 'لا شيء يحدث', 'cmd.cancel.failed': 'فشل: {0}', 'cmd.push.confirm': 'الفرض الآن؟', 'cmd.push.yes': 'نعم', 'cmd.push.cancel': 'إلغاء', 'cmd.push.progress': 'دفع...', 'cmd.push.success': '🚀 تم الدفع!', 'cmd.push.failed': 'فشل: {0}', 'cmd.test.progress': 'جاري الاختبار...', 'cmd.test.success': '✅ نجاح!\n\n{0}', 'cmd.test.failed': '❌ فشل:\n\n{0}\n{1}',
         'notification.polished': '✨ تم تحسين الإيداع!', 'notification.pushCompleted': '🚀 اكتمل الدفع!', 'notification.updateAvailable': '🆕 تحديث Git AI CLI متاح: v{0} → v{1}', 'notification.updateNow': 'تحديث الآن', 'notification.updateDismiss': 'لاحقاً',
         'installer.missing': 'الأداة غير موجودة.', 'installer.download': 'تحميل', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'إلغاء', 'installer.skipped': 'تم التخطي.', 'installer.progress': 'جاري التثبيت...', 'installer.success': '✨ تم بنجاح!', 'installer.failed': 'فشل: {0}', 'installer.prompt': 'تفعيل Git AI؟', 'installer.enable': 'تفعيل', 'installer.notNow': 'لاحقاً',
-        'info.commit': 'الإيداع:', 'info.original': 'الأصلي:'
+        'info.commit': 'الإيداع:', 'info.original': 'الأصلي:',
+        // Stats
+        'stats.title': 'الإنتاجية (آخر 30 يومًا)',
+        'stats.hoursSaved': 'الوقت المقدر الذي تم توفيره',
+        'stats.commitsPolished': '{0} إيداعات تم تحسينها',
     },
     'vi': {
         'settings.title': 'Cấu hình Git AI', 'settings.subtitle': 'Cấu hình AI commit. Cấu hình dự án sẽ ghi đè Toàn cục.', 'settings.tab.global': 'Toàn cục', 'settings.tab.project': 'Dự án', 'settings.badge.shared': 'dùng chung', 'settings.badge.override': 'ghi đè',
@@ -499,7 +549,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Sẵn sàng!', 'cmd.init.failed': 'Lỗi: {0}', 'cmd.uninstall.success': '🗑️ Đã xóa Hooks.', 'cmd.uninstall.failed': 'Lỗi: {0}', 'cmd.retry.confirm': 'Tạo lại commit?', 'cmd.retry.yes': 'Có', 'cmd.retry.cancel': 'Không', 'cmd.retry.progress': 'Đang xử lý...', 'cmd.retry.success': '✅ Tạo thành công', 'cmd.retry.failed': 'Lỗi: {0}', 'cmd.undo.confirm': 'Khôi phục bản gốc?', 'cmd.undo.yes': 'Có', 'cmd.undo.cancel': 'Không', 'cmd.undo.success': '⏪ Đã khôi phục', 'cmd.undo.failed': 'Lỗi: {0}', 'cmd.cancel.noState': 'Không có gì chạy', 'cmd.cancel.success': '🛑 Đã hủy', 'cmd.cancel.noPolishing': 'Nguồn đã rảnh', 'cmd.cancel.failed': 'Lỗi: {0}', 'cmd.push.confirm': 'Tiến hành Push?', 'cmd.push.yes': 'Có', 'cmd.push.cancel': 'Không', 'cmd.push.progress': 'Đang push...', 'cmd.push.success': '🚀 Hoàn tất!', 'cmd.push.failed': 'Lỗi: {0}', 'cmd.test.progress': 'Đang kiểm tra...', 'cmd.test.success': '✅ Thành công!\n\n{0}', 'cmd.test.failed': '❌ Thất bại:\n\n{0}\n{1}',
         'notification.polished': '✨ Đã trau chuốt commit!', 'notification.pushCompleted': '🚀 Push thành công!', 'notification.updateAvailable': '🆕 Bản cập nhật Git AI CLI: v{0} → v{1}', 'notification.updateNow': 'Cập nhật ngay', 'notification.updateDismiss': 'Để sau',
         'installer.missing': 'Chưa tìm thấy CLI.', 'installer.download': 'Tải xuống', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Hủy bỏ', 'installer.skipped': 'Đã bỏ qua.', 'installer.progress': 'Đang cài...', 'installer.success': '✨ Đã cài đặt CLI!', 'installer.failed': 'Lỗi: {0}', 'installer.prompt': 'Bật Git AI cho dự án này?', 'installer.enable': 'Bật', 'installer.notNow': 'Lúc khác',
-        'info.commit': 'Commit:', 'info.original': 'Gốc:'
+        'info.commit': 'Commit:', 'info.original': 'Gốc:',
+        // Stats
+        'stats.title': 'Năng suất (30 ngày qua)',
+        'stats.hoursSaved': 'Ước tính thời gian tiết kiệm',
+        'stats.commitsPolished': '{0} Commit đã được AI trau chuốt',
     },
     'th': {
         'settings.title': 'ตั้งค่า Git AI', 'settings.subtitle': 'ตั้งค่าการเรียบเรียง AI', 'settings.tab.global': 'Global', 'settings.tab.project': 'Project', 'settings.badge.shared': 'ใช้ร่วมกัน', 'settings.badge.override': 'เขียนทับ',
@@ -515,7 +569,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 เริ่มใช้งานแล้ว!', 'cmd.init.failed': 'ข้อผิดพลาด: {0}', 'cmd.uninstall.success': '🗑️ เลิกใช้งานร้อยเปอร์เซนต์', 'cmd.uninstall.failed': 'เกิดข้อผิดพลาด: {0}', 'cmd.retry.confirm': 'สร้างและพิมพ์ใหม่?', 'cmd.retry.yes': 'ตกลง', 'cmd.retry.cancel': 'ยกเลิก', 'cmd.retry.progress': 'กำลังทำ...', 'cmd.retry.success': '✅ เปลี่ยนแล้ว', 'cmd.retry.failed': 'ผิดพลาด: {0}', 'cmd.undo.confirm': 'ย้อนกลับ?', 'cmd.undo.yes': 'ใช่', 'cmd.undo.cancel': 'ไม่ใช่', 'cmd.undo.success': '⏪ กลับแล้ว', 'cmd.undo.failed': 'เกิดข้อผิดพลาด: {0}', 'cmd.cancel.noState': 'ไม่มีสิ่งทำงาน', 'cmd.cancel.success': '🛑 ยกเลิกสถานะ', 'cmd.cancel.noPolishing': 'สถานะว่างเปล่า', 'cmd.cancel.failed': 'ผิดพลาด: {0}', 'cmd.push.confirm': 'ลงมือส่งโค้ด?', 'cmd.push.yes': 'ใช่', 'cmd.push.cancel': 'ไม่', 'cmd.push.progress': 'อัปโหลด...', 'cmd.push.success': '🚀 พุชสำเร็จ!', 'cmd.push.failed': 'ข้อผิดพลาด: {0}', 'cmd.test.progress': 'กำลังทดสอบ...', 'cmd.test.success': '✅ ผ่าน!\n\n{0}', 'cmd.test.failed': '❌ ล้มเหลว:\n\n{0}\n{1}',
         'notification.polished': '✨ สร้างข้อความเรียบร้อย!', 'notification.pushCompleted': '🚀 อัปโหลดจบ!', 'notification.updateAvailable': '🆕 Git AI CLI มีเวอร์ชันใหม่: v{0} → v{1}', 'notification.updateNow': 'อัปเดตเลย', 'notification.updateDismiss': 'ทีหลัง',
         'installer.missing': 'ยังไม่ได้ลง CLI', 'installer.download': 'ดาวน์โหลด', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'ยกเลิก', 'installer.skipped': 'ข้ามไป.', 'installer.progress': 'กำลังลง...', 'installer.success': '✨ ติดตั้งแล้ว!', 'installer.failed': 'เกิดข้อผิดพลาด: {0}', 'installer.prompt': 'ใช้ Git AI ไหม?', 'installer.enable': 'เห็นด้วย', 'installer.notNow': 'เอาไว้ทีหลัง',
-        'info.commit': 'คอมมิต:', 'info.original': 'ดั้งเดิม:'
+        'info.commit': 'คอมมิต:', 'info.original': 'ดั้งเดิม:',
+        // Stats
+        'stats.title': 'ประสิทธิภาพการทำงาน (30 วันล่าสุด)',
+        'stats.hoursSaved': 'เวลาที่ประหยัดได้ (โดยประมาณ)',
+        'stats.commitsPolished': '{0} คอมมิตที่ขัดเกลาโดย AI',
     },
     'id': {
         'settings.title': 'Pengaturan Git AI', 'settings.subtitle': 'Konfigurasi Git AI Commit.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projek', 'settings.badge.shared': 'berbagi', 'settings.badge.override': 'timpa setting',
@@ -531,7 +589,12 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'cmd.init.success': '🎉 Selesai Pasang!', 'cmd.init.failed': 'Gagal: {0}', 'cmd.uninstall.success': '🗑️ Hooks terhapus.', 'cmd.uninstall.failed': 'Terjadi salah: {0}', 'cmd.retry.confirm': 'Mau dimainkan ulang?', 'cmd.retry.yes': 'Ya', 'cmd.retry.cancel': 'Batal', 'cmd.retry.progress': 'Sabar...', 'cmd.retry.success': '✅ Terbuat lagi', 'cmd.retry.failed': 'Salah: {0}', 'cmd.undo.confirm': 'Kembali ke semula?', 'cmd.undo.yes': 'Ya', 'cmd.undo.cancel': 'Batal', 'cmd.undo.success': '⏪ Balik', 'cmd.undo.failed': 'Kurang tepat: {0}', 'cmd.cancel.noState': 'Kosong', 'cmd.cancel.success': '🛑 Tercegat', 'cmd.cancel.noPolishing': 'Nganggur', 'cmd.cancel.failed': 'Gagal: {0}', 'cmd.push.confirm': 'Minta server narik?', 'cmd.push.yes': 'Ya', 'cmd.push.cancel': 'Batal', 'cmd.push.progress': 'Push...', 'cmd.push.success': '🚀 Berhasil di-push!', 'cmd.push.failed': 'Peringatan: {0}', 'cmd.test.progress': 'Memeriksa...', 'cmd.test.success': '✅ OK!\n\n{0}', 'cmd.test.failed': '❌ Error:\n\n{0}\n{1}',
         'notification.polished': '✨ Commit diperindah!', 'notification.pushCompleted': '🚀 Siap di jaringan!', 'notification.updateAvailable': '🆕 Pembaruan Git AI CLI tersedia: v{0} → v{1}', 'notification.updateNow': 'Perbarui sekarang', 'notification.updateDismiss': 'Nanti',
         'installer.missing': 'Biner CLI rusak/hilang.', 'installer.download': 'Ambil', 'installer.homebrew': 'Homebrew', 'installer.go': 'Go', 'installer.cancel': 'Tolakan', 'installer.skipped': 'Dilewatkan.', 'installer.progress': 'Instal...', 'installer.success': '✨ Ok CLI tuntas!', 'installer.failed': 'Gagal karena: {0}', 'installer.prompt': 'Tertarik Git AI di sini?', 'installer.enable': 'Pasanglah', 'installer.notNow': 'Lain waktu',
-        'info.commit': 'Commit:', 'info.original': 'Awal:'
+        'info.commit': 'Commit:', 'info.original': 'Awal:',
+
+        // Stats
+        'stats.title': 'Produktivitas (30 Hari Terakhir)',
+        'stats.timeSaved': 'Perkiraan Waktu Dihemat',
+        'stats.commitsPolished': '{0} Commit Dipoles AI'
     }
 };
 
