@@ -25,6 +25,7 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 	defer f.Close()
 
 	cmd := exec.Command(gitAiBinary, args...)
+	cmd.Env = SanitizedEnv()
 	cmd.Stdout = f
 	cmd.Stderr = f
 	cmd.SysProcAttr = &syscall.SysProcAttr{

@@ -24,7 +24,7 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 	// Spawn detached process.
 	attr := &os.ProcAttr{
 		Dir: wd,
-		Env: os.Environ(),
+		Env: SanitizedEnv(),
 		Files: []*os.File{
 			os.Stdin, // stdin  — not used but required
 			f,        // stdout → log file

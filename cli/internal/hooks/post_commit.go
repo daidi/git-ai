@@ -261,6 +261,13 @@ func handlePendingPush(mgr *state.Manager, logger *log.Logger) {
 	if s.PendingPush != nil {
 		logger.Printf("executing pending push to %s", s.PendingPush.Remote)
 
+		// Pre-check: can we push without interactive prompts?
+		if ok, reason := git.CanPushSilently(s.PendingPush.Remote); !ok {
+			logger.Printf("skipping background push: %s", reason)
+			notify.Send("Git AI", reason)
+			return
+		}
+
 		s.CurrentStatus = state.StatusPushing
 		_ = mgr.Save(s)
 

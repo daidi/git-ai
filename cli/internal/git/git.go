@@ -148,8 +148,9 @@ func AddNotes(sha string, noteMsg string) error {
 }
 
 // Push pushes to the specified remote. Sets GIT_AI_INTERNAL=true.
-// It sanitizes the environment to remove IDE-injected credential helpers
-// (GIT_ASKPASS, SSH_ASKPASS) that cannot work from a detached daemon process.
+// The calling daemon process is expected to already run in a sanitized
+// environment (see daemon.SanitizedEnv), so no per-operation stripping
+// of IDE variables is needed here.
 func Push(remote string, refSpecs []string) error {
 	args := []string{"push", remote}
 	// If we have specific refs saved from pre-push, extract the local ref to push.
@@ -165,61 +166,10 @@ func Push(remote string, refSpecs []string) error {
 	}
 
 	cmd := exec.Command("git", args...)
-	cmd.Env = sanitizedPushEnv()
+	cmd.Env = append(os.Environ(), "GIT_AI_INTERNAL=true", "GIT_TERMINAL_PROMPT=0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-// sanitizedPushEnv returns a copy of the current environment with
-// IDE-injected credential helpers stripped out, plus flags to prevent
-// any interactive prompts from blocking the detached daemon.
-func sanitizedPushEnv() []string {
-	// Exact env vars injected by IDEs that reference askpass scripts
-	// bound to the IDE's local socket — these cannot work from a
-	// fully detached (Setsid) daemon process.
-	//
-	//   IntelliJ: sets GIT_ASKPASS → intellij-git-askpass-local.sh
-	//   VS Code:  sets GIT_ASKPASS → askpass.sh, plus VSCODE_GIT_* IPC vars
-	blocked := map[string]bool{
-		"GIT_ASKPASS": true,
-		"SSH_ASKPASS": true,
-		"DISPLAY":     true, // SSH_ASKPASS requires DISPLAY on some platforms
-	}
-
-	// Prefixes for IDE-specific IPC variables that also need stripping.
-	//   VS Code injects: VSCODE_GIT_ASKPASS_NODE, VSCODE_GIT_ASKPASS_MAIN,
-	//                    VSCODE_GIT_IPC_HANDLE
-	blockedPrefixes := []string{
-		"VSCODE_GIT_",
-	}
-
-	var env []string
-	for _, e := range os.Environ() {
-		key := e
-		if idx := strings.IndexByte(e, '='); idx >= 0 {
-			key = e[:idx]
-		}
-		if blocked[key] {
-			continue
-		}
-		skip := false
-		for _, prefix := range blockedPrefixes {
-			if strings.HasPrefix(key, prefix) {
-				skip = true
-				break
-			}
-		}
-		if skip {
-			continue
-		}
-		env = append(env, e)
-	}
-
-	// Prevent Git from prompting on the terminal (which doesn't exist).
-	env = append(env, "GIT_TERMINAL_PROMPT=0")
-	env = append(env, "GIT_AI_INTERNAL=true")
-	return env
 }
 
 // GetCurrentBranch returns the current branch name.
