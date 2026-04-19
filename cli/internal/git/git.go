@@ -148,6 +148,8 @@ func AddNotes(sha string, noteMsg string) error {
 }
 
 // Push pushes to the specified remote. Sets GIT_AI_INTERNAL=true.
+// It sanitizes the environment to remove IDE-injected credential helpers
+// (GIT_ASKPASS, SSH_ASKPASS) that cannot work from a detached daemon process.
 func Push(remote string, refSpecs []string) error {
 	args := []string{"push", remote}
 	// If we have specific refs saved from pre-push, extract the local ref to push.
@@ -163,10 +165,61 @@ func Push(remote string, refSpecs []string) error {
 	}
 
 	cmd := exec.Command("git", args...)
-	cmd.Env = append(os.Environ(), "GIT_AI_INTERNAL=true")
+	cmd.Env = sanitizedPushEnv()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// sanitizedPushEnv returns a copy of the current environment with
+// IDE-injected credential helpers stripped out, plus flags to prevent
+// any interactive prompts from blocking the detached daemon.
+func sanitizedPushEnv() []string {
+	// Exact env vars injected by IDEs that reference askpass scripts
+	// bound to the IDE's local socket — these cannot work from a
+	// fully detached (Setsid) daemon process.
+	//
+	//   IntelliJ: sets GIT_ASKPASS → intellij-git-askpass-local.sh
+	//   VS Code:  sets GIT_ASKPASS → askpass.sh, plus VSCODE_GIT_* IPC vars
+	blocked := map[string]bool{
+		"GIT_ASKPASS": true,
+		"SSH_ASKPASS": true,
+		"DISPLAY":     true, // SSH_ASKPASS requires DISPLAY on some platforms
+	}
+
+	// Prefixes for IDE-specific IPC variables that also need stripping.
+	//   VS Code injects: VSCODE_GIT_ASKPASS_NODE, VSCODE_GIT_ASKPASS_MAIN,
+	//                    VSCODE_GIT_IPC_HANDLE
+	blockedPrefixes := []string{
+		"VSCODE_GIT_",
+	}
+
+	var env []string
+	for _, e := range os.Environ() {
+		key := e
+		if idx := strings.IndexByte(e, '='); idx >= 0 {
+			key = e[:idx]
+		}
+		if blocked[key] {
+			continue
+		}
+		skip := false
+		for _, prefix := range blockedPrefixes {
+			if strings.HasPrefix(key, prefix) {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+		env = append(env, e)
+	}
+
+	// Prevent Git from prompting on the terminal (which doesn't exist).
+	env = append(env, "GIT_TERMINAL_PROMPT=0")
+	env = append(env, "GIT_AI_INTERNAL=true")
+	return env
 }
 
 // GetCurrentBranch returns the current branch name.
@@ -188,17 +241,25 @@ func IsSSHRemote(remote string) bool {
 	return strings.HasPrefix(url, "git@") || strings.HasPrefix(url, "ssh://")
 }
 
-// CanPushSilently checks if background push is possible (SSH agent available).
-// Returns (ok, reason).
+// CanPushSilently checks if background push is possible without
+// interactive prompts. Returns (ok, reason).
 func CanPushSilently(remote string) (bool, string) {
-	if !IsSSHRemote(remote) {
-		return true, "" // HTTPS — no issue
+	if IsSSHRemote(remote) {
+		if os.Getenv("SSH_AUTH_SOCK") == "" {
+			return false, "SSH agent not detected (SSH_AUTH_SOCK not set). Background push will fail."
+		}
+		if err := exec.Command("ssh-add", "-l").Run(); err != nil {
+			return false, "No SSH keys loaded in agent. Run 'ssh-add' to load your key."
+		}
+		return true, ""
 	}
-	if os.Getenv("SSH_AUTH_SOCK") == "" {
-		return false, "SSH agent not detected (SSH_AUTH_SOCK not set). Background push will fail."
-	}
-	if err := exec.Command("ssh-add", "-l").Run(); err != nil {
-		return false, "No SSH keys loaded in agent. Run 'ssh-add' to load your key."
+
+	// HTTPS: check that a credential helper is configured so Git won't
+	// try to prompt for a username/password (which fails in a daemon).
+	out, err := runGit("config", "--get", "credential.helper")
+	if err != nil || strings.TrimSpace(out) == "" {
+		return false, "No Git credential helper configured for HTTPS. Background push may fail. " +
+			"Configure one with: git config --global credential.helper osxkeychain"
 	}
 	return true, ""
 }
