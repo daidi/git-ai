@@ -2,7 +2,7 @@
   "name": "git-ai",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "publisher": "git-ai-async-commit-polisher",
   "license": "MIT",
   "repository": {
