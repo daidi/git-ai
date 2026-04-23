@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "สถานะ",
   "view.actions.name": "การกระทำ",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - เครื่องมือขัดเกลาคอมมิตแบบอะซิงโครนัส",
+  "extension.description": "เพิ่มประสิทธิภาพข้อความ Git commit ด้วย AI — ดูสถานะ ควบคุม และบันทึกใน VS Code",
+  "command.clean": "ล้างคอมมิตที่ค้าง",
+  "view.history.name": "ประวัติ AI"
 }

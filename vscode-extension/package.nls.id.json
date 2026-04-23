@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "Status",
   "view.actions.name": "Aksi",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - Pemolesan Commit Asinkron",
+  "extension.description": "Penyempurna pesan commit Git bertenaga AI — status, kontrol, dan log langsung di VS Code",
+  "command.clean": "Bersihkan commit yang macet",
+  "view.history.name": "Riwayat AI"
 }

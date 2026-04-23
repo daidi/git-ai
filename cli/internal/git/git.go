@@ -2,9 +2,12 @@
 package git
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -148,9 +151,7 @@ func AddNotes(sha string, noteMsg string) error {
 }
 
 // Push pushes to the specified remote. Sets GIT_AI_INTERNAL=true.
-// The calling daemon process is expected to already run in a sanitized
-// environment (see daemon.SanitizedEnv), so no per-operation stripping
-// of IDE variables is needed here.
+// Stderr is captured and included in the returned error for classification.
 func Push(remote string, refSpecs []string) error {
 	args := []string{"push", remote}
 	// If we have specific refs saved from pre-push, extract the local ref to push.
@@ -167,9 +168,16 @@ func Push(remote string, refSpecs []string) error {
 
 	cmd := exec.Command("git", args...)
 	cmd.Env = append(os.Environ(), "GIT_AI_INTERNAL=true", "GIT_TERMINAL_PROMPT=0")
+	var stderr bytes.Buffer
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		if s := strings.TrimSpace(stderr.String()); s != "" {
+			return fmt.Errorf("%w: %s", err, s)
+		}
+		return err
+	}
+	return nil
 }
 
 // GetCurrentBranch returns the current branch name.
@@ -208,10 +216,21 @@ func CanPushSilently(remote string) (bool, string) {
 	// try to prompt for a username/password (which fails in a daemon).
 	out, err := runGit("config", "--get", "credential.helper")
 	if err != nil || strings.TrimSpace(out) == "" {
-		return false, "No Git credential helper configured for HTTPS. Background push may fail. " +
-			"Configure one with: git config --global credential.helper osxkeychain"
+		return false, "No Git credential helper configured. Background push requires saved credentials."
 	}
 	return true, ""
+}
+
+// CredentialHelperHint returns the platform-appropriate command to set up a credential helper.
+func CredentialHelperHint() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "git config --global credential.helper osxkeychain"
+	case "linux":
+		return "git config --global credential.helper store"
+	default:
+		return "git config --global credential.helper manager"
+	}
 }
 
 // IsMergeCommit checks if HEAD is a merge commit (has more than one parent).

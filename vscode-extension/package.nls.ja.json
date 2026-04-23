@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "ステータス",
   "view.actions.name": "アクション",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - 非同期コミット推敲ツール",
+  "extension.description": "AI搭載のGitコミットメッセージ最適化 — ステータス・操作・ログをVS Codeで直接確認",
+  "command.clean": "停滞コミットをクリーンアップ",
+  "view.history.name": "AI履歴"
 }

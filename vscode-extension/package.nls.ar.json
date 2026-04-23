@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "الحالة",
   "view.actions.name": "الإجراءات",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - أداة تلميع الإيداعات غير المتزامنة",
+  "extension.description": "محسّن ذكي لرسائل Git — الحالة والتحكم والسجلات مباشرة في VS Code",
+  "command.clean": "تنظيف الإيداعات المتوقفة",
+  "view.history.name": "سجل الذكاء الاصطناعي"
 }

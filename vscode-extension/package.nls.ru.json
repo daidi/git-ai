@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "Статус",
   "view.actions.name": "Действия",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - Асинхронная полировка коммитов",
+  "extension.description": "ИИ-улучшение сообщений коммитов Git — статус, управление и логи прямо в VS Code",
+  "command.clean": "Очистить застрявшие коммиты",
+  "view.history.name": "История ИИ"
 }

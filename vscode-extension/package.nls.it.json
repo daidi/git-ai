@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "Stato",
   "view.actions.name": "Azioni",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - Lucidatura asincrona dei commit",
+  "extension.description": "Miglioratore di messaggi di commit basato su IA — stato, controlli e log direttamente in VS Code",
+  "command.clean": "Pulisci commit bloccati",
+  "view.history.name": "Cronologia IA"
 }

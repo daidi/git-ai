@@ -1,4 +1,6 @@
 {
+  "extension.displayName": "Git AI - 异步提交润色工具",
+  "extension.description": "AI 驱动的 Git 提交语增强插件 —— 在 VS Code 中直接查看状态、操作及日志",
   "command.init": "初始化 Git AI",
   "command.retry": "重试 AI 润色",
   "command.undo": "撤销 AI 润色",
@@ -17,5 +19,6 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "运行状态",
   "view.actions.name": "操作",
-  "config.title": "Git AI 配置"
+  "config.title": "Git AI 配置",
+  "view.history.name": "AI 历史"
 }

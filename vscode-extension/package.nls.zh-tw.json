@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "狀態",
   "view.actions.name": "操作",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - 非同步提交潤飾工具",
+  "extension.description": "以 AI 驅動的 Git 提交訊息增強器 — 在 VS Code 中直接查看狀態、操作及日誌",
+  "command.clean": "清理卡住的歷史提交",
+  "view.history.name": "AI 歷史"
 }

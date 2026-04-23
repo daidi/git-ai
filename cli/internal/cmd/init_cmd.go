@@ -79,12 +79,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		Printf("%s", i18n.Sprintf("init.installed", hookName))
 	}
 
-	// 5. SSH detection.
+	// 5. Push authentication detection.
 	ok, reason := git.CanPushSilently("origin")
 	if !ok {
 		Printf("%s", i18n.Sprintf("init.ssh_warn", reason))
 		Printf("%s", i18n.T("init.ssh_block"))
-		Printf("%s", i18n.T("init.ssh_hint"))
+		if git.IsSSHRemote("origin") {
+			Printf("%s", i18n.T("init.ssh_hint"))
+		} else {
+			Printf("%s", i18n.Sprintf("init.https_hint", git.CredentialHelperHint()))
+		}
 
 		// Force push_policy to block in project config.
 		projectCfg := config.ProjectConfigPath(repoRoot)

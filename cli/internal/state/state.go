@@ -29,6 +29,14 @@ type State struct {
 	PID           int          `json:"pid,omitempty"`
 	StartedAt     int64        `json:"started_at,omitempty"` // Unix timestamp when polishing started
 	SkipNext      bool         `json:"skip_next,omitempty"`  // Whether to bypass git-ai on next hook trigger
+	LastError     *ErrorInfo   `json:"last_error,omitempty"` // Last error for IDE plugins to display
+}
+
+// ErrorInfo holds a structured error with fix suggestions for IDE display.
+type ErrorInfo struct {
+	Code    string `json:"code"`               // Machine-readable error code, e.g. "push_https_auth"
+	Message string `json:"message"`            // Human-readable error description
+	FixHint string `json:"fix_hint,omitempty"` // Terminal command to fix the issue
 }
 
 // PendingPush holds deferred push details captured from pre-push stdin.

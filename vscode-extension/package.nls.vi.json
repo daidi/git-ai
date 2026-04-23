@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "Trạng thái",
   "view.actions.name": "Tác vụ",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - Trau chuốt commit bất đồng bộ",
+  "extension.description": "Công cụ nâng cấp message commit Git bằng AI — trạng thái, điều khiển và nhật ký ngay trong VS Code",
+  "command.clean": "Dọn dẹp commit bị treo",
+  "view.history.name": "Lịch sử AI"
 }

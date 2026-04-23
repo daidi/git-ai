@@ -74,6 +74,14 @@ var messages = map[string]map[string]string{
 		"hook.push_failed":  "Push failed: %v",
 		"hook.pushed":       "Pushed to %s",
 
+		// ── push errors (for IDE display) ──
+		"push_err.ssh_auth":   "Push failed: SSH key not loaded. Run 'ssh-add' in your terminal.",
+		"push_err.https_auth": "Push failed: Git credentials not saved. Please do a manual 'git push' once to save credentials.",
+		"push_err.generic":    "Push failed: %v",
+
+		// ── init (HTTPS hint) ──
+		"init.https_hint": "     To fix, run in terminal:\n       %s\n     Then do a manual 'git push' once to save credentials.\n     After that, background push will work automatically.\n\n",
+
 		// ── hook (pre-push) ──
 		"prepush.queued":    "⏳ Git AI: AI is polishing your commit. Push queued — will auto-push when ready. (Please ignore the push failure warning, it will push automatically after polishing.)\n",
 		"prepush.save_warn": "Git AI: warning: could not save pending push: %v\n",
@@ -137,6 +145,14 @@ var messages = map[string]map[string]string{
 		"hook.amend_failed": "修订失败: %v",
 		"hook.push_failed":  "推送失败: %v",
 		"hook.pushed":       "已推送到 %s",
+
+		// ── push errors (for IDE display) ──
+		"push_err.ssh_auth":   "推送失败: SSH 密钥未加载。请在终端运行 'ssh-add'。",
+		"push_err.https_auth": "推送失败: Git 凭据未保存。请先手动执行一次 'git push' 以保存凭据。",
+		"push_err.generic":    "推送失败: %v",
+
+		// ── init (HTTPS hint) ──
+		"init.https_hint": "     修复方法，请在终端运行:\n       %s\n     然后手动执行一次 git push 以保存凭据。\n     之后后台推送将自动生效。\n\n",
 
 		// ── hook (pre-push) ──
 		"prepush.queued":    "⏳ Git AI: AI 正在润色你的提交，推送已排队 — 完成后将自动推送。（请忽略推送失败的警告，消息润色完成后会自动提交推送）\n",

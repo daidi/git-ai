@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -130,13 +132,14 @@ func runDaemon(mgr *state.Manager) error {
 		return err
 	}
 
-	handlePendingPush(mgr, logger)
+	pushErr := handlePendingPush(mgr, logger)
 
-	// Reset to idle.
+	// Reset to idle, preserving any push error for IDE display.
 	_ = mgr.Save(&state.State{
 		CurrentStatus: state.StatusIdle,
 		OriginalMsg:   origMsg,
 		LastSHA:       sha,
+		LastError:     pushErr,
 	})
 
 	logger.Printf("done (elapsed: %v)", time.Since(startTime))
@@ -255,28 +258,78 @@ func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polis
 	return nil
 }
 
-func handlePendingPush(mgr *state.Manager, logger *log.Logger) {
+func handlePendingPush(mgr *state.Manager, logger *log.Logger) *state.ErrorInfo {
 	// Check for pending push.
 	s, _ := mgr.Load()
-	if s.PendingPush != nil {
-		logger.Printf("executing pending push to %s", s.PendingPush.Remote)
+	if s.PendingPush == nil {
+		return nil
+	}
 
-		// Pre-check: can we push without interactive prompts?
-		if ok, reason := git.CanPushSilently(s.PendingPush.Remote); !ok {
-			logger.Printf("skipping background push: %s", reason)
-			notify.Send("Git AI", reason)
-			return
+	logger.Printf("executing pending push to %s", s.PendingPush.Remote)
+
+	// Pre-check: can we push without interactive prompts?
+	if ok, reason := git.CanPushSilently(s.PendingPush.Remote); !ok {
+		logger.Printf("skipping background push: %s", reason)
+		errInfo := &state.ErrorInfo{
+			Code:    "push_no_credentials",
+			Message: reason,
+			FixHint: git.CredentialHelperHint(),
 		}
+		notify.Send("Git AI", reason)
+		return errInfo
+	}
 
-		s.CurrentStatus = state.StatusPushing
-		_ = mgr.Save(s)
+	s.CurrentStatus = state.StatusPushing
+	_ = mgr.Save(s)
 
-		if err := git.Push(s.PendingPush.Remote, s.PendingPush.RefSpecs); err != nil {
-			logger.Printf("push error: %v", err)
-			notify.Send("Git AI", i18n.Sprintf("hook.push_failed", err))
-		} else {
-			notify.Send("Git AI", i18n.Sprintf("hook.pushed", s.PendingPush.Remote))
+	if err := git.Push(s.PendingPush.Remote, s.PendingPush.RefSpecs); err != nil {
+		logger.Printf("push error: %v", err)
+		errInfo := classifyPushError(err, s.PendingPush.Remote)
+		notify.Send("Git AI", errInfo.Message)
+		return errInfo
+	}
+
+	notify.Send("Git AI", i18n.Sprintf("hook.pushed", s.PendingPush.Remote))
+	return nil
+}
+
+// classifyPushError analyzes a push error and returns a user-friendly ErrorInfo
+// with actionable fix hints for IDE plugins to display.
+func classifyPushError(err error, remote string) *state.ErrorInfo {
+	errStr := err.Error()
+	if strings.Contains(errStr, "terminal prompts disabled") ||
+		strings.Contains(errStr, "could not read Username") ||
+		strings.Contains(errStr, "could not read Password") ||
+		strings.Contains(errStr, "Authentication failed") {
+		if git.IsSSHRemote(remote) {
+			return &state.ErrorInfo{
+				Code:    "push_ssh_auth",
+				Message: i18n.T("push_err.ssh_auth"),
+				FixHint: "ssh-add",
+			}
 		}
+		return &state.ErrorInfo{
+			Code:    "push_https_auth",
+			Message: i18n.T("push_err.https_auth"),
+			FixHint: credentialFixHint(),
+		}
+	}
+	return &state.ErrorInfo{
+		Code:    "push_failed",
+		Message: fmt.Sprintf(i18n.T("push_err.generic"), err),
+	}
+}
+
+// credentialFixHint returns a platform-specific command to fix HTTPS credentials.
+func credentialFixHint() string {
+	cmd := git.CredentialHelperHint()
+	switch runtime.GOOS {
+	case "darwin":
+		return cmd + " && git push"
+	case "linux":
+		return cmd + " && git push"
+	default:
+		return cmd + " && git push"
 	}
 }
 

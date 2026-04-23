@@ -16,5 +16,9 @@
   "viewContainer.title": "Git AI",
   "view.status.name": "상태",
   "view.actions.name": "액션",
-  "config.title": "Git AI"
+  "config.title": "Git AI",
+  "extension.displayName": "Git AI - 비동기 커밋 윤색기",
+  "extension.description": "AI 기반 Git 커밋 메시지 향상 — VS Code에서 직접 상태, 제어, 로그 확인",
+  "command.clean": "멈춘 커밋 정리",
+  "view.history.name": "AI 기록"
 }
