@@ -46,3 +46,10 @@ We do not bundle the Go CLI binary into the IDE plugin bundles (to avoid giganti
 ### 5. Strict Code Quality Gates
 - **Go Linter:** The Go CLI must strictly pass `golangci-lint run` (e.g., explicitly ignoring `deferred` error returns by wrapping them). Implementations must be validated locally *before* code is submitted.
 - **Cross-Platform Compatibility:** Changes to terminal output, paths, or execution must be tested against macOS, Linux, and Windows conventions.
+
+### 6. i18n Coverage Gate
+The project supports 14 locales (ar, de, es, fr, id, it, ja, ko, pt, ru, th, vi, zh-CN, zh-TW). Translations must stay in sync at all times across **three sources**:
+- **Rule:** Whenever you add, rename, or remove a key in the English base files (`vscode-extension/package.nls.json`, `idea-plugin/src/main/resources/messages/GitAiBundle.properties`, or the `en` block in `docs/script.js`), you **must** add the corresponding translation to **every** locale file/block.
+- **Rule:** After any i18n-related change, run `bash scripts/check-i18n-coverage.sh` to verify zero missing keys before considering the task complete.
+- **Base files:** `package.nls.json` (VS Code), `GitAiBundle.properties` (IntelliJ), `docs/script.js` `en:{}` block (Landing Page).
+- **Locale files:** `package.nls.{locale}.json` (VS Code), `GitAiBundle_{locale}.properties` (IntelliJ), locale blocks in `docs/script.js`.

@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -322,15 +321,7 @@ func classifyPushError(err error, remote string) *state.ErrorInfo {
 
 // credentialFixHint returns a platform-specific command to fix HTTPS credentials.
 func credentialFixHint() string {
-	cmd := git.CredentialHelperHint()
-	switch runtime.GOOS {
-	case "darwin":
-		return cmd + " && git push"
-	case "linux":
-		return cmd + " && git push"
-	default:
-		return cmd + " && git push"
-	}
+	return git.CredentialHelperHint() + " && git push"
 }
 
 // truncate shortens a string to max length with ellipsis.

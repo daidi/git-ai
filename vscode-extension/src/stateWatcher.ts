@@ -18,6 +18,11 @@ export interface GitAiState {
     };
     pid?: number;
     skip_next?: boolean;
+    last_error?: {
+        code: string;
+        message: string;
+        fix_hint?: string;
+    };
 }
 
 type StateChangeCallback = (state: GitAiState) => void;

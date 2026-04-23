@@ -205,25 +205,18 @@ class GitAiStateService(private val project: Project) : Disposable {
             if (error.fixHint != null) {
                 notification.addAction(
                     com.intellij.notification.NotificationAction.createSimple(
-                        GitAiBundle.message("notification.runFix")
+                        GitAiBundle.message("notification.copyFix")
                     ) {
                         notification.expire()
-                        // Open terminal and run fix command.
-                        val terminal = com.intellij.terminal.TerminalToolWindowManager.getInstance(project)
-                        terminal.createLocalShellWidget(project.basePath ?: ".", "Git AI Fix")
-                            .executeCommand(error.fixHint)
+                        val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
+                        clipboard.setContents(java.awt.datatransfer.StringSelection(error.fixHint), null)
+                        showNotification(
+                            GitAiBundle.message("notification.fixCopied"),
+                            NotificationType.INFORMATION
+                        )
                     }
                 )
             }
-            notification.addAction(
-                com.intellij.notification.NotificationAction.createSimple(
-                    GitAiBundle.message("notification.openTerminal")
-                ) {
-                    notification.expire()
-                    val terminal = com.intellij.terminal.TerminalToolWindowManager.getInstance(project)
-                    terminal.createLocalShellWidget(project.basePath ?: ".", "Git AI")
-                }
-            )
             notification.notify(project)
         }
     }
