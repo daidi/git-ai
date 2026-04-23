@@ -139,12 +139,46 @@ export class StateWatcher {
 
         // Show VS Code notifications for important transitions.
         if (prevStatus === 'polishing' && newState.current_status === 'idle') {
-            notifyInfo(t('notification.polished'));
+            if (newState.last_error) {
+                this.showPushErrorNotification(newState.last_error);
+            } else {
+                notifyInfo(t('notification.polished'));
+            }
             this.checkForUpdatesInLog();
         }
         if (prevStatus === 'pushing' && newState.current_status === 'idle') {
-            notifyInfo(t('notification.pushCompleted'));
+            if (newState.last_error) {
+                this.showPushErrorNotification(newState.last_error);
+            } else {
+                notifyInfo(t('notification.pushCompleted'));
+            }
         }
+    }
+
+    /**
+     * Show an actionable error notification with fix buttons for push auth failures.
+     */
+    private showPushErrorNotification(error: NonNullable<GitAiState['last_error']>): void {
+        const fixHint = error.fix_hint;
+        const buttons: string[] = [];
+        if (fixHint) {
+            buttons.push(t('notification.runFix'));
+        }
+        buttons.push(t('notification.openTerminal'));
+
+        void vscode.window.showWarningMessage(
+            `⚠️ ${error.message}`,
+            ...buttons
+        ).then(selection => {
+            if (selection === t('notification.runFix') && fixHint) {
+                const terminal = vscode.window.createTerminal('Git AI Fix');
+                terminal.show();
+                terminal.sendText(fixHint);
+            } else if (selection === t('notification.openTerminal')) {
+                const terminal = vscode.window.createTerminal('Git AI');
+                terminal.show();
+            }
+        });
     }
 
     /**
