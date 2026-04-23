@@ -28,12 +28,19 @@ data class GitAiState(
     @SerializedName("pending_push") val pendingPush: PendingPush? = null,
     @SerializedName("pid") val pid: Int? = null,
     @SerializedName("skip_next") val skipNext: Boolean? = null,
+    @SerializedName("last_error") val lastError: ErrorInfo? = null,
 ) {
     val isPolishing get() = currentStatus == "polishing"
     val isPushing get() = currentStatus == "pushing"
     val isIdle get() = currentStatus == "idle"
     val hasPendingPush get() = pendingPush != null
 }
+
+data class ErrorInfo(
+    @SerializedName("code") val code: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("fix_hint") val fixHint: String? = null,
+)
 
 data class PendingPush(
     @SerializedName("remote") val remote: String,
@@ -170,11 +177,54 @@ class GitAiStateService(private val project: Project) : Disposable {
 
         // Show IDE notifications for important transitions.
         if (prevStatus == "polishing" && newState.isIdle) {
-            showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
+            if (newState.lastError != null) {
+                showPushErrorNotification(newState.lastError)
+            } else {
+                showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
+            }
             checkForUpdatesInLog()
         }
         if (prevStatus == "pushing" && newState.isIdle) {
-            showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
+            if (newState.lastError != null) {
+                showPushErrorNotification(newState.lastError)
+            } else {
+                showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
+            }
+        }
+    }
+
+    private fun showPushErrorNotification(error: ErrorInfo) {
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+            val notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup("git-ai.notifications")
+                .createNotification(
+                    GitAiBundle.message("notification.title"),
+                    error.message,
+                    NotificationType.WARNING
+                )
+            if (error.fixHint != null) {
+                notification.addAction(
+                    com.intellij.notification.NotificationAction.createSimple(
+                        GitAiBundle.message("notification.runFix")
+                    ) {
+                        notification.expire()
+                        // Open terminal and run fix command.
+                        val terminal = com.intellij.terminal.TerminalToolWindowManager.getInstance(project)
+                        terminal.createLocalShellWidget(project.basePath ?: ".", "Git AI Fix")
+                            .executeCommand(error.fixHint)
+                    }
+                )
+            }
+            notification.addAction(
+                com.intellij.notification.NotificationAction.createSimple(
+                    GitAiBundle.message("notification.openTerminal")
+                ) {
+                    notification.expire()
+                    val terminal = com.intellij.terminal.TerminalToolWindowManager.getInstance(project)
+                    terminal.createLocalShellWidget(project.basePath ?: ".", "Git AI")
+                }
+            )
+            notification.notify(project)
         }
     }
 

@@ -136,6 +136,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'notification.updateAvailable': '🆕 Git AI CLI update available: v{0} → v{1}',
         'notification.updateNow': 'Update Now',
         'notification.updateDismiss': 'Later',
+        'notification.runFix': 'Run Fix Command',
+        'notification.openTerminal': 'Open Terminal',
 
         // Installer
         'installer.missing': 'Git AI CLI was not found in PATH or standard directories.',
@@ -302,6 +304,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'notification.updateAvailable': '🆕 Git AI CLI 有新版本: v{0} → v{1}',
         'notification.updateNow': '立即更新',
         'notification.updateDismiss': '稍后',
+        'notification.runFix': '运行修复命令',
+        'notification.openTerminal': '打开终端',
 
         // Installer
         'installer.missing': 'Git AI CLI 未在 PATH 或标准目录中找到。',
