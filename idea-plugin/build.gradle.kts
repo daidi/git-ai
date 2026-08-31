@@ -1,7 +1,12 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.9.22"
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.kotlin.jvm") version "2.3.20"
+    id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 
 group = property("pluginGroup").toString()
@@ -9,52 +14,79 @@ version = property("pluginVersion").toString()
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.apache.commons:commons-compress:1.24.0")
-}
 
-intellij {
-    version.set(property("platformVersion").toString())
-    type.set(property("platformType").toString())
-    plugins.set(listOf("Git4Idea"))
+    intellijPlatform {
+        // Compile against the oldest supported IDE so accidental use of newer
+        // APIs is caught at build time, then verify the artifact on 2026.2.
+        intellijIdeaCommunity(providers.gradleProperty("platformVersion"))
+        bundledPlugin("Git4Idea")
+    }
 }
 
 kotlin {
-    jvmToolchain(21)
+    // The 2024.1 compatibility baseline runs on Java 17; newer IDEs can load
+    // Java 17 bytecode without forcing contributors to install another JDK.
+    jvmToolchain(17)
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget = JvmTarget.JVM_17
+        // IntelliJ 2024.1 bundles Kotlin stdlib 1.9.22. Keeping the public
+        // language/API level at 1.9 lets one artifact run on 2024.1–2026.2.
+        languageVersion = KotlinVersion.KOTLIN_1_9
+        apiVersion = KotlinVersion.KOTLIN_1_9
+        // Avoid synthetic overrides for platform interface defaults. Those
+        // bridges show up as deprecated/experimental API use on newer IDEs.
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
     }
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-tasks {
-    patchPluginXml {
-        version.set(project.property("pluginVersion").toString())
-        sinceBuild.set("241")
-        untilBuild.set("261.*")
+// The IntelliJ instrumentation task fails inside Ant when a source set has no
+// test classes. Keep `./gradlew test` usable until the first plugin test lands.
+tasks.named("instrumentTestCode") {
+    enabled = fileTree("src/test").files.isNotEmpty()
+}
+
+intellijPlatform {
+    buildSearchableOptions = false
+
+    pluginConfiguration {
+        version = project.version.toString()
+        ideaVersion {
+            sinceBuild = "241"
+            // Do not make each release incompatible with the next IDE line.
+            // Compatibility with the current latest IDE is enforced below.
+            untilBuild = provider { null }
+        }
     }
 
-    buildSearchableOptions {
-        enabled = false
+    pluginVerification {
+        ides {
+            current()
+            // Pin the latest major GA baseline. Using latest() with the 2026.2
+            // unified product downloads every optional product plugin as well.
+            create(IntelliJPlatformType.IntellijIdea, "2026.2.0.1")
+        }
     }
 
-    signPlugin {
-        val cert = System.getenv("CERTIFICATE_CHAIN")
-        if (cert != null) certificateChain.set(cert)
-        val key = System.getenv("PRIVATE_KEY")
-        if (key != null) privateKey.set(key)
-        val pass = System.getenv("PRIVATE_KEY_PASSWORD")
-        if (pass != null) password.set(pass)
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
     }
 
-    publishPlugin {
-        val pubToken = System.getenv("PUBLISH_TOKEN")
-        if (pubToken != null) token.set(pubToken)
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
     }
 }

@@ -1,13 +1,32 @@
 // Package config manages layered configuration for git-ai.
-// Priority: env vars → project (.git-ai.json) → global (~/.config/git-ai/config.json) → defaults.
+// Priority: environment -> repository-local Git config -> legacy project file
+// (read-only compatibility) -> user config -> defaults.
 package config
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
+
+	"github.com/gofrs/flock"
+)
+
+const configDirEnv = "GIT_AI_CONFIG_DIR"
+
+// Scope identifies a persisted configuration layer.
+type Scope string
+
+const (
+	ScopeGlobal Scope = "global"
+	ScopeLocal  Scope = "local"
+	ScopeMerged Scope = "merged"
 )
 
 // Config holds all git-ai configuration values.
@@ -24,17 +43,19 @@ type Config struct {
 	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
 	LogLevel       string `json:"log_level,omitempty"`
 	CheckUpdate    *bool  `json:"check_update,omitempty"`
-	Explain        bool   `json:"explain,omitempty"`
+	Explain        *bool  `json:"explain,omitempty"`
 }
 
-// IsDebug returns true when the log level is set to "debug".
-func (c *Config) IsDebug() bool {
-	return c.LogLevel == "debug"
-}
+func boolPtr(value bool) *bool { return &value }
+
+// IsDebug returns true when safe diagnostic logging is enabled.
+func (c *Config) IsDebug() bool { return c.LogLevel == "debug" }
+
+// ExplainEnabled resolves the optional explain setting.
+func (c *Config) ExplainEnabled() bool { return c.Explain != nil && *c.Explain }
 
 // Defaults returns a Config with default values.
 func Defaults() *Config {
-	tru := true
 	return &Config{
 		Model:         "deepseek-chat",
 		BaseURL:       "https://api.deepseek.com/v1",
@@ -44,62 +65,116 @@ func Defaults() *Config {
 		MessageFormat: "conventional",
 		MaxDiffTokens: 8000,
 		LogLevel:      "info",
-		CheckUpdate:   &tru,
+		CheckUpdate:   boolPtr(true),
+		Explain:       boolPtr(false),
 	}
 }
 
-// GlobalConfigPath returns the path to the global config file.
+// GlobalConfigPath returns the OS-native per-user application config path.
 func GlobalConfigPath() string {
+	if override := os.Getenv(configDirEnv); override != "" {
+		return filepath.Join(override, "config.json")
+	}
+	if dir, err := os.UserConfigDir(); err == nil && dir != "" {
+		return filepath.Join(dir, "git-ai", "config.json")
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".config", "git-ai", "config.json")
 }
 
-// ProjectConfigPath returns the path to the project-level config file.
-func ProjectConfigPath(repoRoot string) string {
-	return filepath.Join(repoRoot, ".git-ai.json")
+// LegacyGlobalConfigPath is the path used by releases <= 1.1.4.
+func LegacyGlobalConfigPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "git-ai", "config.json")
 }
 
-// Load reads and merges configuration from all layers.
+// ProjectConfigPath returns the legacy worktree config path. New versions never
+// create or modify this file; it is read only so existing users can migrate.
+func ProjectConfigPath(repoRoot string) string { return filepath.Join(repoRoot, ".git-ai.json") }
+
+// Load resolves all configuration layers.
 func Load(repoRoot string) (*Config, error) {
 	cfg := Defaults()
 
-	// Layer 1: Global config
-	if data, err := os.ReadFile(GlobalConfigPath()); err == nil {
-		var global Config
-		if err := json.Unmarshal(data, &global); err == nil {
-			mergeConfig(cfg, &global)
-		}
+	global, err := LoadScope(repoRoot, ScopeGlobal)
+	if err != nil {
+		return nil, err
 	}
+	mergeConfig(cfg, global)
 
-	// Layer 2: Project config
+	// Keep legacy worktree configuration as a lower-priority, read-only layer.
 	if repoRoot != "" {
-		if data, err := os.ReadFile(ProjectConfigPath(repoRoot)); err == nil {
-			var project Config
-			if err := json.Unmarshal(data, &project); err == nil {
-				mergeConfig(cfg, &project)
-			}
+		if legacy, err := LoadFile(ProjectConfigPath(repoRoot)); err == nil {
+			mergeConfig(cfg, legacy)
+		} else if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("read legacy project config: %w", err)
 		}
 	}
 
-	// Layer 3: Environment variable overrides
+	local, err := LoadScope(repoRoot, ScopeLocal)
+	if err != nil {
+		return nil, err
+	}
+	mergeConfig(cfg, local)
 	applyEnvOverrides(cfg)
-
 	return cfg, nil
 }
 
-// Save writes a config to the specified path. Creates parent dirs as needed.
+// LoadScope reads a raw persisted layer, or the fully merged view.
+func LoadScope(repoRoot string, scope Scope) (*Config, error) {
+	switch scope {
+	case ScopeMerged:
+		return Load(repoRoot)
+	case ScopeGlobal:
+		path := GlobalConfigPath()
+		cfg, err := LoadFile(path)
+		if err == nil {
+			return cfg, nil
+		}
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("read global config: %w", err)
+		}
+		// Test/portable installations that explicitly override the config
+		// directory must not unexpectedly inherit credentials from the account's
+		// real legacy path.
+		if os.Getenv(configDirEnv) != "" {
+			return &Config{}, nil
+		}
+		legacy := LegacyGlobalConfigPath()
+		if canonicalPath(legacy) != canonicalPath(path) {
+			cfg, legacyErr := LoadFile(legacy)
+			if legacyErr == nil {
+				return cfg, nil
+			}
+			if !os.IsNotExist(legacyErr) {
+				return nil, fmt.Errorf("read legacy global config: %w", legacyErr)
+			}
+		}
+		return &Config{}, nil
+	case ScopeLocal:
+		if repoRoot == "" {
+			return &Config{}, nil
+		}
+		return loadLocal(repoRoot)
+	default:
+		return nil, fmt.Errorf("unknown config scope: %s", scope)
+	}
+}
+
+// Save writes a JSON config atomically with private permissions.
 func Save(cfg *Config, path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o644)
+	data = append(data, '\n')
+	return writeAtomic(path, data)
 }
 
-// LoadFile reads a config from a single file without merging.
+// LoadFile reads a config from one JSON file without merging.
 func LoadFile(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -112,13 +187,127 @@ func LoadFile(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Set writes a single key-value pair to a config file, creating the file if needed.
-func Set(path, key, value string) error {
-	cfg := &Config{}
-	if data, err := os.ReadFile(path); err == nil {
-		_ = json.Unmarshal(data, cfg)
-	}
+// SetGlobal atomically changes one user-level value.
+func SetGlobal(key, value string) error {
+	return updateGlobal(func(cfg *Config) error { return SetValue(cfg, key, value) })
+}
 
+// UnsetGlobal removes one user-level value.
+func UnsetGlobal(key string) error {
+	return updateGlobal(func(cfg *Config) error { return UnsetValue(cfg, key) })
+}
+
+// ReplaceGlobal atomically replaces the complete user layer.
+func ReplaceGlobal(cfg *Config) error {
+	return withGlobalLock(func(path string) error { return Save(cfg, path) })
+}
+
+func updateGlobal(change func(*Config) error) error {
+	return withGlobalLock(func(path string) error {
+		cfg, err := LoadScope("", ScopeGlobal)
+		if err != nil {
+			return err
+		}
+		if err := change(cfg); err != nil {
+			return err
+		}
+		return Save(cfg, path)
+	})
+}
+
+func withGlobalLock(fn func(path string) error) error {
+	path := GlobalConfigPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	lockPath := path + ".lock"
+	lock := flock.New(lockPath)
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer func() { _ = lock.Unlock() }()
+	_ = os.Chmod(lockPath, 0o600)
+	return fn(path)
+}
+
+// SetLocal stores one repository override in .git/config, not the worktree.
+func SetLocal(repoRoot, key, value string) error {
+	if repoRoot == "" {
+		return errors.New("not inside a Git repository")
+	}
+	if key == "api_key" {
+		return errors.New("api_key is user-level only; use --global so secrets are never stored in a repository")
+	}
+	probe := &Config{}
+	if err := SetValue(probe, key, value); err != nil {
+		return err
+	}
+	name, ok := gitConfigNames[key]
+	if !ok {
+		return &UnknownKeyError{Key: key}
+	}
+	return runGitConfig(repoRoot, "--replace-all", "git-ai."+name, value)
+}
+
+// UnsetLocal removes one repository override.
+func UnsetLocal(repoRoot, key string) error {
+	name, ok := gitConfigNames[key]
+	if !ok {
+		return &UnknownKeyError{Key: key}
+	}
+	err := runGitConfig(repoRoot, "--unset-all", "git-ai."+name)
+	if isGitConfigMissing(err) {
+		return nil
+	}
+	return err
+}
+
+// ReplaceLocal replaces the git-ai section in .git/config.
+func ReplaceLocal(repoRoot string, cfg *Config) error {
+	if repoRoot == "" {
+		return errors.New("not inside a Git repository")
+	}
+	if err := runGitConfig(repoRoot, "--remove-section", "git-ai"); err != nil && !isGitConfigMissing(err) {
+		return err
+	}
+	values := Values(cfg)
+	delete(values, "api_key")
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		if err := SetLocal(repoRoot, key, values[key]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ResetScope clears a persisted layer.
+func ResetScope(repoRoot string, scope Scope) error {
+	switch scope {
+	case ScopeGlobal:
+		return withGlobalLock(func(path string) error {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			return nil
+		})
+	case ScopeLocal:
+		err := runGitConfig(repoRoot, "--remove-section", "git-ai")
+		if isGitConfigMissing(err) {
+			return nil
+		}
+		return err
+	default:
+		return fmt.Errorf("cannot reset scope %s", scope)
+	}
+}
+
+// SetValue parses and assigns one config value.
+func SetValue(cfg *Config, key, value string) error {
 	switch key {
 	case "api_key":
 		cfg.APIKey = value
@@ -127,97 +316,165 @@ func Set(path, key, value string) error {
 	case "base_url":
 		cfg.BaseURL = value
 	case "provider":
+		if !oneOf(value, "openai", "ollama", "anthropic", "gemini") {
+			return fmt.Errorf("invalid provider: %s", value)
+		}
 		cfg.Provider = value
 	case "language":
 		cfg.Language = value
 	case "ui_language":
 		cfg.UILanguage = value
 	case "push_policy":
+		if !oneOf(value, "queue", "block") {
+			return fmt.Errorf("invalid push_policy: %s", value)
+		}
 		cfg.PushPolicy = value
 	case "message_format":
+		if !oneOf(value, "plain", "conventional", "gitmoji", "subject-body") {
+			return fmt.Errorf("invalid message_format: %s", value)
+		}
 		cfg.MessageFormat = value
 	case "prompt_template":
 		cfg.PromptTemplate = value
 	case "log_level":
+		if !oneOf(value, "error", "info", "debug") {
+			return fmt.Errorf("invalid log_level: %s", value)
+		}
 		cfg.LogLevel = value
 	case "max_diff_tokens":
-		if v, err := strconv.Atoi(value); err == nil && v > 0 {
-			cfg.MaxDiffTokens = v
-		} else {
+		v, err := strconv.Atoi(value)
+		if err != nil || v <= 0 {
 			return fmt.Errorf("invalid max_diff_tokens value: %s", value)
 		}
+		cfg.MaxDiffTokens = v
 	case "check_update":
-		b := value == "true"
-		cfg.CheckUpdate = &b
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid check_update value: %s", value)
+		}
+		cfg.CheckUpdate = boolPtr(v)
 	case "explain":
-		cfg.Explain = value == "true"
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid explain value: %s", value)
+		}
+		cfg.Explain = boolPtr(v)
 	default:
 		return &UnknownKeyError{Key: key}
 	}
-
-	return Save(cfg, path)
+	return nil
 }
 
-// Get reads a single key from the merged config.
-func Get(cfg *Config, key string) (string, error) {
+// UnsetValue clears one field.
+func UnsetValue(cfg *Config, key string) error {
 	switch key {
 	case "api_key":
-		return cfg.APIKey, nil
+		cfg.APIKey = ""
 	case "model":
-		return cfg.Model, nil
+		cfg.Model = ""
 	case "base_url":
-		return cfg.BaseURL, nil
+		cfg.BaseURL = ""
 	case "provider":
-		return cfg.Provider, nil
+		cfg.Provider = ""
 	case "language":
-		return cfg.Language, nil
+		cfg.Language = ""
 	case "ui_language":
-		return cfg.UILanguage, nil
+		cfg.UILanguage = ""
 	case "push_policy":
-		return cfg.PushPolicy, nil
+		cfg.PushPolicy = ""
 	case "message_format":
-		return cfg.MessageFormat, nil
+		cfg.MessageFormat = ""
 	case "prompt_template":
-		return cfg.PromptTemplate, nil
-	case "log_level":
-		return cfg.LogLevel, nil
+		cfg.PromptTemplate = ""
 	case "max_diff_tokens":
-		return strconv.Itoa(cfg.MaxDiffTokens), nil
+		cfg.MaxDiffTokens = 0
+	case "log_level":
+		cfg.LogLevel = ""
 	case "check_update":
-		if cfg.CheckUpdate != nil && *cfg.CheckUpdate {
-			return "true", nil
-		}
-		return "false", nil
+		cfg.CheckUpdate = nil
 	case "explain":
-		if cfg.Explain {
-			return "true", nil
-		}
-		return "false", nil
+		cfg.Explain = nil
 	default:
-		return "", &UnknownKeyError{Key: key}
+		return &UnknownKeyError{Key: key}
 	}
+	return nil
 }
 
-// ValidKeys returns all valid configuration key names.
+// Get reads a single key.
+func Get(cfg *Config, key string) (string, error) {
+	values := Values(cfg)
+	if value, ok := values[key]; ok {
+		return value, nil
+	}
+	for _, valid := range ValidKeys() {
+		if key == valid {
+			return "", nil
+		}
+	}
+	return "", &UnknownKeyError{Key: key}
+}
+
+// Values returns fields present in cfg as CLI strings.
+func Values(cfg *Config) map[string]string {
+	values := make(map[string]string)
+	if cfg.APIKey != "" {
+		values["api_key"] = cfg.APIKey
+	}
+	if cfg.Model != "" {
+		values["model"] = cfg.Model
+	}
+	if cfg.BaseURL != "" {
+		values["base_url"] = cfg.BaseURL
+	}
+	if cfg.Provider != "" {
+		values["provider"] = cfg.Provider
+	}
+	if cfg.Language != "" {
+		values["language"] = cfg.Language
+	}
+	if cfg.UILanguage != "" {
+		values["ui_language"] = cfg.UILanguage
+	}
+	if cfg.PushPolicy != "" {
+		values["push_policy"] = cfg.PushPolicy
+	}
+	if cfg.MessageFormat != "" {
+		values["message_format"] = cfg.MessageFormat
+	}
+	if cfg.PromptTemplate != "" {
+		values["prompt_template"] = cfg.PromptTemplate
+	}
+	if cfg.MaxDiffTokens > 0 {
+		values["max_diff_tokens"] = strconv.Itoa(cfg.MaxDiffTokens)
+	}
+	if cfg.LogLevel != "" {
+		values["log_level"] = cfg.LogLevel
+	}
+	if cfg.CheckUpdate != nil {
+		values["check_update"] = strconv.FormatBool(*cfg.CheckUpdate)
+	}
+	if cfg.Explain != nil {
+		values["explain"] = strconv.FormatBool(*cfg.Explain)
+	}
+	return values
+}
+
 func ValidKeys() []string {
 	return []string{
-		"api_key", "model", "base_url", "provider",
-		"language", "ui_language", "push_policy", "message_format", "prompt_template",
-		"max_diff_tokens", "log_level", "check_update", "explain",
+		"api_key", "model", "base_url", "provider", "language", "ui_language",
+		"push_policy", "message_format", "prompt_template", "max_diff_tokens",
+		"log_level", "check_update", "explain",
 	}
 }
 
-// UnknownKeyError is returned when an invalid config key is used.
-type UnknownKeyError struct {
-	Key string
-}
+type UnknownKeyError struct{ Key string }
 
-func (e *UnknownKeyError) Error() string {
-	return "unknown config key: " + e.Key
-}
+func (e *UnknownKeyError) Error() string { return "unknown config key: " + e.Key }
 
-// mergeConfig applies non-zero fields from src into dst.
 func mergeConfig(dst, src *Config) {
+	if src == nil {
+		return
+	}
 	if src.APIKey != "" {
 		dst.APIKey = src.APIKey
 	}
@@ -252,42 +509,139 @@ func mergeConfig(dst, src *Config) {
 		dst.LogLevel = src.LogLevel
 	}
 	if src.CheckUpdate != nil {
-		dst.CheckUpdate = src.CheckUpdate
+		dst.CheckUpdate = boolPtr(*src.CheckUpdate)
 	}
-	if src.Explain {
-		dst.Explain = src.Explain
+	if src.Explain != nil {
+		dst.Explain = boolPtr(*src.Explain)
 	}
 }
 
-// applyEnvOverrides applies environment variable overrides to the config.
 func applyEnvOverrides(cfg *Config) {
-	if v := os.Getenv("GIT_AI_API_KEY"); v != "" {
-		cfg.APIKey = v
+	env := map[string]string{
+		"api_key": "GIT_AI_API_KEY", "model": "GIT_AI_MODEL",
+		"base_url": "GIT_AI_BASE_URL", "provider": "GIT_AI_PROVIDER",
+		"language": "GIT_AI_LANGUAGE", "ui_language": "GIT_AI_UI_LANGUAGE",
+		"push_policy": "GIT_AI_PUSH_POLICY", "message_format": "GIT_AI_MESSAGE_FORMAT",
+		"prompt_template": "GIT_AI_PROMPT_TEMPLATE", "log_level": "GIT_AI_LOG_LEVEL",
+		"max_diff_tokens": "GIT_AI_MAX_DIFF_TOKENS", "check_update": "GIT_AI_CHECK_UPDATE",
+		"explain": "GIT_AI_EXPLAIN",
 	}
-	if v := os.Getenv("GIT_AI_MODEL"); v != "" {
-		cfg.Model = v
-	}
-	if v := os.Getenv("GIT_AI_BASE_URL"); v != "" {
-		cfg.BaseURL = v
-	}
-	if v := os.Getenv("GIT_AI_PROVIDER"); v != "" {
-		cfg.Provider = v
-	}
-	if v := os.Getenv("GIT_AI_LANGUAGE"); v != "" {
-		cfg.Language = v
-	}
-	if v := os.Getenv("GIT_AI_UI_LANGUAGE"); v != "" {
-		cfg.UILanguage = v
-	}
-	if v := os.Getenv("GIT_AI_LOG_LEVEL"); v != "" {
-		cfg.LogLevel = v
-	}
-	if v := os.Getenv("GIT_AI_MAX_DIFF_TOKENS"); v != "" {
-		if iv, err := strconv.Atoi(v); err == nil && iv > 0 {
-			cfg.MaxDiffTokens = iv
+	for key, name := range env {
+		if value, ok := os.LookupEnv(name); ok && value != "" {
+			_ = SetValue(cfg, key, value)
 		}
 	}
-	if v := os.Getenv("GIT_AI_EXPLAIN"); v == "true" {
-		cfg.Explain = true
+}
+
+var gitConfigNames = map[string]string{
+	"api_key": "api-key", "model": "model", "base_url": "base-url",
+	"provider": "provider", "language": "language", "ui_language": "ui-language",
+	"push_policy": "push-policy", "message_format": "message-format",
+	"prompt_template": "prompt-template", "max_diff_tokens": "max-diff-tokens",
+	"log_level": "log-level", "check_update": "check-update", "explain": "explain",
+}
+
+var configKeysByGitName = func() map[string]string {
+	result := make(map[string]string, len(gitConfigNames))
+	for key, name := range gitConfigNames {
+		result[name] = key
 	}
+	return result
+}()
+
+func loadLocal(repoRoot string) (*Config, error) {
+	cmd := exec.Command("git", "-C", repoRoot, "config", "--local", "--list", "--null")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("read local Git config: %w", err)
+	}
+	cfg := &Config{}
+	for _, entry := range bytes.Split(out, []byte{0}) {
+		parts := bytes.SplitN(entry, []byte{'\n'}, 2)
+		if len(parts) != 2 {
+			continue
+		}
+		name := strings.ToLower(string(parts[0]))
+		if !strings.HasPrefix(name, "git-ai.") {
+			continue
+		}
+		key, ok := configKeysByGitName[strings.TrimPrefix(name, "git-ai.")]
+		if !ok || key == "api_key" {
+			continue
+		}
+		if err := SetValue(cfg, key, string(parts[1])); err != nil {
+			return nil, fmt.Errorf("invalid local Git config %s: %w", name, err)
+		}
+	}
+	return cfg, nil
+}
+
+type gitConfigError struct {
+	output string
+	err    error
+}
+
+func (e *gitConfigError) Error() string {
+	return fmt.Sprintf("git config failed: %s", strings.TrimSpace(e.output))
+}
+func (e *gitConfigError) Unwrap() error { return e.err }
+
+func runGitConfig(repoRoot string, args ...string) error {
+	base := []string{"-C", repoRoot, "config", "--local"}
+	cmd := exec.Command("git", append(base, args...)...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return &gitConfigError{output: string(out), err: err}
+	}
+	return nil
+}
+
+func isGitConfigMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr) && (exitErr.ExitCode() == 1 || exitErr.ExitCode() == 5)
+}
+
+func writeAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".config-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = tmp.Close(); _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
+}
+
+func canonicalPath(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	return filepath.Clean(path)
+}
+
+func oneOf(value string, allowed ...string) bool {
+	for _, candidate := range allowed {
+		if value == candidate {
+			return true
+		}
+	}
+	return false
 }

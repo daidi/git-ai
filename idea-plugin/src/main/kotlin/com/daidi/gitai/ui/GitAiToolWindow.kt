@@ -14,6 +14,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBList
@@ -95,9 +96,10 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
         // Tools section
         val toolsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0))
         toolsPanel.add(createButton(GitAiBundle.message("action.GitAi.SkipNextCommit.text"), AllIcons.Actions.Suspend) {
-            val stateService = project.service<GitAiStateService>()
-            val newState = stateService.state.copy(skipNext = true)
-            Thread { stateService.saveState(newState) }.start()
+            ApplicationManager.getApplication().executeOnPooledThread {
+                GitAiCli.run(project, "skip-next")
+                project.service<GitAiStateService>().refreshNow()
+            }
         })
         toolsPanel.add(createButton(GitAiBundle.message("action.clean.title"), AllIcons.Actions.GC) {
             com.daidi.gitai.actions.CleanCommitsAction.execute(project)
@@ -106,11 +108,16 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
             com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, "com.daidi.gitai.settings")
         })
         toolsPanel.add(createButton(GitAiBundle.message("action.GitAi.Init.text"), AllIcons.General.GearPlain) {
-            val result = GitAiCli.run(project, "init")
-            if (result.success) {
-                Messages.showInfoMessage(project, GitAiBundle.message("action.init.success", result.stdout), GitAiBundle.message("notification.title"))
-            } else {
-                Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", result.stderr), GitAiBundle.message("notification.title"))
+            ApplicationManager.getApplication().executeOnPooledThread {
+                val result = GitAiCli.run(project, "init")
+                project.service<GitAiStateService>().refreshNow()
+                ApplicationManager.getApplication().invokeLater {
+                    if (result.success) {
+                        Messages.showInfoMessage(project, GitAiBundle.message("action.init.success", result.stdout), GitAiBundle.message("notification.title"))
+                    } else {
+                        Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", result.errorText), GitAiBundle.message("notification.title"))
+                    }
+                }
             }
         })
 
@@ -123,7 +130,7 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
         component.add(bottomWrap, BorderLayout.SOUTH)
 
         val stateService = project.service<GitAiStateService>()
-        stateService.addListener { state -> updateUI(state) }
+        stateService.addListener(this) { state -> updateUI(state) }
     }
 
     private fun updateUI(state: GitAiState) {
@@ -136,6 +143,10 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
                 state.isPushing -> {
                     statusLabel.text = GitAiBundle.message("status.pushing")
                     statusLabel.icon = AllIcons.Vcs.Push
+                }
+                state.isFailed -> {
+                    statusLabel.text = GitAiBundle.message("status.failed")
+                    statusLabel.icon = AllIcons.General.Warning
                 }
                 state.hasPendingPush -> {
                     statusLabel.text = GitAiBundle.message("status.pendingPush")
@@ -267,7 +278,7 @@ class GitAiStatsPanel(private val project: Project) : Disposable {
         })
         component.add(toolbar, BorderLayout.NORTH)
         
-        project.service<GitAiStateService>().addListener { state ->
+        project.service<GitAiStateService>().addListener(this) { state ->
             if (isPolishing && state.isIdle) {
                 refreshData()
             }
@@ -290,7 +301,7 @@ class GitAiStatsPanel(private val project: Project) : Disposable {
         htmlViewer.text = """
             <html>
             <body style="font-family: ${com.intellij.util.ui.UIUtil.getLabelFont().family}; text-align: center; margin: 0; padding: 20px;">
-                <div style="font-size: 14px; font-weight: bold; margin-bottom: 24px; color: ' + subColor + ';">$titleText</div>
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 24px; color: $subColor;">$titleText</div>
                 
                 <div style="font-size: 48px; font-weight: bold; color: $accentColor;">
                     ${String.format("%.1f", hours)}<span style="font-size: 20px; color: $subColor;">h</span>
@@ -372,7 +383,7 @@ class GitAiHistoryPanel(private val project: Project) : Disposable {
                 val c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JLabel
                 if (value is CommitLog) {
                     val shortMsg = value.message.lines().firstOrNull()?.take(60) ?: ""
-                    c.text = "<html><code>${value.sha.take(7)}</code> - $shortMsg</html>"
+                    c.text = "<html><code>${StringUtil.escapeXmlEntities(value.sha.take(7))}</code> - ${StringUtil.escapeXmlEntities(shortMsg)}</html>"
                     c.icon = if (value.aiNote != null) AllIcons.Actions.Lightning else AllIcons.Vcs.CommitNode
                 }
                 return c
@@ -403,7 +414,7 @@ class GitAiHistoryPanel(private val project: Project) : Disposable {
         })
         component.add(toolbar, BorderLayout.NORTH)
         
-        project.service<GitAiStateService>().addListener { state ->
+        project.service<GitAiStateService>().addListener(this) { state ->
             if (isPolishing && state.isIdle) {
                 refreshData()
             }
@@ -430,7 +441,7 @@ class GitAiHistoryPanel(private val project: Project) : Disposable {
 
     private fun refreshData() {
         ApplicationManager.getApplication().executeOnPooledThread {
-            val result = com.daidi.gitai.state.GitAiCli.run(project, "log", "--json")
+            val result = com.daidi.gitai.state.GitAiCli.run(project, "log")
             if (result.success) {
                 try {
                     val gson = Gson()

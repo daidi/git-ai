@@ -7,9 +7,15 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/gofrs/flock"
+
+	"github.com/daidi/git-ai/internal/config"
 )
 
-// Record represents a single item in the telemetry log.
+const maxRecords = 10_000
+
+// Record represents a single item in the local telemetry log.
 type Record struct {
 	Timestamp           string `json:"timestamp"`
 	Repo                string `json:"repo"`
@@ -20,97 +26,107 @@ type Record struct {
 	EstimatedTimeSavedS int    `json:"estimated_time_saved_s"`
 }
 
-// Stats holds the in-memory/serializable representation of all records.
 type Stats struct {
 	Records []Record `json:"records"`
 }
 
-var (
-	mutex sync.Mutex
-)
+var mutex sync.Mutex
 
-// saveDir returns the directory where telemetry is stored.
-func saveDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	dir := filepath.Join(home, ".git-ai")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
-	}
-	return dir, nil
+func telemetryPath() string {
+	return filepath.Join(filepath.Dir(config.GlobalConfigPath()), "telemetry.json")
 }
 
-// telemetryPath returns the path to the telemetry.json file.
-func telemetryPath() (string, error) {
-	dir, err := saveDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "telemetry.json"), nil
+func legacyTelemetryPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".git-ai", "telemetry.json")
 }
 
-// Load reads all telemetry records from disk.
+// Load reads an atomic telemetry snapshot from the OS application directory.
 func Load() (*Stats, error) {
-	path, err := telemetryPath()
-	if err != nil {
-		return nil, err
-	}
-
+	path := telemetryPath()
 	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) && os.Getenv("GIT_AI_CONFIG_DIR") == "" {
+		// Preserve statistics from releases <= 1.1.4. The next SaveRecord writes
+		// them to the OS-native application directory.
+		data, err = os.ReadFile(legacyTelemetryPath())
+	}
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &Stats{Records: make([]Record, 0)}, nil
 		}
 		return nil, err
 	}
-
 	var stats Stats
 	if len(data) > 0 {
 		if err := json.Unmarshal(data, &stats); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parse telemetry: %w", err)
 		}
 	}
-
 	if stats.Records == nil {
 		stats.Records = make([]Record, 0)
 	}
-
 	return &stats, nil
 }
 
-// SaveRecord adds a new record thread-safely and writes to disk.
-func SaveRecord(r Record) error {
+// SaveRecord serializes writers across threads and detached CLI processes.
+func SaveRecord(record Record) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	path := telemetryPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	lockPath := path + ".lock"
+	fileLock := flock.New(lockPath)
+	if err := fileLock.Lock(); err != nil {
+		return err
+	}
+	defer func() { _ = fileLock.Unlock() }()
+	_ = os.Chmod(lockPath, 0o600)
+
 	stats, err := Load()
 	if err != nil {
-		// If corrupted, fallback to clean state instead of crashing daemon
-		stats = &Stats{Records: make([]Record, 0)}
+		// Never destroy a corrupt or partially user-recovered telemetry file.
+		return err
 	}
-
-	if r.Timestamp == "" {
-		r.Timestamp = time.Now().Format(time.RFC3339)
+	if record.Timestamp == "" {
+		record.Timestamp = time.Now().Format(time.RFC3339)
 	}
-
-	// Assume 2 minutes average time saved per commit logic matching plan
-	if r.EstimatedTimeSavedS == 0 {
-		r.EstimatedTimeSavedS = 120
+	if record.EstimatedTimeSavedS == 0 {
+		record.EstimatedTimeSavedS = 120
 	}
-
-	stats.Records = append(stats.Records, r)
+	stats.Records = append(stats.Records, record)
+	if len(stats.Records) > maxRecords {
+		stats.Records = stats.Records[len(stats.Records)-maxRecords:]
+	}
 
 	data, err := json.MarshalIndent(stats, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal telemetry: %w", err)
 	}
+	data = append(data, '\n')
+	return writeAtomic(path, data)
+}
 
-	path, err := telemetryPath()
+func writeAtomic(path string, data []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".telemetry-*.tmp")
 	if err != nil {
 		return err
 	}
-
-	return os.WriteFile(path, data, 0o644)
+	tmpPath := tmp.Name()
+	defer func() { _ = tmp.Close(); _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }

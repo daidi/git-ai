@@ -6,13 +6,14 @@ import { t } from './i18n';
 
 /**
  * IDE-side update checker that works independently of the CLI.
- * This ensures users on old CLI versions (that don't write update_available
- * to state.json) still get update notifications from the IDE.
+ * This ensures users on old CLI versions without the status API still get
+ * update notifications from the IDE.
  *
  * Called once during extension activation. Respects a 24h cooldown stored
  * in VS Code globalState to avoid spamming the GitHub API.
  */
 export async function checkForCliUpdate(context: vscode.ExtensionContext): Promise<void> {
+    if (!vscode.workspace.isTrusted) { return; }
     try {
         // Respect 24h cooldown.
         const lastCheck = context.globalState.get<number>('git-ai.lastUpdateCheck', 0);
@@ -64,7 +65,7 @@ function getInstalledCliVersion(): Promise<string | null> {
         let binary = config.get<string>('binaryPath', 'git-ai');
         binary = getExecutablePath(binary);
 
-        cp.exec(`${binary} --version`, { timeout: 5000 }, (err, stdout) => {
+        cp.execFile(binary, ['--version'], { timeout: 5000, windowsHide: true }, (err, stdout) => {
             if (err) {
                 resolve(null);
                 return;

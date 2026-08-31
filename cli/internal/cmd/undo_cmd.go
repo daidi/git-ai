@@ -35,25 +35,40 @@ func runUndo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if s.CurrentStatus == state.StatusPolishing {
+	if s.CurrentStatus == state.StatusPolishing || s.CurrentStatus == state.StatusPushing {
 		return errors.New(i18n.T("err.polishing"))
 	}
 
-	if s.OriginalMsg == "" {
+	if s.OriginalMsg == "" || s.ResultSHA == "" || s.TargetRef == "" {
 		return errors.New(i18n.T("err.no_undo"))
 	}
 
 	Printf("%s", i18n.Sprintf("undo.restoring", s.OriginalMsg))
 
-	if err := git.Amend(s.OriginalMsg); err != nil {
-		return fmt.Errorf("amend failed: %w", err)
-	}
-
-	// Clear the backup.
-	_ = mgr.Save(&state.State{
-		CurrentStatus: state.StatusIdle,
-		LastSHA:       s.LastSHA,
+	var restoredSHA string
+	_, err = mgr.Update(func(current *state.State) (bool, error) {
+		if current.ResultSHA != s.ResultSHA || current.TargetRef != s.TargetRef {
+			return false, errors.New("commit state changed; refusing to undo a different commit")
+		}
+		created, rewriteErr := git.RewriteCommitMessageCAS(current.TargetRef, current.ResultSHA, current.OriginalMsg)
+		if rewriteErr != nil {
+			return false, rewriteErr
+		}
+		restoredSHA = created
+		current.CurrentStatus = state.StatusIdle
+		current.LastSHA = created
+		current.ResultSHA = ""
+		current.OriginalMsg = ""
+		current.PendingPush = nil
+		current.LastError = nil
+		return true, nil
 	})
+	if err != nil {
+		return fmt.Errorf("safe undo failed: %w", err)
+	}
+	if restoredSHA == "" {
+		return errors.New("commit state changed; nothing was rewritten")
+	}
 
 	Printf("%s", i18n.T("undo.done"))
 	return nil

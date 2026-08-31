@@ -3,6 +3,7 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,13 @@ import (
 	"runtime"
 	"strings"
 )
+
+// ErrRefMoved means the target reference no longer points at the commit that
+// git-ai was asked to rewrite. Callers must treat this as a safe no-op.
+var ErrRefMoved = errors.New("target Git reference moved")
+
+// ErrSignedCommit means rewriting would invalidate an existing signature.
+var ErrSignedCommit = errors.New("signed commits are not rewritten automatically")
 
 // GetRepoRoot returns the absolute path to the repository root.
 func GetRepoRoot() (string, error) {
@@ -20,21 +28,36 @@ func GetRepoRoot() (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
-// GetGitDir returns the path to the .git directory.
+// GetGitDir returns the absolute Git directory for the current worktree. Linked
+// worktrees must not share runtime state because each has an independent HEAD.
 func GetGitDir() (string, error) {
-	out, err := runGit("rev-parse", "--git-dir")
+	out, err := runGit("rev-parse", "--absolute-git-dir")
 	if err != nil {
 		return "", err
 	}
-	path := strings.TrimSpace(out)
-	if !filepath.IsAbs(path) {
-		root, err := GetRepoRoot()
-		if err != nil {
-			return "", err
-		}
-		path = filepath.Join(root, path)
+	return filepath.Clean(strings.TrimSpace(out)), nil
+}
+
+// GetHookPath resolves a hook through Git so core.hooksPath and worktrees are
+// handled correctly.
+func GetHookPath(name string) (string, error) {
+	out, err := runGit("rev-parse", "--path-format=absolute", "--git-path", "hooks/"+name)
+	if err != nil {
+		return "", err
 	}
-	return path, nil
+	return filepath.Clean(strings.TrimSpace(out)), nil
+}
+
+// GetHeadRef returns the symbolic branch ref or HEAD for detached checkouts.
+func GetHeadRef() (string, error) {
+	out, err := runGit("symbolic-ref", "-q", "HEAD")
+	if err == nil {
+		return strings.TrimSpace(out), nil
+	}
+	if _, headErr := GetLastCommitSHA(); headErr != nil {
+		return "", headErr
+	}
+	return "HEAD", nil
 }
 
 // GetLastCommitSHA returns the SHA of the last commit (HEAD).
@@ -55,53 +78,36 @@ func GetLastCommitMsg() (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// GetCommitMsg returns the full message for one commit.
+func GetCommitMsg(sha string) (string, error) {
+	out, err := runGit("show", "-s", "--format=%B", sha)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // GetDiff returns the diff introduced by a given commit SHA.
 func GetDiff(sha string) (string, error) {
 	ignores := getIgnoreArgs()
-	args := []string{"diff", sha + "~1.." + sha}
+	args := []string{"show", "--format=", "--no-ext-diff", "--root", sha}
 	if len(ignores) > 0 {
 		args = append(args, "--", ".")
 		args = append(args, ignores...)
 	}
-
-	out, err := runGit(args...)
-	if err != nil {
-		// Might be the initial commit — fallback to diff against empty tree.
-		args = []string{"diff", "--cached", sha}
-		if len(ignores) > 0 {
-			args = append(args, "--", ".")
-			args = append(args, ignores...)
-		}
-		out, err = runGit(args...)
-		if err != nil {
-			return "", err
-		}
-	}
-	return out, nil
+	return runGit(args...)
 }
 
 // GetDiffStat returns a summary of changed files for a commit.
 func GetDiffStat(sha string) (string, error) {
 	ignores := getIgnoreArgs()
-	args := []string{"diff", "--stat", sha + "~1.." + sha}
+	args := []string{"show", "--format=", "--stat", "--root", sha}
 	if len(ignores) > 0 {
 		args = append(args, "--", ".")
 		args = append(args, ignores...)
 	}
 
-	out, err := runGit(args...)
-	if err != nil {
-		args = []string{"diff", "--stat", "--cached", sha}
-		if len(ignores) > 0 {
-			args = append(args, "--", ".")
-			args = append(args, ignores...)
-		}
-		out, err = runGit(args...)
-		if err != nil {
-			return "", err
-		}
-	}
-	return out, nil
+	return runGit(args...)
 }
 
 // getIgnoreArgs returns pathspecs to ignore when generating dicts.
@@ -132,14 +138,71 @@ func getIgnoreArgs() []string {
 	return ignores
 }
 
-// Amend replaces the last commit message. Sets GIT_AI_INTERNAL=true to
-// prevent the post-commit hook from re-triggering.
-func Amend(msg string) error {
-	cmd := exec.Command("git", "commit", "--amend", "-m", msg, "--no-edit", "--allow-empty")
-	cmd.Env = append(os.Environ(), "GIT_AI_INTERNAL=true")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+// RewriteCommitMessageCAS creates a replacement commit object from the target
+// commit and advances targetRef only if it still equals expectedSHA. It never
+// reads from or changes the index/worktree, so staged or unstaged user changes
+// cannot leak into the rewritten commit.
+func RewriteCommitMessageCAS(targetRef, expectedSHA, msg string) (string, error) {
+	if targetRef == "" {
+		return "", errors.New("target ref is empty")
+	}
+	current, err := runGit("rev-parse", targetRef)
+	if err != nil || strings.TrimSpace(current) != expectedSHA {
+		return "", ErrRefMoved
+	}
+
+	raw, err := runGit("cat-file", "-p", expectedSHA)
+	if err != nil {
+		return "", fmt.Errorf("read target commit: %w", err)
+	}
+	for _, line := range strings.Split(raw, "\n") {
+		if line == "" {
+			break
+		}
+		if strings.HasPrefix(line, "gpgsig ") {
+			return "", ErrSignedCommit
+		}
+	}
+
+	meta, err := runGit("show", "-s", "--format=%T%x00%P%x00%an%x00%ae%x00%aI%x00%cn%x00%ce", expectedSHA)
+	if err != nil {
+		return "", fmt.Errorf("read commit metadata: %w", err)
+	}
+	parts := strings.Split(strings.TrimSuffix(meta, "\n"), "\x00")
+	if len(parts) != 7 {
+		return "", errors.New("unexpected commit metadata")
+	}
+	args := []string{"commit-tree", parts[0]}
+	for _, parent := range strings.Fields(parts[1]) {
+		args = append(args, "-p", parent)
+	}
+	args = append(args, "-F", "-")
+	cmd := exec.Command("git", args...)
+	cmd.Stdin = strings.NewReader(msg)
+	cmd.Env = append(os.Environ(),
+		"GIT_AI_INTERNAL=true",
+		"GIT_AUTHOR_NAME="+parts[2],
+		"GIT_AUTHOR_EMAIL="+parts[3],
+		"GIT_AUTHOR_DATE="+parts[4],
+		"GIT_COMMITTER_NAME="+parts[5],
+		"GIT_COMMITTER_EMAIL="+parts[6],
+	)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	created, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("create replacement commit: %s: %w", strings.TrimSpace(stderr.String()), err)
+	}
+	newSHA := strings.TrimSpace(string(created))
+	update := exec.Command("git", "update-ref", "-m", "git-ai: polish commit message", targetRef, newSHA, expectedSHA)
+	update.Env = append(os.Environ(), "GIT_AI_INTERNAL=true")
+	if output, err := update.CombinedOutput(); err != nil {
+		if current, readErr := runGit("rev-parse", targetRef); readErr == nil && strings.TrimSpace(current) != expectedSHA {
+			return "", ErrRefMoved
+		}
+		return "", fmt.Errorf("advance target ref: %s: %w", strings.TrimSpace(string(output)), err)
+	}
+	return newSHA, nil
 }
 
 // AddNotes adds or overwrites git notes for a specific commit.
@@ -154,13 +217,7 @@ func AddNotes(sha string, noteMsg string) error {
 // Stderr is captured and included in the returned error for classification.
 func Push(remote string, refSpecs []string) error {
 	args := []string{"push", remote}
-	// If we have specific refs saved from pre-push, extract the local ref to push.
-	for _, spec := range refSpecs {
-		parts := strings.Fields(spec)
-		if len(parts) >= 1 {
-			args = append(args, parts[0])
-		}
-	}
+	args = append(args, refSpecs...)
 	// Fallback: if no refSpecs, just push current branch.
 	if len(refSpecs) == 0 {
 		args = []string{"push", remote}

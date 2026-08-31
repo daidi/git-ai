@@ -16,6 +16,7 @@ type GeminiClient struct {
 	model   string
 	client  *http.Client
 	logger  *log.Logger
+	debug   bool
 }
 
 type geminiRequest struct {
@@ -93,43 +94,44 @@ func (c *GeminiClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", c.apiKey)
 
-	c.logger.Printf("[DEBUG] >>> HTTP POST %s", url)
-	c.logger.Printf("[DEBUG] >>> Request Body:\n%s", string(bodyBytes))
+	if c.debug {
+		c.logger.Printf("[DEBUG] model request: provider=gemini model=%q payload_bytes=%d", model, len(bodyBytes))
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.logger.Printf("[DEBUG] <<< HTTP Error: %v", err)
-		return "", fmt.Errorf("request timeout: %w", err)
+		return "", classifyTransportError(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", fmt.Errorf("read response: %w", err)
 	}
 
-	c.logger.Printf("[DEBUG] <<< HTTP %d %s", resp.StatusCode, resp.Status)
-	c.logger.Printf("[DEBUG] <<< Response Body:\n%s", string(respBody))
+	if c.debug {
+		c.logger.Printf("[DEBUG] model response: status=%d bytes=%d", resp.StatusCode, len(respBody))
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("gemini API returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
 	}
 
 	var chatResp geminiResponse
 	if err := json.Unmarshal(respBody, &chatResp); err != nil {
-		return "", fmt.Errorf("parse gemini response: %w", err)
+		return "", &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned malformed JSON", Err: err}
 	}
 
 	if chatResp.Error != nil {
-		return "", fmt.Errorf("%s (code %d/%s)", chatResp.Error.Message, chatResp.Error.Code, chatResp.Error.Status)
+		return "", &ProviderError{Kind: ErrorModel, Message: "provider returned a model error"}
 	}
 
 	if len(chatResp.Candidates) == 0 {
-		return "", fmt.Errorf("no candidates in gemini response")
+		return "", &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned no candidates"}
 	}
 
 	if len(chatResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("no parts in gemini candidate content")
+		return "", &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an empty candidate"}
 	}
 
 	return chatResp.Candidates[0].Content.Parts[0].Text, nil

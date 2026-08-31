@@ -28,13 +28,20 @@ release-snapshot:
 # Quick integration test: init in a temp repo.
 test-integration: build
 	@echo "=== Integration Test ==="
-	@TMPDIR=$$(mktemp -d) && \
-	cd $$TMPDIR && \
+	@TEST_SANDBOX=$$(mktemp -d) && \
+	mkdir -p $$TEST_SANDBOX/repo && \
+	cd $$TEST_SANDBOX/repo && \
 	git init && \
+	git config user.name "Git AI Test" && \
+	git config user.email "git-ai@example.invalid" && \
+	export GIT_AI_STATE_DIR=$$TEST_SANDBOX/runtime && \
+	export GIT_AI_CONFIG_DIR=$$TEST_SANDBOX/config && \
 	$$OLDPWD/bin/$(BINARY) init && \
 	echo "test" > test.txt && \
 	git add . && \
-	git commit -m "test commit" && \
-	cat .git/git-ai/state.json && \
+	GIT_AI_SKIP=true git commit -m "test commit" && \
+	$$OLDPWD/bin/$(BINARY) status --json && \
+	test ! -e .git-ai.json && \
+	test ! -e .git/git-ai && \
 	echo "\n=== PASSED ===" && \
-	rm -rf $$TMPDIR
+	rm -rf $$TEST_SANDBOX

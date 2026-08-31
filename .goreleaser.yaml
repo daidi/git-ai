@@ -29,10 +29,12 @@ builds:
 
 archives:
   - id: default
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
@@ -47,16 +49,25 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-brews:
-  - repository:
+homebrew_casks:
+  - name: git-ai
+    repository:
       owner: daidi
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Casks
     homepage: "https://github.com/daidi/git-ai"
     description: "AI-powered Git commit message enhancer"
     license: MIT
-    install: |
-      bin.install "git-ai"
+    binaries:
+      - git-ai
+    url:
+      verified: github.com/daidi/git-ai/
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/git-ai"]
 
 scoops:
   - repository:

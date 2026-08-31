@@ -15,11 +15,12 @@ let statusBar: StatusBarManager | undefined;
 let logViewer: LogViewer | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    // Check if CLI is installed asynchronously
-    checkAndPromptInstall();
-
-    // IDE-side update check (works even with old CLI versions)
-    checkForCliUpdate(context);
+    if (vscode.workspace.isTrusted) {
+        // Executable discovery, downloads, and Git hook changes are disabled in
+        // Restricted Mode. The user must explicitly trust the workspace first.
+        void checkAndPromptInstall();
+        void checkForCliUpdate(context);
+    }
 
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -27,7 +28,12 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const workspaceRoot = workspaceFolders[0].uri.fsPath;
-    autoInitialize(workspaceRoot);
+    if (vscode.workspace.isTrusted) { void autoInitialize(workspaceRoot); }
+    context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(() => {
+        void checkAndPromptInstall();
+        void checkForCliUpdate(context);
+        void autoInitialize(workspaceRoot);
+    }));
 
     // Initialize components.
     statusBar = new StatusBarManager();
@@ -36,11 +42,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register tree view for status.
     const statusTreeProvider = new StatusTreeProvider();
-    vscode.window.registerTreeDataProvider('git-ai.status', statusTreeProvider);
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('git-ai.status', statusTreeProvider));
 
     // Register tree view for AI History.
     const historyTreeProvider = new HistoryTreeProvider(workspaceRoot);
-    vscode.window.registerTreeDataProvider('git-ai.history', historyTreeProvider);
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('git-ai.history', historyTreeProvider));
 
     // Register webview provider for actions panel.
     const actionsProvider = new ActionsWebviewProvider(context.extensionUri, workspaceRoot);
@@ -49,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Register commands.
-    const commands = new CommandManager(workspaceRoot, logViewer);
+    const commands = new CommandManager(workspaceRoot, logViewer, stateWatcher);
     context.subscriptions.push(
         vscode.commands.registerCommand('git-ai.init', () => commands.init()),
         vscode.commands.registerCommand('git-ai.retry', () => commands.retry()),
@@ -62,12 +68,12 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('git-ai.uninstall', () => commands.uninstall()),
         vscode.commands.registerCommand('git-ai.config.test', () => commands.testConfig()),
-        vscode.commands.registerCommand('git-ai.skipNextCommit', () => commands.skipNextCommit(stateWatcher!)),
+        vscode.commands.registerCommand('git-ai.skipNextCommit', () => commands.skipNextCommit()),
         vscode.commands.registerCommand('git-ai.clean', () => commands.clean()),
     );
 
     let isPolishing = false;
-    stateWatcher.onStateChange((state) => {
+    const stateSubscription = stateWatcher.onStateChange((state) => {
         statusBar!.update(state);
         statusTreeProvider.update(state);
         actionsProvider.updateState(state);
@@ -84,6 +90,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         statusBar,
+        logViewer,
+        stateSubscription,
         { dispose: () => stateWatcher?.stop() },
     );
 

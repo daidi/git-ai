@@ -1,5 +1,7 @@
 # Binaries
 cli/bin/
+/cli/git-ai
+/git-ai-test
 *.exe
 *.dll
 *.so
@@ -14,9 +16,11 @@ vendor/
 vscode-extension/node_modules/
 vscode-extension/out/
 vscode-extension/*.vsix
+vscode-extension/resources/codicons/
 
 # IntelliJ
 idea-plugin/.gradle/
+idea-plugin/.intellijPlatform/
 idea-plugin/build/
 idea-plugin/bin/
 idea-plugin/.idea/
@@ -32,9 +36,6 @@ Thumbs.db
 
 # GoReleaser
 dist/
-
-# State (never commit runtime state)
-.git/git-ai/
 
 # Plugin Keys
 idea-plugin/.keys/

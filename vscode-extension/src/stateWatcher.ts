@@ -1,247 +1,134 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as cp from 'child_process';
 import * as vscode from 'vscode';
-import { notifyInfo } from './notifications';
+import { getExecutablePath } from './installer';
+import { notifyInfo, notifyWarning } from './notifications';
 import { t } from './i18n';
 
-/**
- * Represents the git-ai runtime state from state.json.
- */
+export interface OperationError {
+    code: string;
+    category: string;
+    message: string;
+    retryable: boolean;
+    occurred_at: number;
+}
+
 export interface GitAiState {
-    current_status: 'idle' | 'polishing' | 'pushing';
+    current_status: 'idle' | 'polishing' | 'pushing' | 'failed';
     original_msg?: string;
     last_sha?: string;
+    result_sha?: string;
+    target_ref?: string;
+    operation_id?: string;
     pending_push?: {
         remote: string;
-        ref_specs: string[];
+        updates?: Array<{
+            local_ref: string;
+            local_sha: string;
+            remote_ref: string;
+            remote_sha: string;
+        }>;
         timestamp: number;
     };
+    last_error?: OperationError;
     pid?: number;
     skip_next?: boolean;
-    last_error?: {
-        code: string;
-        message: string;
-        fix_hint?: string;
-    };
+    revision?: number;
+    state_path?: string;
+    log_dir?: string;
+    config_path?: string;
+    initialized?: boolean;
 }
 
 type StateChangeCallback = (state: GitAiState) => void;
 
 /**
- * Watches .git/git-ai/state.json for changes and emits updates.
- * Uses a combination of fs.watch (when available) and polling as fallback.
+ * Observes state through the CLI. The extension never creates, mutates, or
+ * assumes paths for runtime files, which keeps it safe for worktrees, remote
+ * workspaces, multi-root layouts, and future storage migrations.
  */
 export class StateWatcher {
-    private statePath: string;
-    private watcher: fs.FSWatcher | undefined;
     private pollTimer: NodeJS.Timeout | undefined;
-    private lastContent: string = '';
+    private pollInFlight = false;
     private callbacks: StateChangeCallback[] = [];
     private currentState: GitAiState = { current_status: 'idle' };
+    private hasLoadedState = false;
 
-    constructor(private workspaceRoot: string) {
-        this.statePath = path.join(workspaceRoot, '.git', 'git-ai', 'state.json');
-    }
+    constructor(private readonly workspaceRoot: string) {}
 
-    /**
-     * Register a callback for state changes.
-     */
-    onStateChange(callback: StateChangeCallback): void {
+    onStateChange(callback: StateChangeCallback): vscode.Disposable {
         this.callbacks.push(callback);
-        // Emit current state immediately.
         callback(this.currentState);
+        return new vscode.Disposable(() => {
+            const index = this.callbacks.indexOf(callback);
+            if (index >= 0) { this.callbacks.splice(index, 1); }
+        });
     }
 
-    /**
-     * Start watching the state file.
-     */
     start(): void {
-        // Initial read.
-        this.readState();
-
-        // Try fs.watch first.
-        try {
-            const dir = path.dirname(this.statePath);
-            if (fs.existsSync(dir)) {
-                this.watcher = fs.watch(dir, (eventType, filename) => {
-                    if (filename === 'state.json') {
-                        this.readState();
-                    }
-                });
-                this.watcher.on('error', () => {
-                    // Fall back to polling on error.
-                    this.startPolling();
-                });
-            }
-        } catch {
-            // fs.watch not available — use polling.
-        }
-
-        // Always start polling as a safety net (handles cases where fs.watch misses events).
-        this.startPolling();
+        if (this.pollTimer) { return; }
+        void this.readState();
+        const configured = vscode.workspace.getConfiguration('git-ai').get<number>('pollingInterval', 1000);
+        const interval = Math.min(60_000, Math.max(500, Number.isFinite(configured) ? configured : 1000));
+        this.pollTimer = setInterval(() => { void this.readState(); }, interval);
     }
 
-    /**
-     * Stop watching.
-     */
     stop(): void {
-        this.watcher?.close();
-        this.watcher = undefined;
         if (this.pollTimer) {
             clearInterval(this.pollTimer);
             this.pollTimer = undefined;
         }
+        this.callbacks = [];
     }
 
-    /**
-     * Get the current state.
-     */
-    getState(): GitAiState {
-        return this.currentState;
-    }
+    getState(): GitAiState { return this.currentState; }
+    getLogDir(): string | undefined { return this.currentState.log_dir; }
 
-    private startPolling(): void {
-        const config = vscode.workspace.getConfiguration('git-ai');
-        const interval = config.get<number>('pollingInterval', 1000);
-
-        this.pollTimer = setInterval(() => {
-            this.readState();
-        }, interval);
-    }
-
-    private readState(): void {
+    private async readState(): Promise<void> {
+        if (this.pollInFlight || !vscode.workspace.isTrusted) { return; }
+        this.pollInFlight = true;
         try {
-            if (!fs.existsSync(this.statePath)) {
-                this.emitIfChanged({ current_status: 'idle' });
-                return;
-            }
-
-            const content = fs.readFileSync(this.statePath, 'utf-8');
-            if (content === this.lastContent) {
-                return; // No change.
-            }
-            this.lastContent = content;
-
-            const state: GitAiState = JSON.parse(content);
+            const config = vscode.workspace.getConfiguration('git-ai');
+            const configuredBinary = config.get<string>('binaryPath', 'git-ai');
+            const binary = getExecutablePath(configuredBinary);
+            const stdout = await execFile(binary, ['status', '--json'], this.workspaceRoot, 5000);
+            const state = JSON.parse(stdout) as GitAiState;
+            if (!state || typeof state.current_status !== 'string') { return; }
             this.emitIfChanged(state);
         } catch {
-            // File might be locked or malformed — ignore.
+            // Installation/update can temporarily make the binary unavailable.
+            // Keep the last known state rather than reporting a false success.
+        } finally {
+            this.pollInFlight = false;
         }
     }
 
     private emitIfChanged(newState: GitAiState): void {
-        if (JSON.stringify(newState) === JSON.stringify(this.currentState)) {
+        if (JSON.stringify(newState) === JSON.stringify(this.currentState)) { return; }
+        const previous = this.currentState;
+        this.currentState = newState;
+        for (const callback of [...this.callbacks]) { callback(newState); }
+
+        if (!this.hasLoadedState) {
+            this.hasLoadedState = true;
             return;
         }
-
-        const prevStatus = this.currentState.current_status;
-        this.currentState = newState;
-
-        // Notify all listeners.
-        for (const cb of this.callbacks) {
-            cb(newState);
+        if (newState.result_sha && newState.result_sha !== previous.result_sha) {
+            notifyInfo(t('notification.polished'));
         }
-
-        // Show VS Code notifications for important transitions.
-        if (prevStatus === 'polishing' && newState.current_status === 'idle') {
-            if (newState.last_error) {
-                this.showPushErrorNotification(newState.last_error);
-            } else {
-                notifyInfo(t('notification.polished'));
-            }
-            this.checkForUpdatesInLog();
+        if (previous.current_status === 'pushing' && newState.current_status === 'idle' && !newState.pending_push) {
+            notifyInfo(t('notification.pushCompleted'));
         }
-        if (prevStatus === 'pushing' && newState.current_status === 'idle') {
-            if (newState.last_error) {
-                this.showPushErrorNotification(newState.last_error);
-            } else {
-                notifyInfo(t('notification.pushCompleted'));
-            }
+        if (newState.current_status === 'failed' && newState.last_error?.occurred_at !== previous.last_error?.occurred_at) {
+            notifyWarning(newState.last_error?.message ?? 'Git AI stopped safely; the commit and workspace were left unchanged.');
         }
     }
+}
 
-    /**
-     * Show an actionable error notification with fix buttons for push auth failures.
-     */
-    private showPushErrorNotification(error: NonNullable<GitAiState['last_error']>): void {
-        const fixHint = error.fix_hint;
-        const buttons: string[] = [];
-        if (fixHint) {
-            buttons.push(t('notification.runFix'));
-        }
-        buttons.push(t('notification.openTerminal'));
-
-        void vscode.window.showWarningMessage(
-            `⚠️ ${error.message}`,
-            ...buttons
-        ).then(selection => {
-            if (selection === t('notification.runFix') && fixHint) {
-                const terminal = vscode.window.createTerminal('Git AI Fix');
-                terminal.show();
-                terminal.sendText(fixHint);
-            } else if (selection === t('notification.openTerminal')) {
-                const terminal = vscode.window.createTerminal('Git AI');
-                terminal.show();
-            }
+function execFile(binary: string, args: string[], cwd: string, timeout: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+        cp.execFile(binary, args, { cwd, timeout, windowsHide: true }, (error, stdout) => {
+            if (error) { reject(error); return; }
+            resolve(stdout.trim());
         });
-    }
-
-    /**
-     * Scan the latest daemon.log for an update notice safely without HTTP overhead.
-     */
-    private checkForUpdatesInLog(): void {
-        try {
-            const logDir = path.join(this.workspaceRoot, '.git', 'git-ai', 'logs');
-            if (!fs.existsSync(logDir)) return;
-
-            const files = fs.readdirSync(logDir)
-                .filter(f => f.endsWith('.log'))
-                .sort()
-                .reverse();
-            
-            if (files.length === 0) return;
-
-            const latestLog = path.join(logDir, files[0]);
-            let content = fs.readFileSync(latestLog, 'utf-8');
-            
-            // Strip ANSI codes
-            content = content.replace(/\x1b\[[0-9;]*m/g, '');
-
-            const updateMatch = content.match(/Update available for git-ai: (v[\d\.]+) → (v[\d\.]+)/);
-            if (updateMatch) {
-                const current = updateMatch[1];
-                const latest = updateMatch[2];
-                
-                vscode.window.showInformationMessage(
-                    t('notification.updateAvailable', current, latest),
-                    t('notification.updateNow'),
-                    t('notification.updateDismiss')
-                ).then(async selection => {
-                    if (selection === t('notification.updateNow')) {
-                        // Dynamically import to avoid circular dependencies if any
-                        const { installCliUpdate } = await import('./installer');
-                        await installCliUpdate();
-                    }
-                });
-            }
-        } catch {
-            // Ignore fs errors
-        }
-    }
-
-    /**
-     * Update and save the state to state.json.
-     */
-    saveState(newState: GitAiState): void {
-        try {
-            const dir = path.dirname(this.statePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
-            fs.writeFileSync(this.statePath, JSON.stringify(newState, null, 2), 'utf-8');
-            this.emitIfChanged(newState);
-        } catch {
-            // Ignore write errors.
-        }
-    }
+    });
 }

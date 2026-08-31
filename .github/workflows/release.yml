@@ -39,9 +39,11 @@ jobs:
   # ── VS Code Extension ───────────────────────────────────
   vscode-release:
     name: VS Code — Package
+    needs: cli-release
     runs-on: ubuntu-latest
     env:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     defaults:
       run:
         working-directory: vscode-extension
@@ -86,6 +88,7 @@ jobs:
   # ── IntelliJ Plugin ────────────────────────────────────
   idea-release:
     name: IntelliJ — Package
+    needs: cli-release
     runs-on: ubuntu-latest
     env:
       PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
@@ -104,8 +107,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Plugin
-        run: ./gradlew buildPlugin
+      - name: Build and verify plugin
+        run: ./gradlew buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}

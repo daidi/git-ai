@@ -2,115 +2,185 @@ package com.daidi.gitai.state
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import java.io.BufferedReader
+import com.intellij.util.concurrency.AppExecutorUtil
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.InputStreamReader
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Runs git-ai CLI commands from within the IDE.
- * All business logic stays in the CLI — the plugin only observes and delegates.
+ * Thin, bounded process adapter for the git-ai CLI.
+ *
+ * The CLI remains the only component that reads or writes runtime state and
+ * configuration. Callers must invoke this adapter from a background thread.
  */
 object GitAiCli {
     private val log = Logger.getInstance(GitAiCli::class.java)
+    private const val MAX_OUTPUT_BYTES = 4 * 1024 * 1024
+    private val missingNotificationShown = AtomicBoolean(false)
+
+    @Volatile
+    private var cachedExecutable: String? = null
 
     data class Result(
         val success: Boolean,
         val stdout: String,
         val stderr: String,
-    )
-
-    /**
-     * Run a git-ai command in the project directory.
-     */
-    fun run(project: Project, vararg args: String): Result {
-        val basePath = project.basePath ?: return Result(false, "", "No project base path")
-        val exe = getExecutablePath() 
-        if (exe == null) {
-            GitAiInstaller.notifyMissingCli(project)
-            return Result(false, "", "Git AI CLI missing")
-        }
-        return execute(basePath, exe, *args)
+    ) {
+        val errorText: String get() = stderr.ifBlank { stdout }.ifBlank { "Command failed" }
     }
 
-    /**
-     * Run a raw git command with GIT_AI_INTERNAL=true.
-     */
+    fun run(project: Project, vararg args: String): Result =
+        runCommand(project, args, input = null, timeoutSeconds = 45, notifyIfMissing = true)
+
+    /** Used by polling so a missing CLI cannot produce one notification per tick. */
+    fun runSilently(project: Project, vararg args: String): Result =
+        runCommand(project, args, input = null, timeoutSeconds = 8, notifyIfMissing = false)
+
+    fun runWithInput(project: Project, input: String, vararg args: String): Result =
+        runCommand(project, args, input = input, timeoutSeconds = 45, notifyIfMissing = true)
+
     fun runGitInternal(project: Project, vararg args: String): Result {
         val basePath = project.basePath ?: return Result(false, "", "No project base path")
-        // git doesn't need resolution but the underlying hook will need git-ai.
-        return execute(basePath, "git", *args, env = mapOf("GIT_AI_INTERNAL" to "true"))
+        return execute(
+            workingDir = basePath,
+            command = "git",
+            args = args,
+            env = mapOf("GIT_AI_INTERNAL" to "true"),
+            timeoutSeconds = 45,
+        )
+    }
+
+    fun invalidateExecutableCache() {
+        cachedExecutable = null
+        missingNotificationShown.set(false)
+    }
+
+    private fun runCommand(
+        project: Project,
+        args: Array<out String>,
+        input: String?,
+        timeoutSeconds: Long,
+        notifyIfMissing: Boolean,
+    ): Result {
+        val basePath = project.basePath ?: return Result(false, "", "No project base path")
+        val executable = getExecutablePath()
+        if (executable == null) {
+            if (notifyIfMissing && missingNotificationShown.compareAndSet(false, true)) {
+                GitAiInstaller.notifyMissingCli(project)
+            }
+            return Result(false, "", "Git AI CLI is not installed")
+        }
+        return execute(basePath, executable, args, input = input, timeoutSeconds = timeoutSeconds)
     }
 
     private fun getExecutablePath(): String? {
-        val isWin = System.getProperty("os.name").lowercase().contains("win")
-        val exeName = if (isWin) "git-ai.exe" else "git-ai"
-        
-        // 1. Check local download path
+        cachedExecutable?.let { cached ->
+            if (!File(cached).isAbsolute || isExecutable(File(cached))) return cached
+            cachedExecutable = null
+        }
+
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        val executableName = if (isWindows) "git-ai.exe" else "git-ai"
         val homeDir = System.getProperty("user.home")
-        val localBin = File(homeDir, ".git-ai/bin/$exeName")
-        if (localBin.exists() && localBin.canExecute()) {
-            return localBin.absolutePath
-        }
-
-        // 2. Check if available in PATH
-        try {
-            val pb = ProcessBuilder(exeName, "--version")
-            val process = pb.start()
-            if (process.waitFor(5, TimeUnit.SECONDS)) {
-                return exeName
-            }
-        } catch (_: Exception) {}
-
-        // 3. Fallback manually to common macOS/Linux paths for GUI apps that lack PATH
-        val commonPaths = listOf(
-            "/opt/homebrew/bin/$exeName",
-            "/usr/local/bin/$exeName",
-            "$homeDir/go/bin/$exeName",
-            "$homeDir/.cargo/bin/$exeName",
-            "/usr/bin/$exeName"
+        val candidates = listOf(
+            File(homeDir, ".git-ai/bin/$executableName"),
+            File("/opt/homebrew/bin/$executableName"),
+            File("/usr/local/bin/$executableName"),
+            File(homeDir, "go/bin/$executableName"),
+            File(homeDir, ".cargo/bin/$executableName"),
+            File("/usr/bin/$executableName"),
         )
-        for (p in commonPaths) {
-            val f = File(p)
-            if (f.exists() && f.canExecute()) {
-                return f.absolutePath
-            }
+        candidates.firstOrNull(::isExecutable)?.absolutePath?.let {
+            cachedExecutable = it
+            return it
         }
 
+        // GUI-launched IDEs often have a reduced PATH, but retain it as a final
+        // fallback for package-manager and user-specific installations.
+        if (probeExecutable(executableName)) {
+            cachedExecutable = executableName
+            return executableName
+        }
         return null
+    }
+
+    private fun isExecutable(file: File): Boolean =
+        file.isFile && (System.getProperty("os.name").lowercase().contains("win") || file.canExecute())
+
+    private fun probeExecutable(command: String): Boolean = try {
+        val process = ProcessBuilder(command, "--version")
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+        val exited = process.waitFor(5, TimeUnit.SECONDS)
+        if (!exited) process.destroyForcibly()
+        exited && process.exitValue() == 0
+    } catch (_: Exception) {
+        false
     }
 
     private fun execute(
         workingDir: String,
         command: String,
-        vararg args: String,
+        args: Array<out String>,
+        input: String? = null,
         env: Map<String, String> = emptyMap(),
+        timeoutSeconds: Long,
     ): Result {
         return try {
-            val pb = ProcessBuilder(command, *args)
-            pb.directory(File(workingDir))
-            pb.environment().putAll(env)
-            pb.redirectErrorStream(false)
+            val processBuilder = ProcessBuilder(listOf(command) + args)
+                .directory(File(workingDir))
+                .redirectErrorStream(false)
+            processBuilder.environment().putAll(env)
+            val process = processBuilder.start()
 
-            val process = pb.start()
+            val executor = AppExecutorUtil.getAppExecutorService()
+            val stdoutFuture = executor.submit<String> { readLimited(process.inputStream) }
+            val stderrFuture = executor.submit<String> { readLimited(process.errorStream) }
 
-            val stdout = BufferedReader(InputStreamReader(process.inputStream)).readText()
-            val stderr = BufferedReader(InputStreamReader(process.errorStream)).readText()
-
-            val exited = process.waitFor(30, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroyForcibly()
-                return Result(false, stdout, "Process timed out")
+            process.outputStream.use { stream ->
+                if (input != null) {
+                    stream.write(input.toByteArray(StandardCharsets.UTF_8))
+                    stream.flush()
+                }
             }
 
-            Result(
-                success = process.exitValue() == 0,
-                stdout = stdout.trim(),
-                stderr = stderr.trim(),
-            )
+            val exited = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroy()
+                if (!process.waitFor(1, TimeUnit.SECONDS)) process.destroyForcibly()
+            }
+
+            val stdout = stdoutFuture.get(3, TimeUnit.SECONDS).trim()
+            val stderr = stderrFuture.get(3, TimeUnit.SECONDS).trim()
+            if (!exited) {
+                Result(false, stdout, "Command timed out after ${timeoutSeconds}s")
+            } else {
+                Result(process.exitValue() == 0, stdout, stderr)
+            }
         } catch (e: Exception) {
-            log.warn("Command failed: $command ${args.joinToString(" ")}", e)
-            Result(false, "", e.message ?: "Unknown error")
+            log.warn("Git AI command execution failed", e)
+            Result(false, "", e.message ?: "Unknown command error")
         }
+    }
+
+    private fun readLimited(stream: InputStream): String {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        var truncated = false
+        stream.use {
+            while (true) {
+                val read = it.read(buffer)
+                if (read < 0) break
+                val remaining = MAX_OUTPUT_BYTES - output.size()
+                if (remaining > 0) output.write(buffer, 0, minOf(read, remaining))
+                if (read > remaining) truncated = true
+            }
+        }
+        val text = output.toString(StandardCharsets.UTF_8)
+        return if (truncated) "$text\n[output truncated]" else text
     }
 }

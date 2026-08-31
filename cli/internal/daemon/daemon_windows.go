@@ -17,12 +17,12 @@ const _DETACHED_PROCESS = 0x00000008
 // startBackground on Windows uses CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS
 // to spawn a background process without a console window.
 func startBackground(gitAiBinary string, args []string, logDir string) (int, error) {
-	logFile := filepath.Join(logDir, fmt.Sprintf("%d.log", time.Now().Unix()))
-	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	logFile := filepath.Join(logDir, fmt.Sprintf("%d.log", time.Now().UnixNano()))
+	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return 0, fmt.Errorf("open log file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	cmd := exec.Command(gitAiBinary, args...)
 	cmd.Env = SanitizedEnv()

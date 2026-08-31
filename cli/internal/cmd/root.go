@@ -33,12 +33,14 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 
 	Version: version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip git root detection for commands that don't need it.
-		// Including the root command itself if run with no args (which shows help).
+		// Config commands may run outside a repository, but when invoked inside one
+		// they still need the repository root for local overrides. Discover it on a
+		// best-effort basis instead of marking the whole command tree as git-free.
 		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai" || cmd.Name() == "update"
+		isConfig := false
 		for c := cmd; c != nil; c = c.Parent() {
 			if c.Name() == "config" {
-				skipGit = true
+				isConfig = true
 				break
 			}
 		}
@@ -46,7 +48,15 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 		// Initialize i18n as early as possible.
 		// Try to load config for ui_language; if unavailable, i18n auto-detects from env.
 		var uiLang string
-		if !skipGit {
+		if isConfig {
+			if root, err := git.GetRepoRoot(); err == nil {
+				gitRoot = root
+			}
+			cfg, _ := config.Load(gitRoot)
+			if cfg != nil {
+				uiLang = cfg.UILanguage
+			}
+		} else if !skipGit {
 			root, err := git.GetRepoRoot()
 			if err != nil {
 				return fmt.Errorf("not inside a git repository: %w", err)

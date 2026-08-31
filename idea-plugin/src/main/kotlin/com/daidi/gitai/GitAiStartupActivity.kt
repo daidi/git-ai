@@ -12,38 +12,40 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.io.HttpRequests
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
-import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Starts the state watcher when the project opens and checks initialization.
  */
 class GitAiStartupActivity : ProjectActivity {
     private val log = Logger.getInstance(GitAiStartupActivity::class.java)
+    private val initializationPrompted = AtomicBoolean(false)
 
     override suspend fun execute(project: Project) {
         val stateService = project.service<GitAiStateService>()
         stateService.startWatching()
-
-        checkAndPromptInitialization(project)
+        stateService.addListener(stateService) { state ->
+            // statePath is populated only after a successful CLI query, so an
+            // ordinary non-Git project or a missing CLI never gets a false prompt.
+            if (state.statePath != null && !state.initialized && initializationPrompted.compareAndSet(false, true)) {
+                promptInitialization(project)
+            }
+        }
 
         // IDE-side update check (works even with old CLI versions)
         checkForCliUpdate(project)
     }
 
-    private fun checkAndPromptInitialization(project: Project) {
-        val basePath = project.basePath ?: return
-        val gitDir = File(basePath, ".git")
-        if (!gitDir.exists() || !gitDir.isDirectory) return
-
-        val hookFile = File(gitDir, "hooks/post-commit")
-        val isHooked = hookFile.exists() && hookFile.readText().contains("git-ai hook post-commit")
-
-        if (!isHooked) {
-            ApplicationManager.getApplication().invokeLater {
+    private fun promptInitialization(project: Project) {
+        ApplicationManager.getApplication().invokeLater({
+            if (project.isDisposed) return@invokeLater
                 val result = Messages.showYesNoDialog(
                     project,
                     GitAiBundle.message("startup.prompt.message"),
@@ -53,17 +55,27 @@ class GitAiStartupActivity : ProjectActivity {
                     Messages.getInformationIcon()
                 )
                 if (result == Messages.YES) {
-                    com.daidi.gitai.state.GitAiCli.run(project, "init")
+                    ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.GitAi.Init.text"), false) {
+                        override fun run(indicator: ProgressIndicator) {
+                            val initResult = GitAiCli.run(project, "init")
+                            if (!initResult.success) {
+                                ApplicationManager.getApplication().invokeLater({
+                                    if (!project.isDisposed) {
+                                        Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", initResult.errorText), GitAiBundle.message("notification.title"))
+                                    }
+                                }, project.disposed)
+                            }
+                            project.service<GitAiStateService>().refreshNow()
+                        }
+                    })
                 }
-            }
-        }
+        }, project.disposed)
     }
 
     /**
      * Independently checks for CLI updates by running `git-ai --version`
      * and comparing against the latest GitHub release.
-     * This works even if the user has an old CLI that doesn't write
-     * update_available to state.json.
+     * This works even if the user has an old CLI without the status API.
      */
     private fun checkForCliUpdate(project: Project) {
         ApplicationManager.getApplication().executeOnPooledThread {
@@ -89,6 +101,8 @@ class GitAiStartupActivity : ProjectActivity {
 
                 // 2. Fetch latest release.
                 val json = HttpRequests.request("https://git-ai.codegg.org/releases/latest")
+                    .connectTimeout(10_000)
+                    .readTimeout(10_000)
                     .readString()
                 val release = Gson().fromJson(json, ReleaseInfo::class.java)
                 val latestVersion = release.tagName.removePrefix("v")
@@ -139,4 +153,3 @@ class GitAiStartupActivity : ProjectActivity {
         @SerializedName("tag_name") val tagName: String = ""
     )
 }
-

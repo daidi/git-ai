@@ -73,14 +73,21 @@ export class LogViewer implements vscode.Disposable {
             if (!fs.existsSync(this.currentFile)) { return; }
 
             const stat = fs.statSync(this.currentFile);
-            if (stat.size <= this.lastReadPosition) { return; }
+            if (stat.size < this.lastReadPosition) {
+                this.lastReadPosition = 0; // The daemon log was rotated/truncated.
+            }
+            if (stat.size === this.lastReadPosition) { return; }
 
             const fd = fs.openSync(this.currentFile, 'r');
-            const buffer = Buffer.alloc(stat.size - this.lastReadPosition);
-            fs.readSync(fd, buffer, 0, buffer.length, this.lastReadPosition);
-            fs.closeSync(fd);
+            const bytesToRead = Math.min(stat.size - this.lastReadPosition, 1024 * 1024);
+            const buffer = Buffer.alloc(bytesToRead);
+            try {
+                fs.readSync(fd, buffer, 0, buffer.length, this.lastReadPosition);
+            } finally {
+                fs.closeSync(fd);
+            }
 
-            this.lastReadPosition = stat.size;
+            this.lastReadPosition += bytesToRead;
             this.outputChannel.append(buffer.toString('utf-8'));
         } catch {
             // File might be locked.

@@ -41,7 +41,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
     override fun install(statusBar: StatusBar) {
         this.statusBar = statusBar
         val stateService = project.service<GitAiStateService>()
-        stateService.addListener { state ->
+        stateService.addListener(this) { state ->
             currentState = state
             statusBar.updateWidget(ID())
         }
@@ -53,6 +53,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
         return when {
             currentState.isPolishing -> GitAiBundle.message("status.polishing")
             currentState.isPushing -> GitAiBundle.message("status.pushing")
+            currentState.isFailed -> GitAiBundle.message("status.failed")
             currentState.hasPendingPush -> GitAiBundle.message("status.pendingPush")
             else -> "Git AI"
         }
@@ -62,6 +63,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
         return when {
             currentState.isPolishing -> com.intellij.ui.AnimatedIcon.Default.INSTANCE
             currentState.isPushing -> com.intellij.ui.AnimatedIcon.Default.INSTANCE
+            currentState.isFailed -> AllIcons.General.Warning
             currentState.hasPendingPush -> AllIcons.Actions.Suspend
             else -> AllIcons.Actions.Checked
         }
@@ -73,6 +75,7 @@ class GitAiStatusWidget(private val project: Project) : StatusBarWidget,
         return when {
             currentState.isPolishing -> GitAiBundle.message("widget.tooltip.polishing", currentState.lastSha?.take(8) ?: "")
             currentState.isPushing -> GitAiBundle.message("widget.tooltip.pushing", currentState.pendingPush?.remote ?: "origin")
+            currentState.isFailed -> GitAiBundle.message("widget.tooltip.failed", currentState.lastError?.message.orEmpty())
             currentState.hasPendingPush -> GitAiBundle.message("widget.tooltip.pendingPush", currentState.pendingPush?.remote ?: "origin")
             else -> GitAiBundle.message("widget.tooltip.idle")
         }

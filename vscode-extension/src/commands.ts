@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
 import { LogViewer } from './logViewer';
 import { notifyInfo, notifyError, notifyWarning } from './notifications';
 import { getExecutablePath } from './installer';
 import { t } from './i18n';
+import { StateWatcher } from './stateWatcher';
 
 /**
  * Manages all git-ai commands callable from the command palette.
@@ -48,6 +47,7 @@ export class CommandManager {
     constructor(
         private workspaceRoot: string,
         private logViewer: LogViewer,
+        private stateWatcher: StateWatcher,
     ) {}
 
     /**
@@ -119,32 +119,9 @@ export class CommandManager {
      * Cancel the currently running AI polishing daemon.
      */
     async cancel(): Promise<void> {
-        try {
-            const statePath = path.join(this.workspaceRoot, '.git', 'git-ai', 'state.json');
-            if (!fs.existsSync(statePath)) {
-                notifyWarning(t('cmd.cancel.noState'));
-                return;
-            }
-
-            const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-            if (state.pid && state.current_status === 'polishing') {
-                try {
-                    process.kill(state.pid, 'SIGTERM');
-                } catch {
-                    // Process may already be dead.
-                }
-
-                // Reset state.
-                const resetState = { current_status: 'idle', original_msg: state.original_msg, last_sha: state.last_sha };
-                fs.writeFileSync(statePath, JSON.stringify(resetState, null, 2));
-
-                notifyInfo(t('cmd.cancel.success'));
-            } else {
-                notifyInfo(t('cmd.cancel.noPolishing'));
-            }
-        } catch (err) {
-            notifyError(t('cmd.cancel.failed', String(err)));
-        }
+        const result = await this.runGitAi(['cancel']);
+        if (result.success) { notifyInfo(result.output || t('cmd.cancel.success')); }
+        else { notifyError(t('cmd.cancel.failed', result.error)); }
     }
 
     /**
@@ -160,22 +137,8 @@ export class CommandManager {
         await vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: t('cmd.push.progress') },
             async () => {
-                // Run git push directly with GIT_AI_INTERNAL to bypass hook.
-                const result = await this.runCommand('git', ['push'], {
-                    GIT_AI_INTERNAL: 'true',
-                });
+                const result = await this.runGitAi(['push']);
                 if (result.success) {
-                    // Clear pending push from state.
-                    try {
-                        const statePath = path.join(this.workspaceRoot, '.git', 'git-ai', 'state.json');
-                        if (fs.existsSync(statePath)) {
-                            const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-                            delete state.pending_push;
-                            state.current_status = 'idle';
-                            fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
-                        }
-                    } catch { /* ignore */ }
-
                     notifyInfo(t('cmd.push.success'));
                 } else {
                     notifyError(t('cmd.push.failed', result.error));
@@ -188,18 +151,18 @@ export class CommandManager {
      * Show the git-ai log output channel with the latest daemon log.
      */
     async showLogs(): Promise<void> {
-        const logDir = path.join(this.workspaceRoot, '.git', 'git-ai', 'logs');
+        const logDir = this.stateWatcher.getLogDir();
+        if (!logDir) { notifyWarning(t('logViewer.noDir')); return; }
         this.logViewer.showLatest(logDir);
     }
 
     /**
      * Skip AI polishing for the next commit/push.
      */
-    async skipNextCommit(stateWatcher: import('./stateWatcher').StateWatcher): Promise<void> {
-        const currentState = stateWatcher.getState();
-        const newState = { ...currentState, skip_next: true };
-        stateWatcher.saveState(newState);
-        notifyInfo(t('cmd.skipNext.success'));
+    async skipNextCommit(): Promise<void> {
+        const result = await this.runGitAi(['skip-next']);
+        if (result.success) { notifyInfo(t('cmd.skipNext.success')); }
+        else { notifyError(result.error); }
     }
 
     /**
@@ -223,6 +186,9 @@ export class CommandManager {
      * Run a git-ai CLI command.
      */
     private runGitAi(args: string[]): Promise<{ success: boolean; output: string; error: string }> {
+        if (!vscode.workspace.isTrusted) {
+            return Promise.resolve({ success: false, output: '', error: 'Git AI commands are disabled in Restricted Mode.' });
+        }
         const config = vscode.workspace.getConfiguration('git-ai');
         let binary = config.get<string>('binaryPath', 'git-ai');
         binary = getExecutablePath(binary);
@@ -242,16 +208,42 @@ export class CommandManager {
             const proc = cp.spawn(cmd, args, {
                 cwd: this.workspaceRoot,
                 env,
+                windowsHide: true,
             });
 
             let stdout = '';
             let stderr = '';
+            let outputBytes = 0;
+            const maxOutputBytes = 5 * 1024 * 1024;
 
-            proc.stdout?.on('data', (data) => { stdout += data.toString(); });
-            proc.stderr?.on('data', (data) => { stderr += data.toString(); });
+            const appendOutput = (target: 'stdout' | 'stderr', data: Buffer) => {
+                outputBytes += data.length;
+                if (outputBytes > maxOutputBytes) {
+                    proc.kill();
+                    finish({ success: false, output: stdout.trim(), error: 'Command output exceeded the 5 MB safety limit' });
+                    return;
+                }
+                if (target === 'stdout') { stdout += data.toString(); }
+                else { stderr += data.toString(); }
+            };
+            proc.stdout?.on('data', (data: Buffer) => appendOutput('stdout', data));
+            proc.stderr?.on('data', (data: Buffer) => appendOutput('stderr', data));
+
+            let settled = false;
+            let timer: NodeJS.Timeout | undefined;
+            const finish = (result: { success: boolean; output: string; error: string }) => {
+                if (settled) { return; }
+                settled = true;
+                if (timer) { clearTimeout(timer); }
+                resolve(result);
+            };
+            timer = setTimeout(() => {
+                proc.kill();
+                finish({ success: false, output: stdout.trim(), error: 'Command timed out' });
+            }, 60_000);
 
             proc.on('close', (code) => {
-                resolve({
+                finish({
                     success: code === 0,
                     output: stdout.trim(),
                     error: stderr.trim(),
@@ -259,7 +251,7 @@ export class CommandManager {
             });
 
             proc.on('error', (err) => {
-                resolve({
+                finish({
                     success: false,
                     output: '',
                     error: err.message,

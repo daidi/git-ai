@@ -6,7 +6,10 @@ import (
 	"github.com/daidi/git-ai/internal/hooks"
 )
 
-var hookDaemon bool
+var (
+	hookDaemon      bool
+	hookOperationID string
+)
 
 var hookCmd = &cobra.Command{
 	Use:    "hook",
@@ -18,7 +21,7 @@ var hookPostCommitCmd = &cobra.Command{
 	Use:   "post-commit",
 	Short: "Handle post-commit hook",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return hooks.RunPostCommit(hookDaemon)
+		return hooks.RunPostCommit(hookDaemon, hookOperationID)
 	},
 }
 
@@ -28,15 +31,20 @@ var hookPrePushCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		remote := "origin"
+		remoteURL := ""
 		if len(args) >= 1 {
 			remote = args[0]
 		}
-		return hooks.RunPrePush(remote)
+		if len(args) >= 2 {
+			remoteURL = args[1]
+		}
+		return hooks.RunPrePush(remote, remoteURL)
 	},
 }
 
 func init() {
 	hookPostCommitCmd.Flags().BoolVar(&hookDaemon, "daemon", false, "Run in daemon mode (internal)")
+	hookPostCommitCmd.Flags().StringVar(&hookOperationID, "operation-id", "", "Recorded operation id (internal)")
 	hookCmd.AddCommand(hookPostCommitCmd)
 	hookCmd.AddCommand(hookPrePushCmd)
 	rootCmd.AddCommand(hookCmd)

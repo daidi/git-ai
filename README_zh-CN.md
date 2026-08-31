@@ -193,20 +193,20 @@ git push
 # ⏳ git-ai: AI 正在润色，推送已排队 —— 完成后将自动推送。
 
 # 5. 随时查看状态
-git log -1
-# 显示: [⏳] 修个bug (润色中)
-# 然后:  fix(auth): resolve session timeout on mobile devices
+git-ai status
+# 润色过程中 Git 始终保留原始提交信息；成功后才原子切换到新提交。
 
-# 6. 如果润色卡住（极少发生），手动恢复
-git-ai recover
-# ✅ 恢复完成。
+# 6. 网络或模型异常时，原提交不会被修改；恢复后可安全重试
+git-ai retry
 ```
 
 就这么简单！你的提交信息现在永远都是干净、精准、符合规范的，无需任何等待。
 
 ## ⚙️ 模型与配置
 
-git-ai 支持分层配置系统：**环境变量 → 项目级 (`.git-ai.json`) → 全局级 (`~/.config/git-ai/config.json`) → 默认值**。
+git-ai 支持分层配置系统：**环境变量 → 仓库级（`.git/config` 中的 `git-ai.*`）→ 操作系统应用配置目录中的用户级配置 → 默认值**。API Key 只能保存在用户级配置中。为了兼容 1.1.4 及更早版本，旧 `.git-ai.json` 仍可只读迁移，但新版本绝不会创建或修改这个工作区文件。
+
+运行状态和日志同样保存在操作系统的用户缓存目录。除用户明确安装的 Git Hook 与 `.git/config` 覆盖项外，Git AI 不会在项目或工作区写入应用文件。
 
 > 💡 **强烈建议**：使用 **快速模型**（flash/mini/turbo 系列）。它们成本降低 10 倍、响应时间约 500ms，对于提交信息润色完全够用。绝大多数情况下你不会感到任何延迟。
 
@@ -260,7 +260,7 @@ git-ai config set base_url http://localhost:11434 --global
 
 ## 🏗️ 架构与工作原理
 
-我们采用 **Monorepo** 架构，将 CLI 后台引擎与不同 IDE 平台的前端插件进行了解耦，并通过共享 `.git/git-ai/state.json` 的无状态文件机制进行通信。
+我们采用 **Monorepo** 架构，将 CLI 后台引擎与不同 IDE 平台的前端插件解耦。CLI 是唯一的持久化写入方；插件通过 `git-ai status --json` 查询状态，并将操作与配置写入委托给 CLI。
 
 ```
 git commit -m "修个bug"
@@ -268,21 +268,22 @@ git commit -m "修个bug"
         ▼
    [post-commit 钩子]
         │
-        ├── 派生后台守护进程（极速脱离终端）
+        ├── 记录精确 SHA/ref 并派生后台守护进程
         │    │
-        │    ├── 立即标记: git commit --amend -m "[⏳] 修个bug"
-        │    ├── 检测 diff 并在协程调用 LLM
-        │    ├── 成功时: git commit --amend -m "fix(auth): ..."
-        │    ├── 失败时: 回滚到 "修个bug" (无 [⏳])
+        │    ├── LLM 运行期间不修改 Git、暂存区或工作区
+        │    ├── 对瞬时网络/供应商错误执行有界重试
+        │    ├── 使用原提交的 tree/parents 创建替代提交
+        │    ├── 仅当 ref 仍指向原 SHA 时才原子更新
+        │    ├── 失败或 ref 已移动：安全退出并记录可操作错误
         │    ├── 若检测到排队推送中 → 自动 push
-        │    └── 通知 IDE 插件更新状态 / 发送系统气泡提醒
+        │    └── 更新外部应用状态 / 通知 IDE 与系统
         │
         └── 同步退出终端拦截 → 你继续写代码
 ```
 
-- **`cli/` (Go 1.23+)**：处理 `post-commit` / `pre-push` 钩子的绑定、守护进程派发、LLM 逻辑增强重写。
-- **`idea-plugin/` (Kotlin)**：利用 JetBrains VFS 机制非阻塞监听 `state.json`，在 UI 侧回显状态。
-- **`vscode-extension/` (TS)**：原生 VS Code UI/TreeView，利用 FS Polling 无缝桥接核心引擎。
+- **`cli/` (Go 1.23+)**：处理 Hook、守护进程、LLM 调用及基于 CAS 的安全提交替换。
+- **`idea-plugin/` (Kotlin)**：在后台线程轮询 CLI，并将所有写操作委托给 CLI。
+- **`vscode-extension/` (TS)**：仅在受信任工作区运行 CLI，通过 CLI 状态接口驱动原生 UI。
 
 ## 🖥️ 源码编译与测试
 

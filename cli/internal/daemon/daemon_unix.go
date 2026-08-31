@@ -13,22 +13,28 @@ import (
 // startBackground on Unix uses Setsid to detach the child from the terminal session.
 func startBackground(gitAiBinary string, args []string, logDir string) (int, error) {
 	// Create log file.
-	logFile := filepath.Join(logDir, fmt.Sprintf("%d.log", time.Now().Unix()))
-	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	logFile := filepath.Join(logDir, fmt.Sprintf("%d.log", time.Now().UnixNano()))
+	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return 0, fmt.Errorf("open log file: %w", err)
 	}
 
 	wd, _ := os.Getwd()
+	devNull, err := os.Open(os.DevNull)
+	if err != nil {
+		_ = f.Close()
+		return 0, fmt.Errorf("open null device: %w", err)
+	}
+	defer func() { _ = devNull.Close() }()
 
 	// Spawn detached process.
 	attr := &os.ProcAttr{
 		Dir: wd,
 		Env: SanitizedEnv(),
 		Files: []*os.File{
-			os.Stdin, // stdin  — not used but required
-			f,        // stdout → log file
-			f,        // stderr → log file
+			devNull, // stdin — detached from the user's terminal
+			f,       // stdout → log file
+			f,       // stderr → log file
 		},
 		Sys: &syscall.SysProcAttr{
 			Setsid: true, // Create new session — fully detach from terminal.

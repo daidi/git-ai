@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import { GitAiState } from './stateWatcher';
 import { t } from './i18n';
 import * as cp from 'child_process';
-import * as path from 'path';
+import * as crypto from 'crypto';
+import { getExecutablePath } from './installer';
 
 /**
  * Webview provider for the git-ai actions panel in the sidebar.
@@ -29,6 +30,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.options = {
             enableScripts: true,
+            localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'resources', 'codicons')],
         };
 
         webviewView.webview.onDidReceiveMessage((message) => {
@@ -82,10 +84,11 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     private fetchStats(): void {
+        if (!vscode.workspace.isTrusted) { return; }
         const config = vscode.workspace.getConfiguration('git-ai');
-        const binaryPath = config.get<string>('binaryPath') || 'git-ai';
+        const binaryPath = getExecutablePath(config.get<string>('binaryPath') || 'git-ai');
 
-        cp.execFile(binaryPath, ['stats', '--json'], { cwd: this.workspaceRoot }, (error, stdout) => {
+        cp.execFile(binaryPath, ['stats', '--json'], { cwd: this.workspaceRoot, timeout: 5000, windowsHide: true, maxBuffer: 5 * 1024 * 1024 }, (error, stdout) => {
             if (!error && stdout) {
                 try {
                     this.stats = JSON.parse(stdout);
@@ -100,7 +103,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     private renderHtml(): void {
         if (!this.webviewView) { return; }
         const codiconsUri = this.webviewView.webview.asWebviewUri(
-            vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css')
+            vscode.Uri.joinPath(this.extensionUri, 'resources', 'codicons', 'codicon.css')
         );
         this.webviewView.webview.html = this.getHtml(codiconsUri);
     }
@@ -109,8 +112,8 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
         const s = this.state;
         const isPolishing = s.current_status === 'polishing';
         const isPushing = s.current_status === 'pushing';
+        const isFailed = s.current_status === 'failed';
         const hasPending = !!s.pending_push;
-        const isIdle = s.current_status === 'idle' && !hasPending;
 
         let statusHtml: string;
         if (isPolishing) {
@@ -122,6 +125,11 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
             statusHtml = `<div class="status pushing">
                 <i class="codicon codicon-cloud-upload status-icon"></i>
                 <span>${t('status.pushing')}</span>
+            </div>`;
+        } else if (isFailed) {
+            statusHtml = `<div class="status failed">
+                <i class="codicon codicon-warning status-icon"></i>
+                <span>${this.escapeHtml(s.last_error?.message ?? 'Git AI stopped safely.')}</span>
             </div>`;
         } else if (hasPending) {
             statusHtml = `<div class="status pending">
@@ -143,11 +151,13 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
             infoHtml += `<div class="info-row"><span class="label">${t('info.original')}</span> <span class="msg">${this.escapeHtml(s.original_msg)}</span></div>`;
         }
 
+        const nonce = crypto.randomBytes(16).toString('base64');
         return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${this.webviewView!.webview.cspSource}; style-src ${this.webviewView!.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <link href="${codiconsUri}" rel="stylesheet" />
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -166,6 +176,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     .status.polishing { background: var(--vscode-inputValidation-warningBackground); border: 1px solid var(--vscode-inputValidation-warningBorder); }
     .status.pushing   { background: var(--vscode-inputValidation-infoBackground); border: 1px solid var(--vscode-inputValidation-infoBorder); }
     .status.pending   { background: var(--vscode-inputValidation-warningBackground); border: 1px solid var(--vscode-inputValidation-warningBorder); }
+    .status.failed    { background: var(--vscode-inputValidation-errorBackground); border: 1px solid var(--vscode-inputValidation-errorBorder); }
     .status.idle       { background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); }
 
     .info-row {
@@ -210,6 +221,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     .divider { height: 1px; background: var(--vscode-panel-border); margin: 12px 0; }
+    .stats-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15) !important; }
 </style>
 </head>
 <body>
@@ -218,16 +230,16 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
     <div class="section-title">${t('actions.section.actions')}</div>
     <div class="btn-grid">
-        <button class="primary" onclick="send('retry')" ${isPolishing || isPushing ? 'disabled' : ''}>
+        <button class="primary" data-command="retry" ${isPolishing || isPushing ? 'disabled' : ''}>
             <i class="codicon codicon-refresh"></i> ${t('actions.btn.retry')}
         </button>
-        <button onclick="send('undo')" ${isPolishing || isPushing ? 'disabled' : ''}>
+        <button data-command="undo" ${isPolishing || isPushing ? 'disabled' : ''}>
             <i class="codicon codicon-discard"></i> ${t('actions.btn.undo')}
         </button>
-        <button class="danger" onclick="send('cancel')" ${!isPolishing ? 'disabled' : ''}>
+        <button class="danger" data-command="cancel" ${!isPolishing ? 'disabled' : ''}>
             <i class="codicon codicon-circle-slash"></i> ${t('actions.btn.cancel')}
         </button>
-        <button onclick="send('forcePush')" ${isPushing ? 'disabled' : ''}>
+        <button data-command="forcePush" ${isPushing ? 'disabled' : ''}>
             <i class="codicon codicon-cloud-upload"></i> ${t('actions.btn.forcePush')}
         </button>
     </div>
@@ -236,18 +248,23 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
 
     <div class="section-title">${t('actions.section.tools')}</div>
     <div class="btn-grid">
-        <button onclick="send('skipNext')"><i class="codicon codicon-stop-circle"></i> ${t('actions.btn.skipNext')}</button>
-        <button onclick="send('clean')"><i class="codicon codicon-trash"></i> ${t('actions.btn.clean')}</button>
-        <button onclick="send('showLogs')"><i class="codicon codicon-output"></i> ${t('actions.btn.showLogs')}</button>
-        <button onclick="send('openConfig')"><i class="codicon codicon-settings-gear"></i> ${t('actions.btn.config')}</button>
-        <button onclick="send('init')"><i class="codicon codicon-tools"></i> ${t('actions.btn.reinit')}</button>
+        <button data-command="skipNext"><i class="codicon codicon-stop-circle"></i> ${t('actions.btn.skipNext')}</button>
+        <button data-command="clean"><i class="codicon codicon-trash"></i> ${t('actions.btn.clean')}</button>
+        <button data-command="showLogs"><i class="codicon codicon-output"></i> ${t('actions.btn.showLogs')}</button>
+        <button data-command="openConfig"><i class="codicon codicon-settings-gear"></i> ${t('actions.btn.config')}</button>
+        <button data-command="init"><i class="codicon codicon-tools"></i> ${t('actions.btn.reinit')}</button>
     </div>
 
     ${this.getStatsHtml()}
 
-    <script>
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
-        function send(cmd) { vscode.postMessage({ command: cmd }); }
+        document.addEventListener('click', function(event) {
+            const target = event.target && event.target.closest ? event.target.closest('[data-command]') : null;
+            if (!target || target.disabled) return;
+            const command = target.getAttribute('data-command');
+            if (command) vscode.postMessage({ command: command });
+        });
     </script>
 </body>
 </html>`;
@@ -286,7 +303,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
             <div class="section-title" style="display:flex; align-items:center; gap:6px; margin-bottom: 10px;">
                 <i class="codicon codicon-graph" style="color: var(--vscode-charts-purple);"></i> ${titleText}
             </div>
-            <div style="
+            <div class="stats-card" style="
                 background: linear-gradient(145deg, var(--vscode-editor-background), var(--vscode-sideBar-background));
                 border: 1px solid var(--vscode-panel-border); 
                 border-radius: 8px; 
@@ -296,7 +313,7 @@ export class ActionsWebviewProvider implements vscode.WebviewViewProvider {
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                 transition: transform 0.2s, box-shadow 0.2s;
                 cursor: default;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
+            ">
                 
                 <div style="
                     font-size: 32px; 

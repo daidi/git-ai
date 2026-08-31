@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/daidi/git-ai/internal/git"
 	"github.com/daidi/git-ai/internal/i18n"
+	"github.com/daidi/git-ai/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -31,11 +31,13 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 
 	Printf("%s", i18n.Sprintf("uninstall.start", repoRoot))
 
-	hooksDir := filepath.Join(gitDir, "hooks")
-
 	for _, hookName := range []string{"post-commit", "pre-push"} {
-		hookPath := filepath.Join(hooksDir, hookName)
-		backupPath := hookPath + ".backup"
+		hookPath, err := git.GetHookPath(hookName)
+		if err != nil {
+			return fmt.Errorf("resolve %s hook: %w", hookName, err)
+		}
+		backupPath := hookPath + ".git-ai.backup"
+		legacyBackupPath := hookPath + ".backup"
 
 		hookRemoved := false
 
@@ -60,6 +62,9 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		}
 
 		// Restore backup only if the git-ai hook was removed or never existed.
+		if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+			backupPath = legacyBackupPath
+		}
 		if _, err := os.Stat(backupPath); err == nil {
 			if hookRemoved {
 				if err := os.Rename(backupPath, hookPath); err != nil {
@@ -74,8 +79,8 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Clean up state directory.
-	gitAiDir := filepath.Join(gitDir, "git-ai")
+	// Clean up only this repository's external application runtime directory.
+	gitAiDir := state.NewManager(gitDir).StateDir()
 	if _, err := os.Stat(gitAiDir); err == nil {
 		if err := os.RemoveAll(gitAiDir); err != nil {
 			Printf("%s", i18n.Sprintf("uninstall.state_warn", gitAiDir, err))

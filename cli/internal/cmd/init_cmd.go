@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,7 @@ var hookTemplates embed.FS
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize git-ai in the current repository",
-	Long:  "Sets up hooks, state directory, and detects SSH configuration.",
+	Long:  "Sets up composable Git hooks and private runtime state outside the repository.",
 	RunE:  runInit,
 }
 
@@ -37,44 +38,31 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	Printf("%s", i18n.Sprintf("init.start", repoRoot))
 
-	// 2. Create state directory.
+	// Runtime state belongs to the application cache, never the worktree.
 	mgr := state.NewManager(gitDir)
 	if err := mgr.EnsureDir(); err != nil {
 		return fmt.Errorf("create state dir: %w", err)
 	}
 	Printf("%s", i18n.Sprintf("init.created_state", mgr.StateDir()))
 
-	// 3. Initialize state.json.
+	// Initialize the external state snapshot.
 	if err := mgr.Reset(); err != nil {
 		return fmt.Errorf("init state: %w", err)
 	}
 	Printf("%s", i18n.T("init.state_json"))
 
-	// 4. Install hooks.
-	hooksDir := filepath.Join(gitDir, "hooks")
-	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-		return fmt.Errorf("create hooks dir: %w", err)
-	}
-
+	// Install hook dispatchers without discarding existing user hooks.
 	for _, hookName := range []string{"post-commit", "pre-push"} {
-		hookPath := filepath.Join(hooksDir, hookName)
-
-		// Backup existing hook.
-		if _, err := os.Stat(hookPath); err == nil {
-			backupPath := hookPath + ".backup"
-			if err := os.Rename(hookPath, backupPath); err != nil {
-				return fmt.Errorf("backup %s: %w", hookName, err)
-			}
-			Printf("%s", i18n.Sprintf("init.backed_up", hookName, hookName))
-		}
-
-		// Write new hook.
-		content, err := hookTemplates.ReadFile("hooks/" + hookName)
+		hookPath, err := git.GetHookPath(hookName)
 		if err != nil {
-			return fmt.Errorf("read hook template %s: %w", hookName, err)
+			return fmt.Errorf("resolve %s hook: %w", hookName, err)
 		}
-		if err := os.WriteFile(hookPath, content, 0o755); err != nil {
-			return fmt.Errorf("write hook %s: %w", hookName, err)
+		backedUp, err := installHook(hookName, hookPath)
+		if err != nil {
+			return err
+		}
+		if backedUp {
+			Printf("%s", i18n.Sprintf("init.backed_up", hookName, hookName))
 		}
 		Printf("%s", i18n.Sprintf("init.installed", hookName))
 	}
@@ -90,9 +78,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 			Printf("%s", i18n.Sprintf("init.https_hint", git.CredentialHelperHint()))
 		}
 
-		// Force push_policy to block in project config.
-		projectCfg := config.ProjectConfigPath(repoRoot)
-		_ = config.Set(projectCfg, "push_policy", "block")
+		// Store the repository override in .git/config, never in the worktree.
+		_ = config.SetLocal(repoRoot, "push_policy", "block")
 	}
 
 	// 6. Summary.
@@ -105,4 +92,76 @@ func runInit(cmd *cobra.Command, args []string) error {
 	Printf("\n")
 
 	return nil
+}
+
+func installHook(hookName, hookPath string) (bool, error) {
+	if err := os.MkdirAll(filepath.Dir(hookPath), 0o755); err != nil {
+		return false, fmt.Errorf("create hooks dir: %w", err)
+	}
+	content, err := hookTemplates.ReadFile("hooks/" + hookName)
+	if err != nil {
+		return false, fmt.Errorf("read hook template %s: %w", hookName, err)
+	}
+
+	backupPath := hookPath + ".git-ai.backup"
+	legacyBackup := hookPath + ".backup"
+	current, readErr := os.ReadFile(hookPath)
+	isOurs := readErr == nil && strings.Contains(string(current), "git-ai hook "+hookName)
+	if readErr != nil && !os.IsNotExist(readErr) {
+		return false, fmt.Errorf("read %s hook: %w", hookName, readErr)
+	}
+
+	// Migrate the backup name used by <= 1.1.4 without overwriting anything.
+	if isOurs {
+		if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+			if _, legacyErr := os.Stat(legacyBackup); legacyErr == nil {
+				if err := os.Rename(legacyBackup, backupPath); err != nil {
+					return false, fmt.Errorf("migrate %s hook backup: %w", hookName, err)
+				}
+			}
+		}
+		return false, writeHookAtomic(hookPath, content)
+	}
+
+	backedUp := false
+	if readErr == nil {
+		if _, err := os.Stat(backupPath); err == nil {
+			return false, fmt.Errorf("refusing to replace %s hook: both a user hook and %s already exist", hookName, backupPath)
+		} else if !os.IsNotExist(err) {
+			return false, err
+		}
+		if err := os.Rename(hookPath, backupPath); err != nil {
+			return false, fmt.Errorf("backup %s hook: %w", hookName, err)
+		}
+		backedUp = true
+	}
+	if err := writeHookAtomic(hookPath, content); err != nil {
+		if backedUp {
+			_ = os.Rename(backupPath, hookPath)
+		}
+		return false, fmt.Errorf("write %s hook: %w", hookName, err)
+	}
+	return backedUp, nil
+}
+
+func writeHookAtomic(path string, content []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".git-ai-hook-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = tmp.Close(); _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o755); err != nil {
+		return err
+	}
+	if _, err := tmp.Write(content); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }

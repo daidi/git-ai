@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -51,31 +52,51 @@ It will:
 			return nil
 		}
 
-		// Determine the original message
-		var originalMsg string
-		if hasPolishingState && s.OriginalMsg != "" {
-			originalMsg = s.OriginalMsg
-		} else if hasLoadingPrefix {
-			// Strip the [⏳] prefix
-			originalMsg = strings.TrimPrefix(currentMsg, "[⏳] ")
-		} else {
-			Printf("%s", i18n.Sprintf("recover.nothing_to_recover"))
-			return nil
-		}
-
-		// Rollback the commit message
-		if currentMsg != originalMsg {
+		// Only legacy releases wrote a loading prefix into Git. Remove it from
+		// the exact current commit; never apply an old saved message to a newer
+		// commit after the branch has moved.
+		if hasLoadingPrefix {
+			originalMsg := strings.TrimPrefix(currentMsg, "[⏳] ")
+			currentSHA, err := git.GetLastCommitSHA()
+			if err != nil {
+				return err
+			}
+			if currentSHA == s.LastSHA && s.OriginalMsg != "" {
+				originalMsg = s.OriginalMsg
+			}
 			Printf("%s", i18n.Sprintf("recover.rolling_back"))
-			if err := git.Amend(originalMsg); err != nil {
-				return fmt.Errorf("amend commit: %w", err)
+			targetRef, err := git.GetHeadRef()
+			if err != nil {
+				return err
+			}
+			if _, err := git.RewriteCommitMessageCAS(targetRef, currentSHA, originalMsg); err != nil {
+				return fmt.Errorf("restore commit safely: %w", err)
 			}
 			Printf("%s", i18n.Sprintf("recover.rolled_back", originalMsg))
 		}
 
-		// Reset state
+		// Invalidate the recorded operation before killing its process. A daemon
+		// that races with recovery will then fail its operation-id CAS safely.
 		if hasPolishingState {
-			if err := mgr.Reset(); err != nil {
+			pid := s.PID
+			recovered := false
+			_, err := mgr.Update(func(current *state.State) (bool, error) {
+				if current.OperationID != s.OperationID {
+					return false, nil
+				}
+				current.CurrentStatus = state.StatusFailed
+				current.OperationID = ""
+				current.PID = 0
+				current.StartedAt = 0
+				current.LastError = &state.OperationError{Code: "recovered", Category: "canceled", Message: "The stale polishing operation was stopped. Git and workspace files were left unchanged.", Retryable: true, OccurredAt: time.Now().Unix()}
+				recovered = true
+				return true, nil
+			})
+			if err != nil {
 				return fmt.Errorf("reset state: %w", err)
+			}
+			if recovered {
+				stopProcess(pid)
 			}
 		}
 

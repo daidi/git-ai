@@ -6,211 +6,190 @@ import com.daidi.gitai.state.GitAiStateService
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
 class RetryAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        execute(project)
+        e.project?.let(::execute)
     }
 
     override fun update(e: AnActionEvent) {
-        val project = e.project
-        val stateService = project?.service<GitAiStateService>()
-        e.presentation.isEnabled = stateService?.state?.isIdle == true
+        val state = e.project?.service<GitAiStateService>()?.state
+        e.presentation.isEnabled = state?.let { it.isIdle || it.isFailed } == true
     }
 
     companion object {
         fun execute(project: Project) {
-            val confirm = Messages.showYesNoDialog(
+            val confirmation = Messages.showYesNoDialog(
                 project,
                 GitAiBundle.message("action.retry.confirm"),
                 GitAiBundle.message("action.retry.title"),
-                Messages.getQuestionIcon()
+                Messages.getQuestionIcon(),
             )
-            if (confirm != Messages.YES) return
-
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.retry.progress")) {
-                override fun run(indicator: ProgressIndicator) {
-                    val result = GitAiCli.run(project, "retry")
-                    ApplicationManager.getApplication().invokeLater {
-                        if (result.success) {
-                            Messages.showInfoMessage(project, GitAiBundle.message("action.retry.success"), GitAiBundle.message("notification.title"))
-                        } else {
-                            Messages.showErrorDialog(project, GitAiBundle.message("action.retry.failed", result.stderr), GitAiBundle.message("notification.title"))
-                        }
-                    }
-                }
-            })
+            if (confirmation != Messages.YES) return
+            runCliAction(
+                project,
+                GitAiBundle.message("action.retry.progress"),
+                arrayOf("retry"),
+                "action.retry.success",
+                "action.retry.failed",
+            )
         }
     }
 }
 
 class UndoAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        execute(project)
+        e.project?.let(::execute)
     }
 
     override fun update(e: AnActionEvent) {
-        val project = e.project
-        val stateService = project?.service<GitAiStateService>()
-        e.presentation.isEnabled = stateService?.state?.isIdle == true &&
-                stateService.state.originalMsg != null
+        val state = e.project?.service<GitAiStateService>()?.state
+        e.presentation.isEnabled = state?.originalMsg != null && !state.isPolishing && !state.isPushing
     }
 
     companion object {
         fun execute(project: Project) {
-            val confirm = Messages.showYesNoDialog(
+            val confirmation = Messages.showYesNoDialog(
                 project,
                 GitAiBundle.message("action.undo.confirm"),
                 GitAiBundle.message("action.undo.title"),
-                Messages.getQuestionIcon()
+                Messages.getQuestionIcon(),
             )
-            if (confirm != Messages.YES) return
-
-            val result = GitAiCli.run(project, "undo")
-            if (result.success) {
-                Messages.showInfoMessage(project, GitAiBundle.message("action.undo.success"), GitAiBundle.message("notification.title"))
-            } else {
-                Messages.showErrorDialog(project, GitAiBundle.message("action.undo.failed", result.stderr), GitAiBundle.message("notification.title"))
-            }
+            if (confirmation != Messages.YES) return
+            runCliAction(
+                project,
+                GitAiBundle.message("action.undo.title"),
+                arrayOf("undo"),
+                "action.undo.success",
+                "action.undo.failed",
+            )
         }
     }
 }
 
 class CancelAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        execute(project)
+        e.project?.let(::execute)
     }
 
     override fun update(e: AnActionEvent) {
-        val project = e.project
-        val stateService = project?.service<GitAiStateService>()
-        e.presentation.isEnabled = stateService?.state?.isPolishing == true
+        e.presentation.isEnabled = e.project?.service<GitAiStateService>()?.state?.isPolishing == true
     }
 
     companion object {
         fun execute(project: Project) {
-            val stateService = project.service<GitAiStateService>()
-            val state = stateService.state
-
-            if (!state.isPolishing) {
-                Messages.showInfoMessage(project, GitAiBundle.message("action.cancel.noPolishing"), GitAiBundle.message("notification.title"))
+            if (!project.service<GitAiStateService>().state.isPolishing) {
+                Messages.showInfoMessage(
+                    project,
+                    GitAiBundle.message("action.cancel.noPolishing"),
+                    GitAiBundle.message("notification.title"),
+                )
                 return
             }
-
-            val pid = state.pid
-            if (pid != null) {
-                try {
-                    // Kill the daemon process.
-                    ProcessBuilder("kill", pid.toString())
-                        .directory(java.io.File(project.basePath ?: "."))
-                        .start()
-                        .waitFor()
-                } catch (_: Exception) {}
-            }
-
-            // Reset state file.
-            val statePath = stateService.getStatePath()
-            if (statePath != null) {
-                try {
-                    val resetJson = """{"current_status":"idle","original_msg":"${state.originalMsg ?: ""}","last_sha":"${state.lastSha ?: ""}"}"""
-                    java.io.File(statePath).writeText(resetJson)
-                } catch (_: Exception) {}
-            }
-
-            Messages.showInfoMessage(project, GitAiBundle.message("action.cancel.success"), GitAiBundle.message("notification.title"))
+            runCliAction(
+                project,
+                GitAiBundle.message("action.GitAi.Cancel.text"),
+                arrayOf("cancel"),
+                "action.cancel.success",
+                "action.cancel.failed",
+            )
         }
     }
 }
 
 class ForcePushAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        execute(project)
+        e.project?.let(::execute)
     }
 
     override fun update(e: AnActionEvent) {
-        val project = e.project
-        val stateService = project?.service<GitAiStateService>()
-        e.presentation.isEnabled = stateService?.state?.isPushing != true
+        e.presentation.isEnabled = e.project?.service<GitAiStateService>()?.state?.isPushing != true
     }
 
     companion object {
         fun execute(project: Project) {
-            val confirm = Messages.showYesNoDialog(
+            val confirmation = Messages.showYesNoDialog(
                 project,
                 GitAiBundle.message("action.push.confirm"),
                 GitAiBundle.message("action.push.title"),
-                Messages.getWarningIcon()
+                Messages.getWarningIcon(),
             )
-            if (confirm != Messages.YES) return
-
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("action.push.progress")) {
-                override fun run(indicator: ProgressIndicator) {
-                    val result = GitAiCli.runGitInternal(project, "push")
-                    if (result.success) {
-                        // Clear pending push from state.
-                        val stateService = project.service<GitAiStateService>()
-                        val statePath = stateService.getStatePath()
-                        if (statePath != null) {
-                            try {
-                                val file = java.io.File(statePath)
-                                if (file.exists()) {
-                                    file.writeText("""{"current_status":"idle"}""")
-                                }
-                            } catch (_: Exception) {}
-                        }
-                        ApplicationManager.getApplication().invokeLater {
-                            Messages.showInfoMessage(project, GitAiBundle.message("action.push.success"), GitAiBundle.message("notification.title"))
-                        }
-                    } else {
-                        ApplicationManager.getApplication().invokeLater {
-                            Messages.showErrorDialog(project, GitAiBundle.message("action.push.failed", result.stderr), GitAiBundle.message("notification.title"))
-                        }
-                    }
-                }
-            })
+            if (confirmation != Messages.YES) return
+            runCliAction(
+                project,
+                GitAiBundle.message("action.push.progress"),
+                arrayOf("push"),
+                "action.push.success",
+                "action.push.failed",
+            )
         }
     }
 }
 
 class InitAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val result = GitAiCli.run(project, "init")
-        if (result.success) {
-            Messages.showInfoMessage(project, GitAiBundle.message("action.init.success", result.stdout), GitAiBundle.message("notification.title"))
-        } else {
-            Messages.showErrorDialog(project, GitAiBundle.message("action.init.failed", result.stderr), GitAiBundle.message("notification.title"))
-        }
+        runCliAction(
+            project,
+            GitAiBundle.message("action.GitAi.Init.text"),
+            arrayOf("init"),
+            "action.init.success",
+            "action.init.failed",
+            includeOutputOnSuccess = true,
+        )
     }
 }
 
 class OpenConfigAction : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        // Open IDE Settings directly to the git-ai page.
         com.intellij.openapi.options.ShowSettingsUtil.getInstance()
             .showSettingsDialog(project, "com.daidi.gitai.settings")
     }
+}
+
+private fun runCliAction(
+    project: Project,
+    progressTitle: String,
+    args: Array<String>,
+    successKey: String,
+    failureKey: String,
+    includeOutputOnSuccess: Boolean = false,
+) {
+    ProgressManager.getInstance().run(object : Task.Backgroundable(project, progressTitle, true) {
+        override fun run(indicator: ProgressIndicator) {
+            val result = GitAiCli.run(project, *args)
+            project.service<GitAiStateService>().refreshNow()
+            ApplicationManager.getApplication().invokeLater({
+                if (project.isDisposed) return@invokeLater
+                if (result.success) {
+                    val message = if (includeOutputOnSuccess) {
+                        GitAiBundle.message(successKey, result.stdout)
+                    } else {
+                        GitAiBundle.message(successKey)
+                    }
+                    Messages.showInfoMessage(project, message, GitAiBundle.message("notification.title"))
+                } else {
+                    Messages.showErrorDialog(
+                        project,
+                        GitAiBundle.message(failureKey, result.errorText),
+                        GitAiBundle.message("notification.title"),
+                    )
+                }
+            }, project.disposed)
+        }
+    })
 }

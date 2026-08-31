@@ -11,42 +11,21 @@ import (
 	"github.com/daidi/git-ai/internal/config"
 )
 
-// isNonRetryableError checks if an error indicates a permanent failure
-// that will never succeed on retry (e.g., wrong API key, invalid model).
-func isNonRetryableError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	// HTTP status codes embedded in error messages from langchaingo / OpenAI-compatible APIs.
-	nonRetryablePatterns := []string{
-		"401",             // Unauthorized — bad API key
-		"403",             // Forbidden — key lacks permission
-		"404",             // Not Found — wrong model name or base URL
-		"invalid_api_key", // OpenAI-specific
-		"authentication",  // Generic auth failure
-		"Unauthorized",    // HTTP status text
-		"Forbidden",       // HTTP status text
-		"model_not_found", // OpenAI-specific
-		"does not exist",  // Model does not exist
-		"unsupported",     // Unsupported model/provider
-	}
-	lower := strings.ToLower(msg)
-	for _, p := range nonRetryablePatterns {
-		if strings.Contains(lower, strings.ToLower(p)) {
-			return true
-		}
-	}
-	return false
-}
-
 // Polish generates an AI-polished commit message for the given diff and original message.
 func Polish(diff, originalMsg, repoRoot string, cfg *config.Config) (string, error) {
-	return PolishWithLogger(diff, originalMsg, repoRoot, cfg, log.Default())
+	return PolishWithLoggerContext(context.Background(), diff, originalMsg, repoRoot, cfg, log.Default())
 }
 
 // PolishWithLogger is like Polish but accepts a custom logger for daemon-mode output.
 func PolishWithLogger(diff, originalMsg, repoRoot string, cfg *config.Config, logger *log.Logger) (string, error) {
+	return PolishWithLoggerContext(context.Background(), diff, originalMsg, repoRoot, cfg, logger)
+}
+
+// PolishWithLoggerContext performs polishing with cancellation-aware retries.
+func PolishWithLoggerContext(ctx context.Context, diff, originalMsg, repoRoot string, cfg *config.Config, logger *log.Logger) (string, error) {
+	if cfg.Provider != "ollama" && cfg.APIKey == "" {
+		return "", &ProviderError{Kind: ErrorAuthentication, Message: "provider API key is not configured"}
+	}
 	// Use direct HTTP client instead of langchaingo for better control
 	client := NewClient(cfg, logger)
 
@@ -95,7 +74,7 @@ func PolishWithLogger(diff, originalMsg, repoRoot string, cfg *config.Config, lo
 		}
 	}
 
-	sysProm = SystemPrompt(format, cfg.Language, cfg.Explain, commitlintConfig)
+	sysProm = SystemPrompt(format, cfg.Language, cfg.ExplainEnabled(), commitlintConfig)
 	userProm = UserPrompt(originalMsg, trimmedDiff)
 
 PromptsReady:
@@ -103,54 +82,66 @@ PromptsReady:
 	logger.Printf("prompt: system=%d chars, user=%d chars (diff≈%d tokens)",
 		len(sysProm), len(userProm), len(trimmedDiff)/4)
 
-	if cfg.IsDebug() {
-		logger.Printf("[DEBUG] === System Prompt ===")
-		logger.Printf("%s", sysProm)
-		logger.Printf("[DEBUG] === User Prompt ===")
-		logger.Printf("%s", userProm)
-		logger.Printf("[DEBUG] === End Prompts ===")
-	}
-
-	// Retry with exponential backoff (only for transient errors).
-	const maxRetries = 3
+	// Retry transient failures with bounded, cancellation-aware backoff.
+	const maxAttempts = 3
 	var result string
-	delays := []time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
+	delays := []time.Duration{1 * time.Second, 2 * time.Second}
 	var lastErr error
 
-	for attempt := 0; attempt <= maxRetries; attempt++ {
+	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
-			logger.Printf("retry %d/%d (waiting %v)...", attempt, maxRetries, delays[attempt-1])
-			time.Sleep(delays[attempt-1])
+			delay := delays[attempt-1]
+			if providerDelay := retryAfter(lastErr); providerDelay > delay {
+				delay = providerDelay
+			}
+			if delay > 30*time.Second {
+				delay = 30 * time.Second
+			}
+			logger.Printf("retry %d/%d after %v", attempt+1, maxAttempts, delay)
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return "", ctx.Err()
+			case <-timer.C:
+			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		result, lastErr = client.GenerateCompletion(ctx, sysProm, userProm)
+		requestCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		result, lastErr = client.GenerateCompletion(requestCtx, sysProm, userProm)
 		cancel()
 
 		if lastErr == nil {
-			break
+			result = cleanResponse(result)
+			switch {
+			case result == "":
+				lastErr = &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an empty completion"}
+			case len(result) > 64*1024:
+				lastErr = &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an oversized completion"}
+			case strings.ContainsRune(result, '\x00'):
+				lastErr = &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an invalid completion"}
+			default:
+				break
+			}
+			if lastErr == nil {
+				break
+			}
 		}
 
-		logger.Printf("attempt %d failed: %v", attempt+1, lastErr)
+		failure := DescribeError(lastErr)
+		logger.Printf("attempt %d failed: category=%s retryable=%t", attempt+1, failure.Category, failure.Retryable)
 
-		// Don't retry errors that will never succeed (auth, model not found, etc.)
-		if isNonRetryableError(lastErr) {
-			logger.Printf("non-retryable error detected, aborting immediately")
-			return "", fmt.Errorf("AI polishing failed (non-retryable): %w", lastErr)
+		if !IsRetryable(lastErr) {
+			return "", fmt.Errorf("AI polishing failed: %w", lastErr)
 		}
 	}
 
 	if lastErr != nil {
-		return "", fmt.Errorf("AI polishing failed after %d attempts: %w", maxRetries+1, lastErr)
+		return "", fmt.Errorf("AI polishing failed after %d attempts: %w", maxAttempts, lastErr)
 	}
 
-	// Clean up the response — remove markdown fences, leading/trailing whitespace.
-	result = cleanResponse(result)
-
 	if cfg.IsDebug() {
-		logger.Printf("[DEBUG] === LLM Response (cleaned) ===")
-		logger.Printf("%s", result)
-		logger.Printf("[DEBUG] === End Response ===")
+		logger.Printf("[DEBUG] model response accepted: characters=%d", len(result))
 	}
 
 	return result, nil

@@ -26,7 +26,20 @@ func SanitizedEnv() []string {
 		"PATH":    true,
 		"SHELL":   true,
 		"TMPDIR":  true,
+		"TMP":     true,
+		"TEMP":    true,
 		"TERM":    true,
+
+		// Windows process/config/credential discovery.
+		"USERPROFILE":  true,
+		"HOMEDRIVE":    true,
+		"HOMEPATH":     true,
+		"APPDATA":      true,
+		"LOCALAPPDATA": true,
+		"PROGRAMDATA":  true,
+		"SystemRoot":   true,
+		"COMSPEC":      true,
+		"PATHEXT":      true,
 
 		// Locale
 		"LANG": true,

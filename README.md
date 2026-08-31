@@ -194,20 +194,22 @@ git push
 # ⏳ git-ai: AI is polishing. Push queued — will auto-push when ready.
 
 # 5. Check status anytime
-git log -1
-# Shows: [⏳] fix bug (while polishing)
-# Then:  fix(auth): resolve session timeout on mobile devices
+git-ai status
+# While polishing, Git still shows the original commit message.
+# On success, the recorded ref is atomically advanced to the polished commit.
 
-# 6. If polishing gets stuck (rare), recover manually
-git-ai recover
-# ✅ Recovery complete.
+# 6. If the network/model is unavailable, the original commit is untouched
+git-ai retry
+# Retries safely in the background when you are ready.
 ```
 
 That's it. Your commit message is now a clean, descriptive, spec-compliant message — and you didn't have to think about it.
 
 ## ⚙️ Models & Configuration
 
-git-ai uses a layered config system. Values are resolved in order: **env vars → project (`.git-ai.json`) → global (`~/.config/git-ai/config.json`) → defaults**.
+git-ai uses a layered config system. Values are resolved in order: **environment variables → repository (`git-ai.*` entries in `.git/config`) → user config in the OS application-config directory → defaults**. API keys are user-level only. Releases ≤ 1.1.4 can still be read from `.git-ai.json` for migration compatibility, but git-ai never creates or modifies that worktree file.
+
+Runtime state and logs are also kept outside repositories in the OS user-cache directory. Apart from the explicitly installed Git hooks and `.git/config` overrides, Git AI leaves the project and working tree untouched.
 
 > 💡 **Tip**: Use **fast models** (flash/mini/turbo variants) for commit messages. They're 10x cheaper, respond in ~500ms, and work perfectly for this task. Most users won't experience any noticeable delay.
 
@@ -261,7 +263,7 @@ git-ai config set base_url http://localhost:11434 --global
 
 ## 🏗️ Architecture & How It Works
 
-We use a **Monorepo** architecture that decouples the headless CLI agent from the IDE plugins. They communicate via a stateless `.git/git-ai/state.json` file.
+We use a **Monorepo** architecture that decouples the headless CLI agent from the IDE plugins. The CLI is the sole persistence owner; plugins query `git-ai status --json` and delegate actions/configuration back to the CLI.
 
 ```
 git commit -m "fix bug"
@@ -269,21 +271,22 @@ git commit -m "fix bug"
         ▼
    [post-commit hook]
         │
-        ├── Fork background daemon (non-blocking)
+        ├── Record exact SHA/ref + fork daemon (non-blocking)
         │    │
-        │    ├── Immediately mark: git commit --amend -m "[⏳] fix bug"
-        │    ├── Read diff + Call LLM
-        │    ├── On success: git commit --amend -m "fix(auth): ..."
-        │    ├── On failure: rollback to "fix bug" (no [⏳])
+        │    ├── Keep Git/index/worktree unchanged while the LLM runs
+        │    ├── Retry bounded transient network/provider failures
+        │    ├── Create replacement from recorded tree + parents
+        │    ├── Atomically update ref only if it still equals the recorded SHA
+        │    ├── On failure/moved ref: safe no-op + actionable error
         │    ├── If pending_push → auto push
-        │    └── Update IDE state / OS UI notification 🔔
+        │    └── Persist external app state / notify IDE and OS 🔔
         │
         └── Exit immediately → you keep coding
 ```
 
-- **`cli/` (Go 1.23+)**: The core engine daemonizing processes, invoking LLMs, and amending Git commits.
-- **`idea-plugin/` (Kotlin)**: JetBrains native integration watching `state.json` with VFS.
-- **`vscode-extension/` (TS)**: Webview / tree-view plugin that tracks state through FS-polling. 
+- **`cli/` (Go 1.23+)**: The core engine daemonizing processes, invoking LLMs, and safely replacing recorded commit refs.
+- **`idea-plugin/` (Kotlin)**: JetBrains native integration polling the CLI off the UI thread.
+- **`vscode-extension/` (TS)**: Trusted-workspace UI integration polling the CLI and delegating all writes.
 
 ## 🖥️ Local Build & Testing
 

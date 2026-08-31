@@ -41,7 +41,6 @@ class GitAiSettingsComponent(private val basePath: String?) {
     val gTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
 
     // ── Project fields ──
-    private val pApiKey = JBPasswordField()
     private val pProvider = JComboBox(arrayOf("", "openai", "ollama", "anthropic", "gemini"))
     private val pBaseUrl = JBTextField()
     private val pModel = JBTextField()
@@ -162,7 +161,6 @@ class GitAiSettingsComponent(private val basePath: String?) {
             .addComponent(pEnabled.apply { font = font.deriveFont(Font.BOLD) })
             .addComponent(Box.createVerticalStrut(16) as JComponent)
             .addComponent(createSectionLabel(GitAiBundle.message("settings.section.auth")))
-            .addLabeledComponent(createLabelWithHelp("settings.field.apiKey", "settings.hint.apiKey"), pApiKey.apply { columns = 40 })
             .addLabeledComponent(GitAiBundle.message("settings.field.provider"), pProvider)
             .addLabeledComponent(GitAiBundle.message("settings.field.baseUrl"), pBaseUrl)
             .addLabeledComponent(GitAiBundle.message("settings.field.model"), pModel)
@@ -200,7 +198,6 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     private fun updateProjectFieldsState() {
         val enabled = pEnabled.isSelected
-        pApiKey.isEnabled = enabled
         pProvider.isEnabled = enabled
         pBaseUrl.isEnabled = enabled
         pModel.isEnabled = enabled
@@ -276,7 +273,6 @@ class GitAiSettingsComponent(private val basePath: String?) {
         val selectedPolicy = pPushPolicy.selectedItem as? String
 
         return GitAiConfig(
-            apiKey = String(pApiKey.password).takeIf { it.isNotEmpty() },
             provider = selectedProvider?.takeIf { it.isNotEmpty() },
             baseUrl = pBaseUrl.text.takeIf { it.isNotEmpty() },
             model = pModel.text.takeIf { it.isNotEmpty() },
@@ -292,7 +288,6 @@ class GitAiSettingsComponent(private val basePath: String?) {
     }
 
     fun setProjectConfig(cfg: GitAiConfig, inherited: GitAiConfig) {
-        pApiKey.text = cfg.apiKey ?: ""
         pProvider.selectedItem = cfg.provider ?: ""
         
         pBaseUrl.text = cfg.baseUrl ?: ""
@@ -309,7 +304,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pPromptTemplate.emptyText.setText(inheritedVal(inherited.promptTemplate ?: ""))
         
         pMaxDiffTokens.text = cfg.maxDiffTokens?.toString() ?: ""
-        pMaxDiffTokens.emptyText.setText(inheritedVal((inherited.maxDiffTokens ?: 2000).toString()))
+        pMaxDiffTokens.emptyText.setText(inheritedVal((inherited.maxDiffTokens ?: 8000).toString()))
         
         pLogLevel.selectedItem = cfg.logLevel ?: ""
         pUiLanguage.selectedItem = cfg.uiLanguage ?: ""

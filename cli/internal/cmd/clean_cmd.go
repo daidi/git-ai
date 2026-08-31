@@ -83,8 +83,12 @@ func runClean(cmd *cobra.Command, args []string) error {
 		msg, _ := git.GetLastCommitMsg()
 		newMsg := strings.ReplaceAll(msg, "[⏳] ", "")
 		newMsg = strings.ReplaceAll(newMsg, "[⏳]", "")
-		if err := git.Amend(newMsg); err != nil {
-			return fmt.Errorf("failed to amend commit: %w", err)
+		targetRef, err := git.GetHeadRef()
+		if err != nil {
+			return err
+		}
+		if _, err := git.RewriteCommitMessageCAS(targetRef, headSha, newMsg); err != nil {
+			return fmt.Errorf("failed to rewrite commit safely: %w", err)
 		}
 		Printf("Cleaned stuck prefix from HEAD.\n")
 		return nil

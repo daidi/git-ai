@@ -22,8 +22,8 @@ var messages = map[string]map[string]string{
 		// ── init ──
 		"init.start":         "🔧 Initializing Git AI in %s\n\n",
 		"init.created_state": "  ✅ Created %s\n",
-		"init.state_json":    "  ✅ Initialized state.json\n",
-		"init.backed_up":     "  📦 Backed up existing %s → %s.backup\n",
+		"init.state_json":    "  ✅ Initialized external runtime state\n",
+		"init.backed_up":     "  📦 Preserved existing %s hook as %s.git-ai.backup\n",
 		"init.installed":     "  ✅ Installed %s hook\n",
 		"init.ssh_warn":      "\n  ⚠️  %s\n",
 		"init.ssh_block":     "     Push policy set to 'block' (manual push required).\n",
@@ -46,12 +46,13 @@ var messages = map[string]map[string]string{
 		"uninstall.state_warn":    "\n  ⚠️  Warning: could not remove %s: %v\n",
 		"uninstall.state_removed": "\n  ✅ Removed state directory\n",
 		"uninstall.done":          "\n🎉 Git AI hooks removed.\n",
-		"uninstall.config_kept":   "Your .git-ai.json configuration was untouched and safely preserved.\n\n",
+		"uninstall.config_kept":   "User configuration was kept in the application config directory.\n\n",
 
 		// ── retry ──
-		"retry.start":  "🔄 Re-generating commit message for %s...\n",
-		"retry.done":   "✅ Commit message updated:\n   %s\n",
-		"retry.notify": "Retry: %s",
+		"retry.start":   "🔄 Re-generating commit message for %s...\n",
+		"retry.done":    "✅ Commit message updated:\n   %s\n",
+		"retry.notify":  "Retry: %s",
+		"retry.started": "🔄 Retry started safely in the background.\n",
 
 		// ── undo ──
 		"undo.restoring": "⏪ Restoring original message: %q\n",
@@ -94,8 +95,8 @@ var messages = map[string]map[string]string{
 		// ── init ──
 		"init.start":         "🔧 正在初始化 Git AI（%s）\n\n",
 		"init.created_state": "  ✅ 已创建 %s\n",
-		"init.state_json":    "  ✅ 已初始化 state.json\n",
-		"init.backed_up":     "  📦 已备份 %s → %s.backup\n",
+		"init.state_json":    "  ✅ 已初始化工作区外部运行状态\n",
+		"init.backed_up":     "  📦 已保留原有 %s 钩子 → %s.git-ai.backup\n",
 		"init.installed":     "  ✅ 已安装 %s 钩子\n",
 		"init.ssh_warn":      "\n  ⚠️  %s\n",
 		"init.ssh_block":     "     推送策略已设为 'block'（需手动推送）。\n",
@@ -118,12 +119,13 @@ var messages = map[string]map[string]string{
 		"uninstall.state_warn":    "\n  ⚠️  警告: 无法移除 %s: %v\n",
 		"uninstall.state_removed": "\n  ✅ 已移除状态目录\n",
 		"uninstall.done":          "\n🎉 Git AI 钩子已移除。\n",
-		"uninstall.config_kept":   ".git-ai.json 配置文件未受影响，已安全保留。\n\n",
+		"uninstall.config_kept":   "用户配置仍保留在应用配置目录中。\n\n",
 
 		// ── retry ──
-		"retry.start":  "🔄 正在为 %s 重新生成提交信息...\n",
-		"retry.done":   "✅ 提交信息已更新:\n   %s\n",
-		"retry.notify": "已重试: %s",
+		"retry.start":   "🔄 正在为 %s 重新生成提交信息...\n",
+		"retry.done":    "✅ 提交信息已更新:\n   %s\n",
+		"retry.notify":  "已重试: %s",
+		"retry.started": "🔄 已在后台安全启动重试。\n",
 
 		// ── undo ──
 		"undo.restoring": "⏪ 正在恢复原始信息: %q\n",

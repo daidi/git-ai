@@ -1,6 +1,14 @@
 #!/bin/sh
-# git-ai post-commit hook
-# Installed by `git-ai init`. Do not edit — re-run `git-ai init` to reinstall.
-export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
+# git-ai managed hook: post-commit
+# Installed by `git-ai init`. Re-run init to update this dispatcher.
+
+backup="${0}.git-ai.backup"
+if [ -x "$backup" ]; then
+  "$backup"
+  backup_status=$?
+  [ "$backup_status" -eq 0 ] || exit "$backup_status"
+fi
+
 [ "$GIT_AI_INTERNAL" = "true" ] && exit 0
-git-ai hook post-commit
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
+exec git-ai hook post-commit

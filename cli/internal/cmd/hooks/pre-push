@@ -1,6 +1,19 @@
 #!/bin/sh
-# git-ai pre-push hook
-# Installed by `git-ai init`. Do not edit — re-run `git-ai init` to reinstall.
-export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
+# git-ai managed hook: pre-push
+# Installed by `git-ai init`. Re-run init to update this dispatcher.
+
+umask 077
+tmp_file=$(mktemp "${TMPDIR:-/tmp}/git-ai-pre-push.XXXXXX") || exit 1
+trap 'rm -f "$tmp_file"' EXIT HUP INT TERM
+cat >"$tmp_file" || exit 1
+
+backup="${0}.git-ai.backup"
+if [ -x "$backup" ]; then
+  "$backup" "$@" <"$tmp_file"
+  backup_status=$?
+  [ "$backup_status" -eq 0 ] || exit "$backup_status"
+fi
+
 [ "$GIT_AI_INTERNAL" = "true" ] && exit 0
-git-ai hook pre-push "$@"
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
+git-ai hook pre-push "$@" <"$tmp_file"

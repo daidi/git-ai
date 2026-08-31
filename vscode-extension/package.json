@@ -33,6 +33,15 @@
     "workspaceContains:.git"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Git AI does not execute binaries, access Git state, install hooks, or download updates until the workspace is trusted.",
+      "restrictedConfigurations": [
+        "git-ai.binaryPath"
+      ]
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -90,7 +99,7 @@
       "git-ai-zap": {
         "description": "Zap icon for Git AI",
         "default": {
-          "fontPath": "./node_modules/@vscode/codicons/dist/codicon.ttf",
+          "fontPath": "./resources/codicons/codicon.ttf",
           "fontCharacter": "\\eb66"
         }
       }
@@ -127,11 +136,14 @@
         "git-ai.pollingInterval": {
           "type": "number",
           "default": 1000,
+          "minimum": 500,
+          "maximum": 60000,
           "description": "%config.pollingInterval%"
         },
         "git-ai.binaryPath": {
           "type": "string",
           "default": "git-ai",
+          "scope": "machine",
           "description": "%config.binaryPath%"
         },
         "git-ai.notificationMode": {
@@ -205,7 +217,8 @@
     "lint": "eslint src --ext ts",
     "package": "vsce package",
     "publish": "vsce publish",
-    "vscode:prepublish": "npm run compile"
+    "copy-codicons": "node scripts/copy-codicons.js",
+    "vscode:prepublish": "npm run compile && npm run copy-codicons"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

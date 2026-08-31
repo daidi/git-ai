@@ -31,14 +31,14 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.uiLanguage': 'UI Language',
         'settings.field.projectEnabled': 'Enable Git AI',
         
-        'settings.hint.apiKey': 'Your LLM API key (stored securely in ~/.config/git-ai/config.json)',
-        'settings.hint.projectNote': 'Project settings override Global for this repo only. Leave fields empty to inherit.',
+        'settings.hint.apiKey': 'Your LLM API key is stored in the OS application config directory, never in the project.',
+        'settings.hint.projectNote': 'Repository settings are stored in .git/config, never in the working tree. Leave fields empty to inherit Global.',
         'settings.hint.explain': 'Require the AI to append an explanation of the change rationale (the "Why") to the commit message',
         'settings.hint.promptTemplate': 'Override the system prompt (leave empty for default)',
         'settings.hint.pushPolicy': 'queue = auto-push after polish, block = manual push',
         'settings.hint.maxDiffTokens': 'Max tokens for diff context sent to LLM',
         'settings.hint.uiLanguage': 'Language for CLI output and git-ai messages (e.g. en, zh)',
-        'settings.hint.projectEnabled': 'Install / Uninstall physical webhooks for this repository.',
+        'settings.hint.projectEnabled': 'Install or restore composable Git hooks in this repository metadata.',
         'settings.hint.disabledTemplate': 'Disabled because Custom Prompt takes over formatting.',
 
         'settings.inherit.label': '\u2190 Inherited from Global',
@@ -200,13 +200,13 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'settings.field.projectEnabled': '启用 Git AI',
         
         'settings.hint.apiKey': '您的大模型身份凭证（安全存储于本地）',
-        'settings.hint.projectNote': '项目级设定仅对当前代码库生效。留空将自动继承全局设定。',
+        'settings.hint.projectNote': '项目级设定保存在 .git/config，不会在工作区生成文件。留空将自动继承全局设定。',
         'settings.hint.explain': '要求大模型在提交语末尾追加一段阐述代码变更背后动机（为什么这么做）的补充说明',
         'settings.hint.promptTemplate': '覆盖内置生成指令。留空则使用内置高水平校验规则。',
         'settings.hint.pushPolicy': 'queue: 润色完成后静默自动 Push; block: 阻断 Push 需手动确认',
         'settings.hint.maxDiffTokens': '传输给大模型的最长代码变更 Token 数',
         'settings.hint.uiLanguage': 'CLI 输出及 Git AI 提示消息所用的语言（如 en, zh）',
-        'settings.hint.projectEnabled': '在当前代码仓库物理安装 / 卸载 Git Hook。',
+        'settings.hint.projectEnabled': '在当前仓库的 Git 元数据中安装或恢复可组合的 Git Hook。',
         'settings.hint.disabledTemplate': '已禁用（因为您填写了自定义提示词模板，它将接管所有格式化规则）',
         
         'settings.inherit.label': '\u2190 继承自全局设定',
@@ -336,7 +336,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     
         // Stats
         'stats.title': '生产力核心数据 (近 30 天)',
-        'stats.hoursSaved': '预估节省摸鱼时间',
+        'stats.timeSaved': '预估节省时间',
         'stats.commitsPolished': '{0} 次 AI 自动润色',
     },
     'zh-tw': {
@@ -356,7 +356,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': '原始訊息:',
         // Stats
         'stats.title': '生產力統計 (近 30 天)',
-        'stats.hoursSaved': '預估節省時間',
+        'stats.timeSaved': '預估節省時間',
         'stats.commitsPolished': '{0} 次 AI 自動潤飾',
     },
     'fr': {
@@ -376,7 +376,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Original:',
         // Stats
         'stats.title': 'Productivité (30 derniers jours)',
-        'stats.hoursSaved': 'Temps estimé gagné',
+        'stats.timeSaved': 'Temps estimé gagné',
         'stats.commitsPolished': '{0} Commits polis par l\'IA',
     },
     'it': {
@@ -396,7 +396,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Originale:',
         // Stats
         'stats.title': 'Produttività (Ultimi 30 giorni)',
-        'stats.hoursSaved': 'Tempo stimato risparmiato',
+        'stats.timeSaved': 'Tempo stimato risparmiato',
         'stats.commitsPolished': '{0} Commit migliorati dall\'IA',
     },
     'de': {
@@ -416,7 +416,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Original:',
         // Stats
         'stats.title': 'Produktivität (Letzte 30 Tage)',
-        'stats.hoursSaved': 'Geschätzte gesparte Zeit',
+        'stats.timeSaved': 'Geschätzte gesparte Zeit',
         'stats.commitsPolished': '{0} KI-polierte Commits',
     },
     'es': {
@@ -436,7 +436,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Original:',
         // Stats
         'stats.title': 'Productividad (Últimos 30 días)',
-        'stats.hoursSaved': 'Tiempo estimado ahorrado',
+        'stats.timeSaved': 'Tiempo estimado ahorrado',
         'stats.commitsPolished': '{0} Commits pulidos por IA',
     },
     'ja': {
@@ -456,7 +456,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'コミット:', 'info.original': '元のメッセージ:',
         // Stats
         'stats.title': '生産性 (過去30日間)',
-        'stats.hoursSaved': '推定節約時間',
+        'stats.timeSaved': '推定節約時間',
         'stats.commitsPolished': '{0} 件のAI推敲済みコミット',
     },
     'ko': {
@@ -476,7 +476,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': '커밋:', 'info.original': '원본:',
         // Stats
         'stats.title': '생산성 (최근 30일)',
-        'stats.hoursSaved': '예상 절약 시간',
+        'stats.timeSaved': '예상 절약 시간',
         'stats.commitsPolished': '{0}개의 AI 윤색 커밋',
     },
     'pt': {
@@ -496,7 +496,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Original:',
         // Stats
         'stats.title': 'Produtividade (Últimos 30 dias)',
-        'stats.hoursSaved': 'Tempo estimado economizado',
+        'stats.timeSaved': 'Tempo estimado economizado',
         'stats.commitsPolished': '{0} Commits polidos por IA',
     },
     'ru': {
@@ -516,7 +516,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Коммит:', 'info.original': 'Оригинал:',
         // Stats
         'stats.title': 'Продуктивность (Последние 30 дней)',
-        'stats.hoursSaved': 'Сэкономленное время',
+        'stats.timeSaved': 'Сэкономленное время',
         'stats.commitsPolished': '{0} коммитов отшлифовано ИИ',
     },
     'ar': {
@@ -536,7 +536,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'الإيداع:', 'info.original': 'الأصلي:',
         // Stats
         'stats.title': 'الإنتاجية (آخر 30 يومًا)',
-        'stats.hoursSaved': 'الوقت المقدر الذي تم توفيره',
+        'stats.timeSaved': 'الوقت المقدر الذي تم توفيره',
         'stats.commitsPolished': '{0} إيداعات تم تحسينها',
     },
     'vi': {
@@ -556,7 +556,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'Commit:', 'info.original': 'Gốc:',
         // Stats
         'stats.title': 'Năng suất (30 ngày qua)',
-        'stats.hoursSaved': 'Ước tính thời gian tiết kiệm',
+        'stats.timeSaved': 'Ước tính thời gian tiết kiệm',
         'stats.commitsPolished': '{0} Commit đã được AI trau chuốt',
     },
     'th': {
@@ -576,7 +576,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'info.commit': 'คอมมิต:', 'info.original': 'ดั้งเดิม:',
         // Stats
         'stats.title': 'ประสิทธิภาพการทำงาน (30 วันล่าสุด)',
-        'stats.hoursSaved': 'เวลาที่ประหยัดได้ (โดยประมาณ)',
+        'stats.timeSaved': 'เวลาที่ประหยัดได้ (โดยประมาณ)',
         'stats.commitsPolished': '{0} คอมมิตที่ขัดเกลาโดย AI',
     },
     'id': {
@@ -604,9 +604,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
 
 function getBaseLang(): string {
     const lang = vscode.env.language.toLowerCase();
-    if (lang === 'zh-cn' || lang === 'zh-tw' || lang === 'zh-hk') {
-        return 'zh-cn';
-    }
+    if (lang === 'zh-hk' || lang === 'zh-mo') { return 'zh-tw'; }
+    if (lang === 'zh-sg') { return 'zh-cn'; }
+    if (TRANSLATIONS[lang]) { return lang; }
+    const base = lang.split('-')[0];
+    if (TRANSLATIONS[base]) { return base; }
     return 'en';
 }
 

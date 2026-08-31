@@ -40,6 +40,12 @@ export class StatusBarManager implements vscode.Disposable {
                 this.statusBarItem.tooltip = t('statusBar.tooltip.pushing', state.pending_push?.remote ?? 'origin');
                 break;
 
+            case 'failed':
+                this.statusBarItem.text = '$(warning) Git AI';
+                this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+                this.statusBarItem.tooltip = state.last_error?.message ?? 'Git AI stopped safely.';
+                break;
+
             case 'idle':
             default:
                 if (state.pending_push) {

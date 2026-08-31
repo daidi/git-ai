@@ -6,272 +6,162 @@ import com.google.gson.annotations.SerializedName
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.openapi.vfs.newvfs.BulkFileListener
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import java.io.File
-import java.util.Timer
-import java.util.TimerTask
+import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.AppExecutorUtil
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Represents the git-ai runtime state from state.json.
- */
+/** A read-only view returned by `git-ai status --json`. */
 data class GitAiState(
     @SerializedName("current_status") val currentStatus: String = "idle",
     @SerializedName("original_msg") val originalMsg: String? = null,
     @SerializedName("last_sha") val lastSha: String? = null,
+    @SerializedName("result_sha") val resultSha: String? = null,
     @SerializedName("pending_push") val pendingPush: PendingPush? = null,
+    @SerializedName("last_error") val lastError: OperationError? = null,
     @SerializedName("pid") val pid: Int? = null,
     @SerializedName("skip_next") val skipNext: Boolean? = null,
-    @SerializedName("last_error") val lastError: ErrorInfo? = null,
+    @SerializedName("state_path") val statePath: String? = null,
+    @SerializedName("log_dir") val logDir: String? = null,
+    @SerializedName("initialized") val initialized: Boolean = false,
 ) {
     val isPolishing get() = currentStatus == "polishing"
     val isPushing get() = currentStatus == "pushing"
+    val isFailed get() = currentStatus == "failed"
     val isIdle get() = currentStatus == "idle"
     val hasPendingPush get() = pendingPush != null
 }
 
-data class ErrorInfo(
-    @SerializedName("code") val code: String,
-    @SerializedName("message") val message: String,
-    @SerializedName("fix_hint") val fixHint: String? = null,
+data class OperationError(
+    val code: String = "",
+    val category: String = "",
+    val message: String = "",
+    val retryable: Boolean = false,
+    @SerializedName("occurred_at") val occurredAt: Long = 0,
 )
 
 data class PendingPush(
-    @SerializedName("remote") val remote: String,
-    @SerializedName("ref_specs") val refSpecs: List<String>?,
-    @SerializedName("timestamp") val timestamp: Long,
+    val remote: String = "origin",
+    @SerializedName("ref_specs") val refSpecs: List<String>? = null,
+    val timestamp: Long = 0,
 )
 
 typealias StateChangeListener = (GitAiState) -> Unit
 
 /**
- * Project-level service that watches .git/git-ai/state.json and emits state changes.
+ * Polls the CLI's external application state. The plugin never reads or writes
+ * repository state files, which keeps project worktrees untouched and leaves
+ * locking/migration semantics in one implementation.
  */
 @Service(Service.Level.PROJECT)
 class GitAiStateService(private val project: Project) : Disposable {
     private val log = Logger.getInstance(GitAiStateService::class.java)
     private val gson = Gson()
     private val listeners = CopyOnWriteArrayList<StateChangeListener>()
+    private val started = AtomicBoolean(false)
+
+    @Volatile
     private var currentState = GitAiState()
-    private var pollTimer: Timer? = null
+    private var pollTask: ScheduledFuture<*>? = null
+    private var hasLoadedState = false
 
     val state: GitAiState get() = currentState
+    fun getStatePath(): String? = currentState.statePath
+    fun getLogDir(): String? = currentState.logDir
 
-    /**
-     * Returns the path to state.json for the current project.
-     */
-    fun getStatePath(): String? {
-        val basePath = project.basePath ?: return null
-        return "$basePath/.git/git-ai/state.json"
-    }
-
-    /**
-     * Returns the path to the log directory.
-     */
-    fun getLogDir(): String? {
-        val basePath = project.basePath ?: return null
-        return "$basePath/.git/git-ai/logs"
-    }
-
-    fun addListener(listener: StateChangeListener) {
+    fun addListener(parentDisposable: Disposable, listener: StateChangeListener) {
         listeners.add(listener)
-        listener(currentState)
+        Disposer.register(parentDisposable) { listeners.remove(listener) }
+        dispatch(listener, currentState)
     }
 
-    fun removeListener(listener: StateChangeListener) {
-        listeners.remove(listener)
-    }
-
-    /**
-     * Start watching the state file.
-     */
     fun startWatching() {
-        // Use VFS listener for file changes.
-        project.messageBus.connect(this).subscribe(
-            VirtualFileManager.VFS_CHANGES,
-            object : BulkFileListener {
-                override fun after(events: List<VFileEvent>) {
-                    val statePath = getStatePath() ?: return
-                    for (event in events) {
-                        if (event.path == statePath) {
-                            readState()
-                            break
-                        }
-                    }
-                }
-            }
+        if (!started.compareAndSet(false, true)) return
+        pollTask = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(
+            { readState() },
+            0,
+            1,
+            TimeUnit.SECONDS,
         )
+    }
 
-        // Also poll as a safety net (some file changes might not trigger VFS events).
-        pollTimer = Timer("git-ai-poll", true).also {
-            it.scheduleAtFixedRate(object : TimerTask() {
-                override fun run() {
-                    readState()
-                    // Refresh the file in VFS so our listener catches external changes.
-                    val statePath = getStatePath() ?: return
-                    LocalFileSystem.getInstance().refreshAndFindFileByPath(statePath)
-                }
-            }, 0, 1000)
-        }
-
-        // Initial read.
-        readState()
+    fun refreshNow() {
+        AppExecutorUtil.getAppExecutorService().execute { readState() }
     }
 
     private fun readState() {
+        if (project.isDisposed) return
+        val result = GitAiCli.runSilently(project, "status", "--json")
+        if (!result.success) {
+            log.debug("Unable to query Git AI state: ${result.errorText}")
+            return
+        }
         try {
-            val statePath = getStatePath() ?: return
-            val file = File(statePath)
-            if (!file.exists()) {
-                updateState(GitAiState())
-                return
-            }
-
-            val content = file.readText()
-            val newState = gson.fromJson(content, GitAiState::class.java) ?: GitAiState()
-            updateState(newState)
+            updateState(gson.fromJson(result.stdout, GitAiState::class.java) ?: GitAiState())
         } catch (e: Exception) {
-            // File may be locked or malformed — ignore.
-            log.debug("Failed to read state.json: ${e.message}")
+            log.debug("Unable to parse Git AI status", e)
         }
     }
 
-    /**
-     * Writes the given state to state.json.
-     */
-    fun saveState(newState: GitAiState) {
-        try {
-            val statePath = getStatePath() ?: return
-            val file = File(statePath)
-            if (!file.parentFile.exists()) {
-                file.parentFile.mkdirs()
-            }
-            val content = gson.toJson(newState)
-            file.writeText(content)
-            updateState(newState)
-        } catch (e: Exception) {
-            log.error("Failed to write state.json", e)
-        }
-    }
-
+    @Synchronized
     private fun updateState(newState: GitAiState) {
-        val prevStatus = currentState.currentStatus
-        if (newState == currentState) return
-
+        val previous = currentState
+        if (newState == previous) {
+            hasLoadedState = true
+            return
+        }
         currentState = newState
 
-        // Notify listeners.
-        for (listener in listeners) {
-            try {
-                listener(newState)
-            } catch (e: Exception) {
-                log.error("State listener error", e)
-            }
-        }
+        listeners.forEach { listener -> dispatch(listener, newState) }
 
-        // Show IDE notifications for important transitions.
-        if (prevStatus == "polishing" && newState.isIdle) {
-            if (newState.lastError != null) {
-                showPushErrorNotification(newState.lastError)
-            } else {
-                showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
+        if (hasLoadedState) {
+            when {
+                !newState.resultSha.isNullOrBlank() && newState.resultSha != previous.resultSha ->
+                    showNotification(GitAiBundle.message("notification.polished"), NotificationType.INFORMATION)
+
+                previous.isPushing && newState.isIdle ->
+                    showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
+
+                newState.isFailed && newState.lastError?.occurredAt != previous.lastError?.occurredAt ->
+                    showNotification(
+                        GitAiBundle.message("notification.failed", newState.lastError?.message.orEmpty()),
+                        NotificationType.WARNING,
+                    )
             }
-            checkForUpdatesInLog()
         }
-        if (prevStatus == "pushing" && newState.isIdle) {
-            if (newState.lastError != null) {
-                showPushErrorNotification(newState.lastError)
-            } else {
-                showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
-            }
-        }
+        hasLoadedState = true
     }
 
-    private fun showPushErrorNotification(error: ErrorInfo) {
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
-            val notification = NotificationGroupManager.getInstance()
-                .getNotificationGroup("git-ai.notifications")
-                .createNotification(
-                    GitAiBundle.message("notification.title"),
-                    error.message,
-                    NotificationType.WARNING
-                )
-            if (error.fixHint != null) {
-                notification.addAction(
-                    com.intellij.notification.NotificationAction.createSimple(
-                        GitAiBundle.message("notification.copyFix")
-                    ) {
-                        notification.expire()
-                        val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
-                        clipboard.setContents(java.awt.datatransfer.StringSelection(error.fixHint), null)
-                        showNotification(
-                            GitAiBundle.message("notification.fixCopied"),
-                            NotificationType.INFORMATION
-                        )
-                    }
-                )
+    private fun dispatch(listener: StateChangeListener, value: GitAiState) {
+        ApplicationManager.getApplication().invokeLater({
+            if (project.isDisposed) return@invokeLater
+            try {
+                listener(value)
+            } catch (e: Exception) {
+                log.warn("Git AI state listener failed", e)
             }
-            notification.notify(project)
-        }
+        }, project.disposed)
     }
 
     private fun showNotification(content: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("git-ai.notifications")
-            .createNotification(GitAiBundle.message("notification.title"), content, type)
-            .notify(project)
-    }
-    
-    private fun checkForUpdatesInLog() {
-        try {
-            val logDir = getLogDir() ?: return
-            val dir = File(logDir)
-            if (!dir.exists() || !dir.isDirectory) return
-
-            val latestLog = dir.listFiles()
-                ?.filter { it.name.endsWith(".log") }
-                ?.maxByOrNull { it.name }
-                ?: return
-
-            val content = latestLog.readText().replace(Regex("""\x1b\[[0-9;]*m"""), "")
-            val match = Regex("""Update available for git-ai: (v[\d\.]+) → (v[\d\.]+)""").find(content)
-            
-            if (match != null) {
-                val currentVersion = match.groupValues[1]
-                val latestVersion = match.groupValues[2]
-                
-                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
-                    val notification = NotificationGroupManager.getInstance()
-                        .getNotificationGroup("git-ai.notifications")
-                        .createNotification(
-                            GitAiBundle.message("notification.title"),
-                            GitAiBundle.message("notification.updateAvailable", currentVersion, latestVersion),
-                            NotificationType.INFORMATION
-                        )
-                    notification.addAction(com.intellij.notification.NotificationAction.createSimple(GitAiBundle.message("notification.updateNow")) {
-                        notification.expire()
-                        com.daidi.gitai.state.GitAiInstaller.installCli(project)
-                    })
-                    notification.addAction(com.intellij.notification.NotificationAction.createSimple(GitAiBundle.message("notification.updateDismiss")) {
-                        notification.expire()
-                    })
-                    notification.notify(project)
-                }
-            }
-        } catch (e: Exception) {
-            log.debug("Failed to check for updates in log", e)
-        }
+        ApplicationManager.getApplication().invokeLater({
+            if (project.isDisposed) return@invokeLater
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("git-ai.notifications")
+                .createNotification(GitAiBundle.message("notification.title"), content, type)
+                .notify(project)
+        }, project.disposed)
     }
 
     override fun dispose() {
-        pollTimer?.cancel()
-        pollTimer = null
+        pollTask?.cancel(true)
+        pollTask = null
         listeners.clear()
     }
 }

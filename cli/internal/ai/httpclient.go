@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/daidi/git-ai/internal/config"
@@ -26,6 +27,7 @@ type OpenAIClient struct {
 	model   string
 	client  *http.Client
 	logger  *log.Logger
+	debug   bool
 }
 
 // NewClient creates a new HTTP client for the specified provider
@@ -52,7 +54,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 
 	switch cfg.Provider {
 	case "anthropic":
-		url := cfg.BaseURL
+		url := strings.TrimRight(cfg.BaseURL, "/")
 		if url == "" {
 			url = "https://api.anthropic.com/v1"
 		}
@@ -62,9 +64,10 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 			model:   cfg.Model,
 			client:  client,
 			logger:  logger,
+			debug:   cfg.IsDebug(),
 		}
 	case "gemini":
-		url := cfg.BaseURL
+		url := strings.TrimRight(cfg.BaseURL, "/")
 		if url == "" {
 			url = "https://generativelanguage.googleapis.com/v1beta"
 		}
@@ -74,14 +77,25 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 			model:   cfg.Model,
 			client:  client,
 			logger:  logger,
+			debug:   cfg.IsDebug(),
 		}
 	default:
+		url := strings.TrimRight(cfg.BaseURL, "/")
+		if cfg.Provider == "ollama" {
+			if url == "" {
+				url = "http://localhost:11434/v1"
+			}
+			if !strings.HasSuffix(url, "/v1") {
+				url += "/v1"
+			}
+		}
 		return &OpenAIClient{
-			baseURL: cfg.BaseURL,
+			baseURL: url,
 			apiKey:  cfg.APIKey,
 			model:   cfg.Model,
 			client:  client,
 			logger:  logger,
+			debug:   cfg.IsDebug(),
 		}
 	}
 }
@@ -138,7 +152,7 @@ func (c *OpenAIClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	}
 
 	// Create HTTP request
-	url := c.baseURL + "/chat/completions"
+	url := strings.TrimRight(c.baseURL, "/") + "/chat/completions"
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
@@ -147,44 +161,44 @@ func (c *OpenAIClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
-	// Log request in debug mode
-	c.logger.Printf("[DEBUG] >>> HTTP POST %s", url)
-	c.logger.Printf("[DEBUG] >>> Request Body:\n%s", string(bodyBytes))
+	if c.debug {
+		c.logger.Printf("[DEBUG] model request: provider=openai-compatible model=%q payload_bytes=%d", c.model, len(bodyBytes))
+	}
 
 	// Send request
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.logger.Printf("[DEBUG] <<< HTTP Error: %v", err)
-		return "", fmt.Errorf("request timeout: %w", err)
+		return "", classifyTransportError(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", fmt.Errorf("read response: %w", err)
 	}
 
-	c.logger.Printf("[DEBUG] <<< HTTP %d %s", resp.StatusCode, resp.Status)
-	c.logger.Printf("[DEBUG] <<< Response Body:\n%s", string(respBody))
+	if c.debug {
+		c.logger.Printf("[DEBUG] model response: status=%d bytes=%d", resp.StatusCode, len(respBody))
+	}
 
 	// Check HTTP status
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API returned unexpected status code: %d: %s", resp.StatusCode, string(respBody))
+		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
 	}
 
 	// Parse response
 	var chatResp ChatResponse
 	if err := json.Unmarshal(respBody, &chatResp); err != nil {
-		return "", fmt.Errorf("parse response: %w", err)
+		return "", &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned malformed JSON", Err: err}
 	}
 
 	if chatResp.Error != nil {
-		return "", fmt.Errorf("%s", chatResp.Error.Message)
+		return "", &ProviderError{Kind: ErrorModel, Message: "provider returned a model error"}
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("no choices in response")
+		return "", &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned no completion choices"}
 	}
 
 	return chatResp.Choices[0].Message.Content, nil

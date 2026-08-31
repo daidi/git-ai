@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import { t } from './i18n';
+import { getExecutablePath } from './installer';
 
 interface AINote {
     model?: string;
@@ -37,12 +38,13 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<CommitItem> 
         if (!this.workspaceRoot) {
             return Promise.resolve([]);
         }
+        if (!vscode.workspace.isTrusted) { return Promise.resolve([]); }
 
         return new Promise((resolve) => {
             const config = vscode.workspace.getConfiguration('git-ai');
-            const binaryPath = config.get<string>('binaryPath') || 'git-ai';
+            const binaryPath = getExecutablePath(config.get<string>('binaryPath') || 'git-ai');
 
-            cp.execFile(binaryPath, ['log'], { cwd: this.workspaceRoot }, (error, stdout) => {
+            cp.execFile(binaryPath, ['log'], { cwd: this.workspaceRoot, timeout: 5000, windowsHide: true, maxBuffer: 5 * 1024 * 1024 }, (error, stdout) => {
                 if (error) {
                     resolve([new CommitItem("Error loading history", "", false)]);
                     return;
@@ -97,7 +99,7 @@ export class CommitItem extends vscode.TreeItem {
 
     private getTooltip(): vscode.MarkdownString {
         const md = new vscode.MarkdownString();
-        md.isTrusted = true;
+        md.isTrusted = false;
 
         if (this.hasAI && this.aiNote) {
             md.appendMarkdown(`**AI Authorship Note** $(hubot)\n\n`);

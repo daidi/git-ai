@@ -74,6 +74,7 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
         switch (this.state.current_status) {
             case 'polishing': return '$(loading~spin)';
             case 'pushing': return '$(cloud-upload)';
+            case 'failed': return '$(warning)';
             default: return '$(check)';
         }
     }
@@ -82,6 +83,7 @@ export class StatusTreeProvider implements vscode.TreeDataProvider<StatusItem> {
         switch (this.state.current_status) {
             case 'polishing': return t('status.polishing');
             case 'pushing': return t('status.pushing');
+            case 'failed': return this.state.last_error?.message ?? 'Git AI stopped safely';
             default:
                 if (this.state.pending_push) { return t('status.pendingPush'); }
                 return t('status.idle');

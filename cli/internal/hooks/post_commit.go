@@ -2,6 +2,10 @@
 package hooks
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -20,22 +24,16 @@ import (
 	"github.com/daidi/git-ai/internal/telemetry"
 )
 
-// RunPostCommit is called by the post-commit hook.
-// If isDaemon is false, it forks a background daemon and exits.
-// If isDaemon is true, it runs the actual polishing logic.
-func RunPostCommit(isDaemon bool) error {
-	// Guard: skip if this is an internal amend or explicitly bypassed.
+// RunPostCommit is called by the post-commit hook. Foreground execution records
+// the exact target commit before returning; daemon execution only operates on
+// that recorded target and operation id.
+func RunPostCommit(isDaemon bool, operationID string) error {
 	if os.Getenv("GIT_AI_INTERNAL") == "true" || os.Getenv("GIT_AI_SKIP") == "true" {
 		return nil
 	}
-
-	// Guard: skip if we are in the middle of a rebase, merge, or other special state.
-	// We don't want to asynchronously amend commits while Git is manipulating history.
 	if git.IsRebaseOrMergeInProgress() {
 		return nil
 	}
-
-	// Guard: skip if this commit is a merge commit (has multiple parents).
 	if isMerge, err := git.IsMergeCommit(); err == nil && isMerge {
 		return nil
 	}
@@ -44,287 +42,340 @@ func RunPostCommit(isDaemon bool) error {
 	if err != nil {
 		return fmt.Errorf("not in a git repo: %w", err)
 	}
-
 	mgr := state.NewManager(gitDir)
-
-	if !isDaemon {
-		return runForeground(mgr)
+	if err := mgr.EnsureDir(); err != nil {
+		return err
 	}
-
-	return runDaemon(mgr)
+	if isDaemon {
+		return runDaemon(mgr, operationID)
+	}
+	return runForeground(mgr, "", true)
 }
 
-func runForeground(mgr *state.Manager) error {
-	// Check for skip flag
-	if s, err := mgr.Load(); err == nil && s.SkipNext {
-		s.SkipNext = false
-		_ = mgr.Save(s)
-		return nil
-	}
-
-	// Fork a daemon and exit immediately so the commit doesn't block.
-	binary, err := daemon.FindBinary()
+// StartRetry starts a fresh safe background operation for the current commit.
+func StartRetry() error {
+	gitDir, err := git.GetGitDir()
 	if err != nil {
 		return err
 	}
-	_ = mgr.EnsureDir()
-
-	pid, err := daemon.StartBackground(binary, []string{"hook", "post-commit", "--daemon"}, mgr.LogDir())
-	if err != nil {
-		return fmt.Errorf("start daemon: %w", err)
+	mgr := state.NewManager(gitDir)
+	if err := mgr.EnsureDir(); err != nil {
+		return err
 	}
-	fmt.Print(i18n.Sprintf("hook.forked", pid))
-	return nil
+	s, err := mgr.Load()
+	if err != nil {
+		return err
+	}
+	if s.CurrentStatus == state.StatusPolishing {
+		return errors.New("a polishing operation is already running")
+	}
+	original := ""
+	if head, headErr := git.GetLastCommitSHA(); headErr == nil && (head == s.LastSHA || head == s.ResultSHA) {
+		original = s.OriginalMsg
+	}
+	return runForeground(mgr, original, false)
 }
 
-func runDaemon(mgr *state.Manager) error {
-	// === Daemon mode: run the polishing logic ===
-	startTime := time.Now()
-	logger := log.New(os.Stdout, "[git-ai] ", log.LstdFlags)
-	logger.Println("daemon started")
-
-	// Load config.
-	repoRoot, _ := git.GetRepoRoot()
-	cfg, err := config.Load(repoRoot)
-	if err != nil {
-		logger.Printf("config error: %v", err)
-		return err
+func runForeground(mgr *state.Manager, originalOverride string, consumeSkip bool) error {
+	if consumeSkip {
+		skipped := false
+		if _, err := mgr.Update(func(s *state.State) (bool, error) {
+			if !s.SkipNext {
+				return false, nil
+			}
+			s.SkipNext = false
+			skipped = true
+			return true, nil
+		}); err != nil {
+			return err
+		}
+		if skipped {
+			return nil
+		}
 	}
 
-	// Initialize i18n in daemon process.
-	i18n.Init(cfg.UILanguage)
-
-	// Acquire lock.
-	if err := mgr.Lock(); err != nil {
-		logger.Printf("lock error: %v", err)
-		return err
-	}
-	defer func() { _ = mgr.Unlock() }()
-
-	// Read current commit.
 	sha, err := git.GetLastCommitSHA()
 	if err != nil {
 		return err
 	}
-	origMsg, err := git.GetLastCommitMsg()
+	targetRef, err := git.GetHeadRef()
+	if err != nil {
+		return err
+	}
+	origMsg, err := git.GetCommitMsg(sha)
+	if err != nil {
+		return err
+	}
+	if originalOverride != "" {
+		origMsg = originalOverride
+	}
+	operationID, err := newOperationID()
 	if err != nil {
 		return err
 	}
 
-	// Save state: polishing (with original message for rollback).
-	if err := savePolishingState(mgr, sha, origMsg); err != nil {
-		return err
+	if _, err := mgr.Update(func(s *state.State) (bool, error) {
+		pending := s.PendingPush
+		revision := s.Revision
+		*s = state.State{
+			CurrentStatus: state.StatusPolishing,
+			OriginalMsg:   origMsg,
+			LastSHA:       sha,
+			TargetRef:     targetRef,
+			OperationID:   operationID,
+			PendingPush:   pending,
+			StartedAt:     time.Now().Unix(),
+			Revision:      revision,
+		}
+		return true, nil
+	}); err != nil {
+		return fmt.Errorf("record polishing operation: %w", err)
 	}
-	logger.Printf("polishing commit %s: %q", sha[:8], origMsg)
 
-	setupInterruptHandler(logger, mgr, origMsg)
-	markLoadingPrefix(logger, origMsg)
-
-	// Call AI.
-	polished, err := polishCommit(mgr, logger, cfg, sha, origMsg, repoRoot)
+	binary, err := daemon.FindBinary()
 	if err != nil {
+		markOperationFailure(mgr, operationID, state.OperationError{
+			Code: "binary_missing", Category: "runtime", Message: "The Git AI background executable could not be started. The commit was left unchanged.", OccurredAt: time.Now().Unix(),
+		})
 		return err
 	}
-
-	// Amend the commit with polished message.
-	if err := applyPolishedMessage(mgr, logger, origMsg, polished, cfg, startTime, repoRoot); err != nil {
-		return err
+	pid, err := daemon.StartBackground(binary, []string{"hook", "post-commit", "--daemon", "--operation-id", operationID}, mgr.LogDir())
+	if err != nil {
+		markOperationFailure(mgr, operationID, state.OperationError{
+			Code: "daemon_start_failed", Category: "runtime", Message: "The Git AI background process could not start. The commit was left unchanged.", Retryable: true, OccurredAt: time.Now().Unix(),
+		})
+		return fmt.Errorf("start daemon: %w", err)
 	}
-
-	pushErr := handlePendingPush(mgr, logger)
-
-	// Reset to idle, preserving any push error for IDE display.
-	_ = mgr.Save(&state.State{
-		CurrentStatus: state.StatusIdle,
-		OriginalMsg:   origMsg,
-		LastSHA:       sha,
-		LastError:     pushErr,
+	_, _ = mgr.Update(func(s *state.State) (bool, error) {
+		if s.OperationID != operationID || s.CurrentStatus != state.StatusPolishing {
+			return false, nil
+		}
+		s.PID = pid
+		return true, nil
 	})
-
-	logger.Printf("done (elapsed: %v)", time.Since(startTime))
+	fmt.Print(i18n.Sprintf("hook.forked", pid))
 	return nil
 }
 
-func savePolishingState(mgr *state.Manager, sha, origMsg string) error {
-	s := &state.State{
-		CurrentStatus: state.StatusPolishing,
-		OriginalMsg:   origMsg,
-		LastSHA:       sha,
-		PID:           os.Getpid(),
-		StartedAt:     time.Now().Unix(),
+func runDaemon(mgr *state.Manager, operationID string) error {
+	if operationID == "" {
+		return errors.New("daemon operation id is required")
 	}
-	return mgr.Save(s)
-}
+	startTime := time.Now()
+	logger := log.New(os.Stdout, "[git-ai] ", log.LstdFlags)
+	logger.Printf("daemon started operation=%s", operationID)
 
-func setupInterruptHandler(logger *log.Logger, mgr *state.Manager, origMsg string) {
-	// Register signal handler to rollback on interruption.
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		logger.Printf("interrupted - rolling back to original message")
-		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
-			logger.Printf("rollback error: %v", rollbackErr)
+	snapshot, err := mgr.Update(func(s *state.State) (bool, error) {
+		if s.OperationID != operationID || s.CurrentStatus != state.StatusPolishing {
+			return false, nil
 		}
-		_ = mgr.Reset()
-		os.Exit(1)
-	}()
-}
-
-func markLoadingPrefix(logger *log.Logger, origMsg string) {
-	// Immediately mark the commit with loading icon for visibility.
-	tempMsg := "[⏳] " + origMsg
-	if err := git.Amend(tempMsg); err != nil {
-		logger.Printf("warning: failed to add loading prefix: %v", err)
-		// Not fatal - continue with polishing
-	} else {
-		logger.Printf("added loading prefix to commit message")
-	}
-}
-
-func polishCommit(mgr *state.Manager, logger *log.Logger, cfg *config.Config, sha, origMsg, repoRoot string) (string, error) {
-	// Get diff.
-	diff, err := git.GetDiff(sha)
+		s.PID = os.Getpid()
+		return true, nil
+	})
 	if err != nil {
-		logger.Printf("diff error (using stat): %v", err)
-		diff, _ = git.GetDiffStat(sha)
-	}
-
-	polished, err := ai.PolishWithLogger(diff, origMsg, repoRoot, cfg, logger)
-	if err != nil {
-		logger.Printf("AI error: %v", err)
-		notify.Send("Git AI", i18n.Sprintf("hook.ai_failed", err))
-		// Rollback: restore original message to avoid leaving [⏳] prefix.
-		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
-			logger.Printf("rollback error: %v", rollbackErr)
-		} else {
-			logger.Printf("rolled back to original message")
-		}
-		// Reset state so we don't block future operations.
-		_ = mgr.Reset()
-		return "", err
-	}
-
-	return polished, nil
-}
-
-func applyPolishedMessage(mgr *state.Manager, logger *log.Logger, origMsg, polished string, cfg *config.Config, startTime time.Time, repoRoot string) error {
-	logger.Printf("polished message: %q", polished)
-
-	if err := git.Amend(polished); err != nil {
-		logger.Printf("amend error: %v", err)
-		notify.Send("Git AI", i18n.Sprintf("hook.amend_failed", err))
-		// Rollback: restore original message.
-		if rollbackErr := git.Amend(origMsg); rollbackErr != nil {
-			logger.Printf("rollback error: %v", rollbackErr)
-		} else {
-			logger.Printf("rolled back to original message")
-		}
-		_ = mgr.Reset()
 		return err
 	}
-
-	// Calculate telemetry metrics
-	timeTaken := time.Since(startTime)
-
-	// Add JSON git note
-	noteJSON := fmt.Sprintf(`{"model":%q, "generation_time_ms":%d, "original_message":%q, "estimated_time_saved_s":120}`,
-		cfg.Model, timeTaken.Milliseconds(), origMsg)
-
-	// We need HEAD's new SHA to add the note, since Amend changed it
-	newSha, _ := git.GetLastCommitSHA()
-	if newSha != "" {
-		if err := git.AddNotes(newSha, noteJSON); err != nil {
-			logger.Printf("warning: failed to add git note: %v", err)
-		} else {
-			logger.Printf("added git note with telemetry")
-		}
-	}
-
-	record := telemetry.Record{
-		Repo:                repoRoot,
-		Model:               cfg.Model,
-		TimeWaitedMs:        timeTaken.Milliseconds(),
-		OriginalMsgLen:      len(origMsg),
-		NewMsgLen:           len(polished),
-		EstimatedTimeSavedS: 120,
-	}
-	if err := telemetry.SaveRecord(record); err != nil {
-		logger.Printf("warning: failed to save telemetry: %v", err)
-	}
-
-	notify.Send("Git AI", i18n.Sprintf("hook.polished", truncate(polished, 60)))
-	return nil
-}
-
-func handlePendingPush(mgr *state.Manager, logger *log.Logger) *state.ErrorInfo {
-	// Check for pending push.
-	s, _ := mgr.Load()
-	if s.PendingPush == nil {
+	if snapshot.OperationID != operationID || snapshot.CurrentStatus != state.StatusPolishing {
+		logger.Println("operation superseded before daemon startup")
 		return nil
 	}
 
-	logger.Printf("executing pending push to %s", s.PendingPush.Remote)
+	repoRoot, _ := git.GetRepoRoot()
+	cfg, err := config.Load(repoRoot)
+	if err != nil {
+		markOperationFailure(mgr, operationID, state.OperationError{Code: "config_invalid", Category: "config", Message: "Git AI configuration could not be loaded. The commit was left unchanged.", OccurredAt: time.Now().Unix()})
+		return err
+	}
+	i18n.Init(cfg.UILanguage)
 
-	// Pre-check: can we push without interactive prompts?
-	if ok, reason := git.CanPushSilently(s.PendingPush.Remote); !ok {
-		logger.Printf("skipping background push: %s", reason)
-		errInfo := &state.ErrorInfo{
-			Code:    "push_no_credentials",
-			Message: reason,
-			FixHint: git.CredentialHelperHint(),
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	diff, err := git.GetDiff(snapshot.LastSHA)
+	if err != nil {
+		logger.Printf("full diff unavailable; falling back to stat")
+		diff, err = git.GetDiffStat(snapshot.LastSHA)
+		if err != nil {
+			markOperationFailure(mgr, operationID, state.OperationError{Code: "diff_unavailable", Category: "git", Message: "The target commit diff could not be read. The commit was left unchanged.", Retryable: true, OccurredAt: time.Now().Unix()})
+			return err
 		}
-		notify.Send("Git AI", reason)
-		return errInfo
 	}
 
-	s.CurrentStatus = state.StatusPushing
-	_ = mgr.Save(s)
-
-	if err := git.Push(s.PendingPush.Remote, s.PendingPush.RefSpecs); err != nil {
-		logger.Printf("push error: %v", err)
-		errInfo := classifyPushError(err, s.PendingPush.Remote)
-		notify.Send("Git AI", errInfo.Message)
-		return errInfo
+	polished, err := ai.PolishWithLoggerContext(ctx, diff, snapshot.OriginalMsg, repoRoot, cfg, logger)
+	if err != nil {
+		failure := ai.DescribeError(err)
+		markOperationFailure(mgr, operationID, state.OperationError{Code: failure.Code, Category: failure.Category, Message: failure.Message, Retryable: failure.Retryable, OccurredAt: time.Now().Unix()})
+		logger.Printf("polishing failed category=%s retryable=%t", failure.Category, failure.Retryable)
+		notify.Send("Git AI", failure.Message)
+		return err
 	}
 
-	notify.Send("Git AI", i18n.Sprintf("hook.pushed", s.PendingPush.Remote))
+	newSHA, err := applyPolishedMessage(mgr, operationID, polished)
+	if err != nil {
+		if errors.Is(err, git.ErrRefMoved) {
+			failure := state.OperationError{Code: "target_moved", Category: "superseded", Message: "A newer commit or branch change was detected. Git AI left all commits and workspace files unchanged.", OccurredAt: time.Now().Unix()}
+			markOperationFailure(mgr, operationID, failure)
+			logger.Println("target ref moved; safe no-op")
+			return nil
+		}
+		if errors.Is(err, git.ErrSignedCommit) {
+			failure := state.OperationError{Code: "signed_commit", Category: "git", Message: "The commit is signed, so Git AI did not rewrite it or invalidate its signature.", OccurredAt: time.Now().Unix()}
+			markOperationFailure(mgr, operationID, failure)
+			notify.Send("Git AI", failure.Message)
+			return nil
+		}
+		markOperationFailure(mgr, operationID, state.OperationError{Code: "rewrite_failed", Category: "git", Message: "The polished commit could not be installed. The original commit and workspace were left unchanged.", Retryable: true, OccurredAt: time.Now().Unix()})
+		return err
+	}
+
+	timeTaken := time.Since(startTime)
+	record := telemetry.Record{Repo: repoRoot, Model: cfg.Model, TimeWaitedMs: timeTaken.Milliseconds(), OriginalMsgLen: len(snapshot.OriginalMsg), NewMsgLen: len(polished), EstimatedTimeSavedS: 120}
+	if err := telemetry.SaveRecord(record); err != nil {
+		logger.Printf("telemetry save skipped: %v", err)
+	}
+	notify.Send("Git AI", i18n.Sprintf("hook.polished", truncate(polished, 60)))
+	handlePendingPush(mgr, logger, newSHA)
+	logger.Printf("done target=%s result=%s elapsed=%v", shortSHA(snapshot.LastSHA), shortSHA(newSHA), timeTaken)
 	return nil
 }
 
-// classifyPushError analyzes a push error and returns a user-friendly ErrorInfo
-// with actionable fix hints for IDE plugins to display.
-func classifyPushError(err error, remote string) *state.ErrorInfo {
-	errStr := err.Error()
-	if strings.Contains(errStr, "terminal prompts disabled") ||
-		strings.Contains(errStr, "could not read Username") ||
-		strings.Contains(errStr, "could not read Password") ||
-		strings.Contains(errStr, "Authentication failed") {
-		if git.IsSSHRemote(remote) {
-			return &state.ErrorInfo{
-				Code:    "push_ssh_auth",
-				Message: i18n.T("push_err.ssh_auth"),
-				FixHint: "ssh-add",
-			}
+func applyPolishedMessage(mgr *state.Manager, operationID, polished string) (string, error) {
+	var newSHA string
+	_, err := mgr.Update(func(s *state.State) (bool, error) {
+		if s.OperationID != operationID || s.CurrentStatus != state.StatusPolishing {
+			return false, nil
 		}
-		return &state.ErrorInfo{
-			Code:    "push_https_auth",
-			Message: i18n.T("push_err.https_auth"),
-			FixHint: credentialFixHint(),
+		created, rewriteErr := git.RewriteCommitMessageCAS(s.TargetRef, s.LastSHA, polished)
+		if rewriteErr != nil {
+			return false, rewriteErr
 		}
+		newSHA = created
+		s.CurrentStatus = state.StatusIdle
+		s.ResultSHA = created
+		s.OperationID = ""
+		s.PID = 0
+		s.StartedAt = 0
+		s.LastError = nil
+		return true, nil
+	})
+	if err != nil {
+		return "", err
 	}
-	return &state.ErrorInfo{
-		Code:    "push_failed",
-		Message: fmt.Sprintf(i18n.T("push_err.generic"), err),
+	if newSHA == "" {
+		return "", git.ErrRefMoved
 	}
+	return newSHA, nil
 }
 
-// credentialFixHint returns a platform-specific command to fix HTTPS credentials.
-func credentialFixHint() string {
-	return git.CredentialHelperHint() + " && git push"
+func markOperationFailure(mgr *state.Manager, operationID string, failure state.OperationError) {
+	_, _ = mgr.Update(func(s *state.State) (bool, error) {
+		if s.OperationID != operationID {
+			return false, nil
+		}
+		s.CurrentStatus = state.StatusFailed
+		s.OperationID = ""
+		s.PID = 0
+		s.StartedAt = 0
+		s.LastError = &failure
+		return true, nil
+	})
 }
 
-// truncate shortens a string to max length with ellipsis.
+func handlePendingPush(mgr *state.Manager, logger *log.Logger, resultSHA string) {
+	var pending *state.PendingPush
+	_, err := mgr.Update(func(s *state.State) (bool, error) {
+		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusIdle || s.PendingPush == nil {
+			return false, nil
+		}
+		copy := *s.PendingPush
+		pending = &copy
+		s.CurrentStatus = state.StatusPushing
+		return true, nil
+	})
+	if err != nil || pending == nil {
+		return
+	}
+
+	if ok, reason := git.CanPushSilently(pending.Remote); !ok {
+		markPushFailure(mgr, resultSHA, "push_credentials", reason)
+		notify.Send("Git AI", reason)
+		return
+	}
+	refSpecs, err := PendingRefSpecs(pending)
+	if err != nil {
+		markPushFailure(mgr, resultSHA, "push_not_replayable", "The deferred push could not be replayed safely. Run your original push command again.")
+		return
+	}
+	if err := git.Push(pending.Remote, refSpecs); err != nil {
+		logger.Printf("deferred push failed")
+		markPushFailure(mgr, resultSHA, "push_failed", "The commit was polished, but the deferred push failed. Your local branch is unchanged; retry the push from the IDE or terminal.")
+		notify.Send("Git AI", i18n.Sprintf("hook.push_failed", err))
+		return
+	}
+	_, _ = mgr.Update(func(s *state.State) (bool, error) {
+		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusPushing {
+			return false, nil
+		}
+		s.CurrentStatus = state.StatusIdle
+		s.PendingPush = nil
+		s.LastError = nil
+		return true, nil
+	})
+	notify.Send("Git AI", i18n.Sprintf("hook.pushed", pending.Remote))
+}
+
+func markPushFailure(mgr *state.Manager, resultSHA, code, message string) {
+	_, _ = mgr.Update(func(s *state.State) (bool, error) {
+		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusPushing {
+			return false, nil
+		}
+		s.CurrentStatus = state.StatusFailed
+		s.LastError = &state.OperationError{Code: code, Category: "push", Message: message, Retryable: true, OccurredAt: time.Now().Unix()}
+		return true, nil
+	})
+}
+
+// PendingRefSpecs converts captured pre-push updates to conservative explicit
+// refspecs. It never reconstructs force flags or other missing CLI options.
+func PendingRefSpecs(pending *state.PendingPush) ([]string, error) {
+	if len(pending.Updates) == 0 {
+		// Legacy state cannot reliably reconstruct destination refs.
+		return nil, errors.New("legacy pending push has no structured ref updates")
+	}
+	refSpecs := make([]string, 0, len(pending.Updates))
+	for _, update := range pending.Updates {
+		if update.RemoteRef == "" {
+			return nil, errors.New("missing remote ref")
+		}
+		if isZeroSHA(update.LocalSHA) {
+			refSpecs = append(refSpecs, ":"+update.RemoteRef)
+			continue
+		}
+		if update.LocalRef == "" || update.LocalRef == "(delete)" {
+			return nil, errors.New("missing local ref")
+		}
+		refSpecs = append(refSpecs, update.LocalRef+":"+update.RemoteRef)
+	}
+	return refSpecs, nil
+}
+
+func isZeroSHA(sha string) bool { return sha != "" && strings.Trim(sha, "0") == "" }
+
+func newOperationID() (string, error) {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return "", fmt.Errorf("create operation id: %w", err)
+	}
+	return hex.EncodeToString(bytes[:]), nil
+}
+
+func shortSHA(sha string) string {
+	if len(sha) <= 8 {
+		return sha
+	}
+	return sha[:8]
+}
+
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
