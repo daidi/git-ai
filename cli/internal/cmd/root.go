@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -145,8 +147,35 @@ func PostExecuteUpdateCheck() {
 
 // Execute runs the root command.
 func Execute() error {
+	version = effectiveVersion(version)
 	rootCmd.Version = version
 	return rootCmd.Execute()
+}
+
+// effectiveVersion keeps linker-injected release versions authoritative while
+// allowing `go install module@version` builds to report the module version that
+// Go records in their build metadata.
+func effectiveVersion(linkerVersion string) string {
+	moduleVersion := ""
+	if info, ok := debug.ReadBuildInfo(); ok {
+		moduleVersion = info.Main.Version
+	}
+	return selectVersion(linkerVersion, moduleVersion)
+}
+
+func selectVersion(linkerVersion, moduleVersion string) string {
+	if normalized := normalizeVersion(linkerVersion); normalized != "dev" {
+		return normalized
+	}
+	return normalizeVersion(moduleVersion)
+}
+
+func normalizeVersion(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "dev" || raw == "(devel)" {
+		return "dev"
+	}
+	return strings.TrimPrefix(raw, "v")
 }
 
 // ExitCode preserves the normal CLI exit code while allowing hidden hook

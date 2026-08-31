@@ -33,7 +33,7 @@ const gradle = fs.readFileSync(gradlePath, 'utf8')
 fs.writeFileSync(gradlePath, gradle);
 
 for (const path of ['docs/index.html', 'docs/script.js']) {
-  const content = fs.readFileSync(path, 'utf8').replace(/v\d+\.\d+\.\d+/g, `v${version}`);
+  const content = fs.readFileSync(path, 'utf8').replace(/([vV])\d+\.\d+\.\d+/g, (_, prefix) => `${prefix}${version}`);
   fs.writeFileSync(path, content);
 }
 NODE

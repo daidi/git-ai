@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed version reporting for CLI binaries installed with `go install`.
+- Fixed the Gradle 9 dependency between IntelliJ plugin signing and signature verification.
+
 ## 1.2.0
 
 - Moved runtime state, logs, and user configuration out of project worktrees.

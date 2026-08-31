@@ -58,6 +58,12 @@ tasks.named("instrumentTestCode") {
     enabled = fileTree("src/test").files.isNotEmpty()
 }
 
+// Gradle 9 validates task-output relationships strictly. Signature verification
+// reads the archive produced by signPlugin, so make that dependency explicit.
+tasks.named("verifyPluginSignature") {
+    dependsOn("signPlugin")
+}
+
 intellijPlatform {
     buildSearchableOptions = false
 
