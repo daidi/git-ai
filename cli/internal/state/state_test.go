@@ -57,7 +57,7 @@ func TestManagerKeepsRuntimeOutsideRepositoryAndUpdatesAtomically(t *testing.T) 
 	}
 	if info, err := os.Stat(mgr.StatePath()); err != nil {
 		t.Fatal(err)
-	} else if info.Mode().Perm()&0o077 != 0 {
+	} else if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		t.Fatalf("state permissions are too broad: %o", info.Mode().Perm())
 	}
 }
@@ -198,7 +198,7 @@ func TestHistoryIsExternalPrivateAndBounded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		t.Fatalf("history permissions are too broad: %o", info.Mode().Perm())
 	}
 }
