@@ -10,8 +10,8 @@
 
 <p align="center">
   <a href="https://github.com/daidi/git-ai">GitHub</a> •
-  <a href="https://marketplace.visualstudio.com/items?itemName=daidi.git-ai">VS Code</a> •
-  <a href="https://plugins.jetbrains.com/plugin/24227-git-ai">IntelliJ</a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai">VS Code</a> •
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai">IntelliJ</a>
 </p>
 
 ## ⚡️ The Problem: AI Tools Break Your Flow

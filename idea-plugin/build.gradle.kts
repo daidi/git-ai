@@ -2,6 +2,7 @@ import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import java.io.File
 
 plugins {
     id("java")
@@ -87,8 +88,12 @@ intellijPlatform {
     }
 
     signing {
-        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
-        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        certificateChainFile = layout.file(
+            providers.environmentVariable("CERTIFICATE_CHAIN_FILE").map { File(it) },
+        )
+        privateKeyFile = layout.file(
+            providers.environmentVariable("PRIVATE_KEY_FILE").map { File(it) },
+        )
         password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
     }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- Fixed IntelliJ signature verification by using temporary certificate and key files outside the checkout.
+- Corrected the Marketplace links bundled in the IDE plugin descriptions.
+
 ## 1.2.1
 
 - Fixed version reporting for CLI binaries installed with `go install`.

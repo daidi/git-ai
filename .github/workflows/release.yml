@@ -199,11 +199,26 @@ jobs:
       - name: Build and verify plugin
         run: ./gradlew buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
 
-      - name: Sign and verify plugin archive
-        run: ./gradlew signPlugin verifyPluginSignature
+      - name: Prepare signing material
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          certificate_chain_file="$RUNNER_TEMP/git-ai-certificate-chain.pem"
+          private_key_file="$RUNNER_TEMP/git-ai-private-key.pem"
+          printf '%s' "$CERTIFICATE_CHAIN" > "$certificate_chain_file"
+          printf '%s' "$PRIVATE_KEY" > "$private_key_file"
+          {
+            echo "CERTIFICATE_CHAIN_FILE=$certificate_chain_file"
+            echo "PRIVATE_KEY_FILE=$private_key_file"
+          } >> "$GITHUB_ENV"
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Sign and verify plugin archive
+        run: ./gradlew signPlugin verifyPluginSignature
+        env:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
 
       - name: Upload plugin to Release
@@ -225,6 +240,9 @@ jobs:
           ./gradlew publishPlugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+
+      - name: Remove signing material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/git-ai-certificate-chain.pem" "$RUNNER_TEMP/git-ai-private-key.pem"
