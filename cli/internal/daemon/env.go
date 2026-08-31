@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -29,6 +30,12 @@ func SanitizedEnv() []string {
 		"TMP":     true,
 		"TEMP":    true,
 		"TERM":    true,
+		// Keep cache/config resolution identical between the foreground hook and
+		// detached daemon. Dropping these would make Linux users with custom XDG
+		// directories write/read different state files.
+		"XDG_CACHE_HOME":  true,
+		"XDG_CONFIG_HOME": true,
+		"XDG_DATA_HOME":   true,
 
 		// Windows process/config/credential discovery.
 		"USERPROFILE":  true,
@@ -57,6 +64,10 @@ func SanitizedEnv() []string {
 		"no_proxy":    true,
 		"all_proxy":   true,
 
+		// Custom trust stores are common behind corporate TLS proxies.
+		"SSL_CERT_FILE": true,
+		"SSL_CERT_DIR":  true,
+
 		// macOS Security framework — required for Keychain access.
 		"SECURITYSESSIONID": true,
 	}
@@ -76,7 +87,7 @@ func SanitizedEnv() []string {
 			key = e[:idx]
 		}
 
-		if allowedExact[key] {
+		if environmentKeyAllowed(key, allowedExact) {
 			env = append(env, e)
 			continue
 		}
@@ -97,4 +108,20 @@ func SanitizedEnv() []string {
 	env = append(env, "GIT_TERMINAL_PROMPT=0")
 
 	return env
+}
+
+func environmentKeyAllowed(key string, allowed map[string]bool) bool {
+	if allowed[key] {
+		return true
+	}
+	// Windows environment-variable names are case-insensitive and commonly
+	// expose the executable search path as "Path" rather than "PATH".
+	if runtime.GOOS == "windows" {
+		for candidate := range allowed {
+			if strings.EqualFold(candidate, key) {
+				return true
+			}
+		}
+	}
+	return false
 }

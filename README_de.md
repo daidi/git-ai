@@ -48,7 +48,7 @@ Tippen Sie einfach:
 
 **Das ist alles. Sie können direkt weiterarbeiten.**
 
-Währenddessen analysiert ein unsichtbarer Hintergrund-Daemon Ihren Diff, verarbeitet ihn durch eine KI, nutzt Semantic Commits und korrigiert Ihren Commit leise mit `--amend`:
+Währenddessen sendet ein abgetrennter Daemon den Diff an das LLM, erstellt aus dem aufgezeichneten SHA einen Ersatz-Commit und aktualisiert den Ref nur, wenn er unverändert ist:
 `fix(auth): session timeout on mobile`
 
 Wenn Sie danach wie immer sofort auf "Push" drücken, parkt Git AI den Befehl clever in einer Warteschlange und drückt den Commit sicher in Ihr Repository, sobald die KI fertig ist. **Keine Änderung an Ihrer Gewohnheit nötig.**
@@ -87,8 +87,8 @@ Wenn Sie danach wie immer sofort auf "Push" drücken, parkt Git AI den Befehl cl
 ## ✨ Highlights
 
 - 🔄 **Asynchrone Optimierung** —— Keine Ladebalken via `post-commit` Hook
-- ⏳ **Status in Echtzeit sichtbar** —— Im `git log` ist sofort `[⏳]` vor dem Arbeitstitel
-- 🛡️ **Fail-Safe** —— Abstürze oder Timeouts sichern stets das Original ab
+- ⏳ **Echtzeitstatus** —— CLI und IDE lesen externen Anwendungsstatus, ohne Projektdateien anzulegen
+- 🛡️ **Fail-Safe** —— Abstürze, Modell- oder Netzwerkfehler lassen Original-Commit und Arbeitsbereich unverändert
 - 🚀 **Sicheres Push** —— Wenn die KI läuft, werden spätere "Push"-Befehle nicht mehr überschrieben, sondern warten intelligent
 - 🤖 **Viele Provider** —— OpenAI, DeepSeek, Claude, Ollama
 

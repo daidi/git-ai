@@ -1,7 +1,7 @@
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import { getExecutablePath } from './installer';
-import { notifyInfo, notifyWarning } from './notifications';
+import { notifyInfo } from './notifications';
 import { t } from './i18n';
 
 export interface OperationError {
@@ -119,8 +119,34 @@ export class StateWatcher {
             notifyInfo(t('notification.pushCompleted'));
         }
         if (newState.current_status === 'failed' && newState.last_error?.occurred_at !== previous.last_error?.occurred_at) {
-            notifyWarning(newState.last_error?.message ?? 'Git AI stopped safely; the commit and workspace were left unchanged.');
+            this.showFailureNotification(newState.last_error);
         }
+    }
+
+    private showFailureNotification(error: OperationError | undefined): void {
+        const failure = error ?? {
+            code: 'unknown',
+            category: 'runtime',
+            message: 'Git AI stopped safely; the commit and workspace were left unchanged.',
+            retryable: false,
+            occurred_at: 0,
+        };
+        const retry = failure.retryable && failure.category !== 'push' ? t('actions.btn.retry') : undefined;
+        const configure = ['authentication', 'model', 'config'].includes(failure.category)
+            ? t('actions.btn.config')
+            : undefined;
+        const terminal = failure.category === 'push' ? t('notification.openTerminal') : undefined;
+        const actions = [retry, configure, terminal].filter((value): value is string => Boolean(value));
+
+        void vscode.window.showWarningMessage(failure.message, ...actions).then(selection => {
+            if (selection === retry) {
+                void vscode.commands.executeCommand('git-ai.retry');
+            } else if (selection === configure) {
+                void vscode.commands.executeCommand('git-ai.openConfig');
+            } else if (selection === terminal) {
+                vscode.window.createTerminal({ name: 'Git AI', cwd: this.workspaceRoot }).show();
+            }
+        });
     }
 }
 

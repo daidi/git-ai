@@ -48,7 +48,7 @@ Basta un:
 
 **Nessuna barra di caricamento.** Scrivi e vai.
 
-A parte e con priorità ridotta, un task va via API a mandare il tutto al sistema cloud e trasforma il testo semplice con `--amend` in questo:
+In background, il daemon invia il diff al LLM, crea un commit sostitutivo dallo SHA registrato e aggiorna il ref solo se non è cambiato:
 `fix(auth): solve bug per le cache`
 
 ## 💡 Rispetto ad altri

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
-import * as https from 'https';
-import { getExecutablePath, installCliUpdate } from './installer';
+import { fetchLatestTag, getExecutablePath, installCliUpdate } from './installer';
 import { t } from './i18n';
 
 /**
@@ -29,7 +28,7 @@ export async function checkForCliUpdate(context: vscode.ExtensionContext): Promi
         }
 
         // 2. Fetch latest release from proxy (same endpoint the CLI uses).
-        const latestVersion = await fetchLatestVersion();
+        const latestVersion = (await fetchLatestTag()).replace(/^v/, '');
         if (!latestVersion) {
             return;
         }
@@ -75,44 +74,6 @@ function getInstalledCliVersion(): Promise<string | null> {
             const match = stripped.match(/v?(\d+\.\d+\.\d+)/);
             resolve(match ? match[1] : null);
         });
-    });
-}
-
-/**
- * Fetch the latest release tag from the proxy endpoint.
- */
-function fetchLatestVersion(): Promise<string | null> {
-    return new Promise((resolve) => {
-        const req = https.get('https://git-ai.codegg.org/releases/latest', (res) => {
-            if (res.statusCode === 301 || res.statusCode === 302) {
-                // Follow redirect — extract version from Location header.
-                const location = res.headers.location || '';
-                const match = location.match(/\/tag\/v?(\d+\.\d+\.\d+)/);
-                resolve(match ? match[1] : null);
-                res.resume(); // Drain the response.
-                return;
-            }
-            if (res.statusCode !== 200) {
-                resolve(null);
-                res.resume();
-                return;
-            }
-
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-                try {
-                    const release = JSON.parse(data);
-                    const tag = (release.tag_name || '').replace(/^v/, '');
-                    resolve(tag || null);
-                } catch {
-                    resolve(null);
-                }
-            });
-        });
-        req.on('error', () => resolve(null));
-        req.setTimeout(5000, () => { req.destroy(); resolve(null); });
-        req.end();
     });
 }
 

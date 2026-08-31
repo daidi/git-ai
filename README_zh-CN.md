@@ -54,7 +54,7 @@ Git AI 以纯异步、纯后台的处理机制彻底颠覆了这个流程。
 
 **这就够了。你可以立刻回去继续写你的代码。**
 
-在这个瞬间，一个解耦的后台守护进程会安全地将你的 Diff 发送给 LLM，应用规范化语义标准，并在后台默默地使用 `--amend` 将你的提交改写为：
+在这个瞬间，一个解耦的后台守护进程会安全地将 Diff 发送给 LLM，基于触发时记录的精确提交构造替代提交，并且仅在分支没有移动时才原子更新：
 `fix(auth): resolve session timeout on mobile devices`
 
 即使你习惯于提交后直接 Push，Git AI 也会优雅地拦截并排队你的 Push 请求，等待润色完成后自动推送到远端。**零习惯破坏。**
@@ -69,7 +69,7 @@ Git AI 以纯异步、纯后台的处理机制彻底颠覆了这个流程。
 | **需要改变习惯吗？**| 需要学习新按钮/新快捷键 | 标准的 `git commit` |
 
 1. **安全至上：** 你的代码在 `commit` 的一瞬间就进入了 Git 的版本历史。哪怕 API Key 过期、网络断开，你的心血也被安全快照保存。
-2. **AI 智能体友好：** Git log 在润色时会立刻注入 `[⏳]` 前缀提供进度反馈，完美避免 Cursor / Claude Code 等 AI 自动化编程工具因未追踪状态而产生重复提交。
+2. **AI 智能体友好：** 润色期间 Git 历史和工作区保持不变；CLI 与 IDE 通过工作区外的应用状态显示进度，不制造临时提交。
 3. **绝佳的兼容性：** 无论你使用终端、JetBrains、VS Code 还是 Fork，Git AI 都在幕后无缝工作。
 
 ---
@@ -112,13 +112,13 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 ## ✨ 核心特性
 
 - 🔄 **异步 AI 润色** —— 通过 `post-commit` 钩子在后台增强提交信息
-- ⏳ **实时状态可见** —— `git log` 显示 `[⏳]` 前缀表示润色中；成功后自动移除
-- 🛡️ **自动恢复机制** —— 崩溃/超时自动回滚；极端情况可用 `git-ai recover` 手动恢复
+- ⏳ **实时状态可见** —— CLI 与 IDE 查询工作区外的应用状态，不在项目中放置状态文件
+- 🛡️ **安全恢复机制** —— 网络、模型或守护进程异常时原提交保持不变，并提供重试或配置入口
 - 🚀 **延迟推送** —— AI 工作时推送自动排队，完成后静默推送
 - 📝 **4 种消息格式** —— `plain`、`conventional`、`gitmoji`、`subject+body`
 - 🤖 **原生多厂商接入** —— 深度支持 OpenAI、Anthropic Claude、Google Gemini、DeepSeek、Ollama 及兼容 API
 - ✂️ **智能 Diff 裁剪** —— 三级 Token 截断，处理超大 Diff 不溢出
-- 📐 **Commitlint 原生集成** —— 自动检测本地 `.commitlintrc` 以严格遵循你项目的自定义规范
+- 📐 **安全的 Commitlint 集成** —— 只读取静态 JSON 规则，不执行仓库脚本，也不会安装依赖
 - 🎩 **高级 Prompt 模板** —— 支持 Go `text/template` (如 `{{.Diff}}`, `{{.Hint}}`) 随心所欲定制提示词机制
 - 🧐 **深入解释模式** —— 开启后，自动在提交信息尾部补充一段关于“为什么要这么改”的解释（`git-ai config set explain true`）
 - 🔔 **系统通知** —— 润色/推送完成时发送操作系统原生通知
@@ -204,9 +204,9 @@ git-ai retry
 
 ## ⚙️ 模型与配置
 
-git-ai 支持分层配置系统：**环境变量 → 仓库级（`.git/config` 中的 `git-ai.*`）→ 操作系统应用配置目录中的用户级配置 → 默认值**。API Key 只能保存在用户级配置中。为了兼容 1.1.4 及更早版本，旧 `.git-ai.json` 仍可只读迁移，但新版本绝不会创建或修改这个工作区文件。
+git-ai 支持分层配置系统：**环境变量 → 仓库级（`.git/config` 中的 `git-ai.*`）→ 操作系统应用配置目录中的用户级配置 → 默认值**。API Key 只能保存在用户级配置中。旧版 `.git-ai.json` 工作区文件会被彻底忽略，因为信任仓库分发的模型地址可能泄露用户级凭据。请用 `git-ai config set ... --local` 重新录入旧的项目覆盖项，然后自行删除旧文件。
 
-运行状态和日志同样保存在操作系统的用户缓存目录。除用户明确安装的 Git Hook 与 `.git/config` 覆盖项外，Git AI 不会在项目或工作区写入应用文件。
+运行状态、日志和 AI 提交历史元数据都保存在操作系统的用户缓存目录。除用户明确安装的 Git Hook 与 `.git/config` 覆盖项外，Git AI 不会在项目或工作区写入应用文件；新版本也不会创建 Git Notes。
 
 > 💡 **强烈建议**：使用 **快速模型**（flash/mini/turbo 系列）。它们成本降低 10 倍、响应时间约 500ms，对于提交信息润色完全够用。绝大多数情况下你不会感到任何延迟。
 
@@ -281,7 +281,7 @@ git commit -m "修个bug"
         └── 同步退出终端拦截 → 你继续写代码
 ```
 
-- **`cli/` (Go 1.23+)**：处理 Hook、守护进程、LLM 调用及基于 CAS 的安全提交替换。
+- **`cli/` (Go 1.26.6+)**：处理 Hook、守护进程、LLM 调用及基于 CAS 的安全提交替换。
 - **`idea-plugin/` (Kotlin)**：在后台线程轮询 CLI，并将所有写操作委托给 CLI。
 - **`vscode-extension/` (TS)**：仅在受信任工作区运行 CLI，通过 CLI 状态接口驱动原生 UI。
 
@@ -308,15 +308,17 @@ make install
 
 1. 请确保当前工作区干净没有未提交的改动。运行跨生态升版脚本：
    ```bash
-   ./scripts/bump-version.sh 0.3.0
+   ./scripts/bump-version.sh 1.2.0
    ```
-2. 脚本会自动更新 `vscode-extension/package.json` 以及 `idea-plugin/gradle.properties` 的配置。
-3. 把变更文件进行发版提交并 Push Tag：
+2. 脚本会更新两个插件的版本清单/锁文件以及多语言官网版本标记，但不会自动提交或推送。
+3. 完整验证通过后提交并推送 `main`，再创建产品 Tag 与 Go 子模块 Tag：
    ```bash
-   git add vscode-extension/package.json idea-plugin/gradle.properties
-   git commit -m "chore(release): bump version to 0.3.0"
-   git tag v0.3.0
-   git push origin main v0.3.0
+   git add -A
+   GIT_AI_INTERNAL=true git commit -m "chore: bump version to 1.2.0"
+   git push origin HEAD:main
+   git tag v1.2.0
+   git tag cli/v1.2.0
+   git push origin v1.2.0 cli/v1.2.0
    ```
 
 接下来，触发的 Tag 流水线会自动化完成 GoReleaser 对 Homebrew、Scoop 以及 GitHub Releases 的分发工作。

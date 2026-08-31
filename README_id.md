@@ -43,7 +43,7 @@ Gak peduli. Jalanin Git AI dan asinkron mode belakang.
 Tulis gini doang di terminal tercantum:
 `git commit -m "fix apalah"`
 
-Cuss lanjutin code ente. Otomatis dibelakang, sistem setan dari Go kami lempar prompt rahasia ke ChatGPT atau Deepseek kesayangan kamu dan ditiban dah lewat command `--amend`:
+Cuss lanjutin code ente. Di belakang layar, daemon mengirim diff ke LLM, membuat commit pengganti dari SHA yang direkam, lalu memajukan ref hanya kalau targetnya belum berubah:
 `fix(auth): setup fallback state when the token burns out`
 
 ## 📦 Ayo Gaskeun Instal

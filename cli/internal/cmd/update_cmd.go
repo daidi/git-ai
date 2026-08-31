@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/update"
+	"github.com/daidi/git-ai/cli/internal/update"
 )
 
 var updateCmd = &cobra.Command{

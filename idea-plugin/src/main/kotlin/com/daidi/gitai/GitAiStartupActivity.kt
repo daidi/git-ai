@@ -16,9 +16,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import com.intellij.util.io.HttpRequests
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -99,16 +96,13 @@ class GitAiStartupActivity : ProjectActivity {
                     return@executeOnPooledThread
                 }
 
-                // 2. Fetch latest release.
-                val json = HttpRequests.request("https://git-ai.codegg.org/releases/latest")
-                    .connectTimeout(10_000)
-                    .readTimeout(10_000)
-                    .readString()
-                val release = Gson().fromJson(json, ReleaseInfo::class.java)
-                val latestVersion = release.tagName.removePrefix("v")
-
-                // 3. Record check time.
+                // Record the bounded attempt even if the network is unavailable,
+                // so opening several projects does not create a request storm.
                 props.setValue("git-ai.lastUpdateCheck", System.currentTimeMillis().toString())
+
+                // 2. Fetch latest release with the same retry/fallback path as
+                // the checksum-verifying installer.
+                val latestVersion = GitAiInstaller.fetchLatestReleaseTag().removePrefix("v")
 
                 // 4. Compare.
                 if (!isNewer(currentVersion, latestVersion)) return@executeOnPooledThread
@@ -148,8 +142,4 @@ class GitAiStartupActivity : ProjectActivity {
         }
         return false
     }
-
-    private data class ReleaseInfo(
-        @SerializedName("tag_name") val tagName: String = ""
-    )
 }

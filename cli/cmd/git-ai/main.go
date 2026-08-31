@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"github.com/daidi/git-ai/internal/cmd"
+	"github.com/daidi/git-ai/cli/internal/cmd"
 )
 
 func main() {
@@ -13,6 +13,6 @@ func main() {
 
 	if err != nil {
 		cmd.Errorf("%v\n", err)
-		os.Exit(1)
+		os.Exit(cmd.ExitCode(err))
 	}
 }

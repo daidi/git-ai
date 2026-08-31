@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -70,6 +71,50 @@ func TestRewriteCommitMessageCASRefMovedIsSafeNoOp(t *testing.T) {
 	}
 }
 
+func TestDetachedHeadRewriteDoesNotFollowANewSymbolicHead(t *testing.T) {
+	repo := initTestRepo(t)
+	t.Chdir(repo)
+	writeTestFile(t, filepath.Join(repo, "one.txt"), "one\n")
+	gitTestRun(t, repo, "add", ".")
+	gitTestRun(t, repo, "commit", "-m", "one")
+	original := strings.TrimSpace(gitTestRun(t, repo, "rev-parse", "HEAD"))
+	gitTestRun(t, repo, "switch", "--detach", original)
+	targetRef, err := GetHeadRef()
+	if err != nil || targetRef != "HEAD" {
+		t.Fatalf("detached target ref = %q, %v", targetRef, err)
+	}
+
+	gitTestRun(t, repo, "switch", "-c", "other")
+	_, err = RewriteCommitMessageCAS(targetRef, original, "must not rewrite other")
+	if !errors.Is(err, ErrRefMoved) {
+		t.Fatalf("error = %v, want ErrRefMoved", err)
+	}
+	if got := strings.TrimSpace(gitTestRun(t, repo, "rev-parse", "refs/heads/other")); got != original {
+		t.Fatalf("new symbolic branch moved: got %s want %s", got, original)
+	}
+}
+
+func TestDetachedHeadRewriteUsesNoDeref(t *testing.T) {
+	repo := initTestRepo(t)
+	t.Chdir(repo)
+	writeTestFile(t, filepath.Join(repo, "one.txt"), "one\n")
+	gitTestRun(t, repo, "add", ".")
+	gitTestRun(t, repo, "commit", "-m", "one")
+	original := strings.TrimSpace(gitTestRun(t, repo, "rev-parse", "HEAD"))
+	gitTestRun(t, repo, "switch", "--detach", original)
+
+	rewritten, err := RewriteCommitMessageCAS("HEAD", original, "fix: detached")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rewritten == original {
+		t.Fatal("detached HEAD was not rewritten")
+	}
+	if _, err := exec.Command("git", "symbolic-ref", "-q", "HEAD").Output(); err == nil {
+		t.Fatal("detached HEAD became symbolic")
+	}
+}
+
 func TestGetDiffIncludesInitialCommitAndWorktreesHaveDistinctGitDirs(t *testing.T) {
 	repo := initTestRepo(t)
 	t.Chdir(repo)
@@ -97,6 +142,72 @@ func TestGetDiffIncludesInitialCommitAndWorktreesHaveDistinctGitDirs(t *testing.
 	}
 	if linkedGitDir == mainGitDir {
 		t.Fatalf("linked worktree shared Git dir %q", linkedGitDir)
+	}
+}
+
+func TestHookPathMustStayInsideRepositoryGitMetadata(t *testing.T) {
+	repo := initTestRepo(t)
+	t.Chdir(repo)
+	defaultHook, err := GetHookPath("post-commit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if safe, err := IsRepositoryScopedHookPath(defaultHook); err != nil || !safe {
+		t.Fatalf("default hook path rejected: safe=%t err=%v path=%s", safe, err, defaultHook)
+	}
+
+	external := filepath.Join(t.TempDir(), "shared-hooks")
+	gitTestRun(t, repo, "config", "--local", "core.hooksPath", external)
+	externalHook, err := GetHookPath("pre-push")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if safe, err := IsRepositoryScopedHookPath(externalHook); err != nil || safe {
+		t.Fatalf("external hook path accepted: safe=%t err=%v path=%s", safe, err, externalHook)
+	}
+
+	gitTestRun(t, repo, "config", "--local", "core.hooksPath", ".githooks")
+	worktreeHook, err := GetHookPath("post-commit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if safe, err := IsRepositoryScopedHookPath(worktreeHook); err != nil || safe {
+		t.Fatalf("worktree hook path accepted: safe=%t err=%v path=%s", safe, err, worktreeHook)
+	}
+
+	gitDir, err := GetCommonGitDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	symlinkTarget := filepath.Join(t.TempDir(), "outside")
+	if err := os.MkdirAll(symlinkTarget, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(gitDir, "linked-hooks")
+	if err := os.Symlink(symlinkTarget, link); err != nil {
+		if runtime.GOOS == "windows" {
+			t.Skipf("symlink unavailable: %v", err)
+		}
+		t.Fatal(err)
+	}
+	gitTestRun(t, repo, "config", "--local", "core.hooksPath", filepath.Join(link, "not-created"))
+	symlinkHook, err := GetHookPath("pre-push")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if safe, err := IsRepositoryScopedHookPath(symlinkHook); err != nil || safe {
+		t.Fatalf("symlink-escaping hook path accepted: safe=%t err=%v path=%s", safe, err, symlinkHook)
+	}
+}
+
+func TestRunGitLimitedRejectsOversizedOutput(t *testing.T) {
+	repo := initTestRepo(t)
+	t.Chdir(repo)
+	writeTestFile(t, filepath.Join(repo, "one.txt"), "one\n")
+	gitTestRun(t, repo, "add", ".")
+	gitTestRun(t, repo, "commit", "-m", "one")
+	if _, err := runGitLimited(4, "rev-parse", "HEAD"); !errors.Is(err, ErrOutputTooLarge) {
+		t.Fatalf("runGitLimited error = %v, want ErrOutputTooLarge", err)
 	}
 }
 

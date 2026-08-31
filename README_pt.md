@@ -41,7 +41,7 @@ Maior parte das ferramentas Git AI fazem você parar de codificar: você pausa, 
 Se libere pelo processo assíncrono. Faça um commit cego rápido de duas palavras:
 `git commit -m "fix bug"`
 
-E volte ao código imediatamente! Atrás dos panos o nosso daemon mandará seu diff gigantesco pro LLM e irá reescrever lindamente no histórico local usando `--amend` para ser:
+E volte ao código imediatamente! Em segundo plano, o daemon envia o diff ao LLM, cria um commit substituto a partir do SHA gravado e só atualiza a referência se ela não mudou:
 `fix(auth): fix session for apple`
 
 ## 💡 Por que é fenomenal?

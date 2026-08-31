@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/cli/internal/config"
 )
 
 func TestDescribeErrorReturnsSafeActionableCategories(t *testing.T) {
@@ -90,5 +90,83 @@ func TestMalformedProviderResponseIsRetryableInvalidResponse(t *testing.T) {
 	var providerErr *ProviderError
 	if !errors.As(err, &providerErr) || providerErr.Kind != ErrorInvalidResponse || !IsRetryable(err) {
 		t.Fatalf("error = %#v", err)
+	}
+}
+
+func TestProviderResponseOverSafetyLimitIsRejected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"ok"}}],"padding":"`))
+		_, _ = w.Write([]byte(strings.Repeat("x", int(maxProviderResponseBytes))))
+		_, _ = w.Write([]byte(`"}`))
+	}))
+	defer server.Close()
+	cfg := config.Defaults()
+	cfg.APIKey = "test"
+	cfg.BaseURL = server.URL
+	_, err := NewClient(cfg, nil).GenerateCompletion(context.Background(), "system", "user")
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) || providerErr.Kind != ErrorInvalidResponse {
+		t.Fatalf("oversized response error = %#v", err)
+	}
+}
+
+func TestNativeProvidersDoNotInheritDeepSeekDefaultEndpoint(t *testing.T) {
+	tests := []struct {
+		provider string
+		want     string
+	}{
+		{provider: "anthropic", want: "https://api.anthropic.com/v1"},
+		{provider: "gemini", want: "https://generativelanguage.googleapis.com/v1beta"},
+		{provider: "ollama", want: "http://localhost:11434/v1"},
+	}
+	for _, test := range tests {
+		cfg := config.Defaults()
+		cfg.Provider = test.provider
+		client := NewClient(cfg, nil)
+		var got string
+		switch typed := client.(type) {
+		case *AnthropicClient:
+			got = typed.baseURL
+		case *GeminiClient:
+			got = typed.baseURL
+		case *OpenAIClient:
+			got = typed.baseURL
+		default:
+			t.Fatalf("provider %s created %T", test.provider, client)
+		}
+		if got != test.want {
+			t.Errorf("provider %s endpoint = %q, want %q", test.provider, got, test.want)
+		}
+	}
+}
+
+func TestProviderEndpointsRejectInsecureRemoteHTTPAndRedirects(t *testing.T) {
+	cfg := config.Defaults()
+	cfg.APIKey = "must-not-be-sent"
+	cfg.BaseURL = "http://example.com/v1"
+	_, err := NewClient(cfg, nil).GenerateCompletion(context.Background(), "system", "user")
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) || providerErr.Kind != ErrorModel || IsRetryable(err) {
+		t.Fatalf("insecure endpoint error = %#v", err)
+	}
+
+	targetCalled := false
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusTemporaryRedirect)
+	}))
+	defer redirect.Close()
+	cfg.BaseURL = redirect.URL
+	_, err = NewClient(cfg, nil).GenerateCompletion(context.Background(), "system", "user")
+	if !errors.As(err, &providerErr) || providerErr.Kind != ErrorModel || IsRetryable(err) {
+		t.Fatalf("redirect error = %#v", err)
+	}
+	if targetCalled {
+		t.Fatal("provider redirect target received a request")
 	}
 }

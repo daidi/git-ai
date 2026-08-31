@@ -3,11 +3,24 @@
 # Installed by `git-ai init`. Re-run init to update this dispatcher.
 
 umask 077
-tmp_file=$(mktemp "${TMPDIR:-/tmp}/git-ai-pre-push.XXXXXX") || exit 1
-trap 'rm -f "$tmp_file"' EXIT HUP INT TERM
-cat >"$tmp_file" || exit 1
-
 backup="${0}.git-ai.backup"
+tmp_file=$(mktemp "${TMPDIR:-/tmp}/git-ai-pre-push.XXXXXX") || {
+  echo "git-ai: could not create temporary hook input; skipping Git AI" >&2
+  if [ -x "$backup" ]; then
+    exec "$backup" "$@"
+  fi
+  cat >/dev/null || true
+  exit 0
+}
+trap 'rm -f "$tmp_file"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+cat >"$tmp_file" || {
+  echo "git-ai: could not preserve pre-push input; refusing to bypass the existing user hook" >&2
+  exit 1
+}
+
 if [ -x "$backup" ]; then
   "$backup" "$@" <"$tmp_file"
   backup_status=$?
@@ -16,4 +29,17 @@ fi
 
 [ "$GIT_AI_INTERNAL" = "true" ] && exit 0
 export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
+if ! command -v git-ai >/dev/null 2>&1; then
+  echo "git-ai: CLI unavailable; allowing push unchanged" >&2
+  exit 0
+fi
+
 git-ai hook pre-push "$@" <"$tmp_file"
+git_ai_status=$?
+if [ "$git_ai_status" -eq 75 ]; then
+  exit 1
+fi
+if [ "$git_ai_status" -ne 0 ]; then
+  echo "git-ai: hook failed; allowing push unchanged" >&2
+fi
+exit 0

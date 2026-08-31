@@ -103,3 +103,6 @@ else:
     if total_extra > 0:
         print(f"  {YELLOW}Total extra keys: {total_extra}{NC}")
 print()
+
+if total_missing or total_extra or missing_locales:
+    sys.exit(1)

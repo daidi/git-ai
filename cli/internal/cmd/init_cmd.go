@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/config"
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/cli/internal/config"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/state"
 )
 
 //go:embed hooks/*
@@ -38,6 +38,26 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	Printf("%s", i18n.Sprintf("init.start", repoRoot))
 
+	type hookTarget struct {
+		name string
+		path string
+	}
+	targets := make([]hookTarget, 0, 2)
+	for _, hookName := range []string{"post-commit", "pre-push"} {
+		hookPath, resolveErr := git.GetHookPath(hookName)
+		if resolveErr != nil {
+			return fmt.Errorf("resolve %s hook: %w", hookName, resolveErr)
+		}
+		repositoryScoped, scopeErr := git.IsRepositoryScopedHookPath(hookPath)
+		if scopeErr != nil {
+			return fmt.Errorf("validate %s hook path: %w", hookName, scopeErr)
+		}
+		if !repositoryScoped {
+			return fmt.Errorf("refusing to modify %s outside this repository's Git metadata: %s", hookName, hookPath)
+		}
+		targets = append(targets, hookTarget{name: hookName, path: hookPath})
+	}
+
 	// Runtime state belongs to the application cache, never the worktree.
 	mgr := state.NewManager(gitDir)
 	if err := mgr.EnsureDir(); err != nil {
@@ -52,19 +72,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 	Printf("%s", i18n.T("init.state_json"))
 
 	// Install hook dispatchers without discarding existing user hooks.
-	for _, hookName := range []string{"post-commit", "pre-push"} {
-		hookPath, err := git.GetHookPath(hookName)
-		if err != nil {
-			return fmt.Errorf("resolve %s hook: %w", hookName, err)
-		}
-		backedUp, err := installHook(hookName, hookPath)
+	for _, target := range targets {
+		backedUp, err := installHook(target.name, target.path)
 		if err != nil {
 			return err
 		}
 		if backedUp {
-			Printf("%s", i18n.Sprintf("init.backed_up", hookName, hookName))
+			Printf("%s", i18n.Sprintf("init.backed_up", target.name, target.name))
 		}
-		Printf("%s", i18n.Sprintf("init.installed", hookName))
+		Printf("%s", i18n.Sprintf("init.installed", target.name))
 	}
 
 	// 5. Push authentication detection.
@@ -106,7 +122,7 @@ func installHook(hookName, hookPath string) (bool, error) {
 	backupPath := hookPath + ".git-ai.backup"
 	legacyBackup := hookPath + ".backup"
 	current, readErr := os.ReadFile(hookPath)
-	isOurs := readErr == nil && strings.Contains(string(current), "git-ai hook "+hookName)
+	isOurs := readErr == nil && isManagedHook(current, hookName)
 	if readErr != nil && !os.IsNotExist(readErr) {
 		return false, fmt.Errorf("read %s hook: %w", hookName, readErr)
 	}
@@ -142,6 +158,13 @@ func installHook(hookName, hookPath string) (bool, error) {
 		return false, fmt.Errorf("write %s hook: %w", hookName, err)
 	}
 	return backedUp, nil
+}
+
+func isManagedHook(content []byte, hookName string) bool {
+	normalized := strings.ReplaceAll(string(content), "\r\n", "\n")
+	newMarker := "# git-ai managed hook: " + hookName + "\n"
+	legacyMarker := "# git-ai " + hookName + " hook\n# Installed by `git-ai init`. Do not edit"
+	return strings.Contains(normalized, newMarker) || strings.Contains(normalized, legacyMarker)
 }
 
 func writeHookAtomic(path string, content []byte) error {

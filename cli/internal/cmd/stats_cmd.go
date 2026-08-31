@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/daidi/git-ai/internal/telemetry"
+	"github.com/daidi/git-ai/cli/internal/telemetry"
 	"github.com/spf13/cobra"
 )
 

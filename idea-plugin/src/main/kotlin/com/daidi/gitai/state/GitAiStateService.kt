@@ -1,8 +1,11 @@
 package com.daidi.gitai.state
 
 import com.daidi.gitai.GitAiBundle
+import com.daidi.gitai.actions.ForcePushAction
+import com.daidi.gitai.actions.RetryAction
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -10,6 +13,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.util.concurrent.CopyOnWriteArrayList
@@ -129,10 +133,7 @@ class GitAiStateService(private val project: Project) : Disposable {
                     showNotification(GitAiBundle.message("notification.pushCompleted"), NotificationType.INFORMATION)
 
                 newState.isFailed && newState.lastError?.occurredAt != previous.lastError?.occurredAt ->
-                    showNotification(
-                        GitAiBundle.message("notification.failed", newState.lastError?.message.orEmpty()),
-                        NotificationType.WARNING,
-                    )
+                    showFailureNotification(newState.lastError)
             }
         }
         hasLoadedState = true
@@ -156,6 +157,43 @@ class GitAiStateService(private val project: Project) : Disposable {
                 .getNotificationGroup("git-ai.notifications")
                 .createNotification(GitAiBundle.message("notification.title"), content, type)
                 .notify(project)
+        }, project.disposed)
+    }
+
+    private fun showFailureNotification(error: OperationError?) {
+        ApplicationManager.getApplication().invokeLater({
+            if (project.isDisposed) return@invokeLater
+            val failure = error ?: OperationError(
+                category = "runtime",
+                message = "Git AI stopped safely; the commit and workspace were left unchanged.",
+            )
+            val notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup("git-ai.notifications")
+                .createNotification(
+                    GitAiBundle.message("notification.title"),
+                    GitAiBundle.message("notification.failed", failure.message),
+                    NotificationType.WARNING,
+                )
+            when {
+                failure.category == "push" -> notification.addAction(
+                    NotificationAction.createSimple(GitAiBundle.message("toolwindow.btn.push")) {
+                        ForcePushAction.execute(project)
+                    },
+                )
+
+                failure.category in setOf("authentication", "model", "config") -> notification.addAction(
+                    NotificationAction.createSimple(GitAiBundle.message("action.GitAi.OpenConfig.text")) {
+                        ShowSettingsUtil.getInstance().showSettingsDialog(project, "com.daidi.gitai.settings")
+                    },
+                )
+
+                failure.retryable -> notification.addAction(
+                    NotificationAction.createSimple(GitAiBundle.message("action.GitAi.Retry.text")) {
+                        RetryAction.execute(project)
+                    },
+                )
+            }
+            notification.notify(project)
         }, project.disposed)
     }
 

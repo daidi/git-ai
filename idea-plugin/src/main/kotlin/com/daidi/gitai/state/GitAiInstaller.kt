@@ -9,6 +9,8 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
@@ -18,6 +20,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
@@ -27,6 +30,8 @@ import java.util.zip.ZipFile
 object GitAiInstaller {
     private val log = Logger.getInstance(GitAiInstaller::class.java)
     private const val MAX_ARCHIVE_BYTES = 150L * 1024L * 1024L
+    private const val MAX_BINARY_BYTES = 100L * 1024L * 1024L
+    private const val MAX_METADATA_BYTES = 1 shl 20
 
     fun notifyMissingCli(project: Project) {
         val notification = NotificationGroupManager.getInstance()
@@ -49,7 +54,7 @@ object GitAiInstaller {
                 var tempDir: File? = null
                 try {
                     val platform = resolvePlatform()
-                    val release = fetchLatestRelease()
+                    val release = fetchLatestRelease(indicator)
                     val extension = if (platform.os == "windows") "zip" else "tar.gz"
                     val fileName = "git-ai_${platform.os}_${platform.arch}.$extension"
                     val baseUrl = "https://github.com/daidi/git-ai/releases/download/${release.tagName}"
@@ -59,16 +64,15 @@ object GitAiInstaller {
                     val stagedExecutable = File(tempDir, platform.executableName)
 
                     indicator.text = GitAiBundle.message("installer.downloading")
-                    HttpRequests.request("$baseUrl/$fileName")
-                        .connectTimeout(10_000)
-                        .readTimeout(60_000)
-                        .saveToFile(archive, indicator)
+                    withRetry(indicator, "Release archive download") {
+                        Files.deleteIfExists(archive.toPath())
+                        downloadToFile("$baseUrl/$fileName", archive, indicator)
+                    }
                     require(archive.length() in 1..MAX_ARCHIVE_BYTES) { "Downloaded archive has an invalid size" }
 
-                    val checksums = HttpRequests.request("$baseUrl/checksums.txt")
-                        .connectTimeout(10_000)
-                        .readTimeout(20_000)
-                        .readString()
+                    val checksums = withRetry(indicator, "Release checksum download") {
+                        downloadText("$baseUrl/checksums.txt", indicator)
+                    }
                     verifyChecksum(archive, fileName, checksums)
 
                     indicator.text = GitAiBundle.message("installer.extracting")
@@ -84,15 +88,25 @@ object GitAiInstaller {
                     val binFolder = File(System.getProperty("user.home"), ".git-ai/bin")
                     Files.createDirectories(binFolder.toPath())
                     val destination = File(binFolder, platform.executableName)
+                    val staged = Files.createTempFile(binFolder.toPath(), ".git-ai-install-", ".tmp").toFile()
                     try {
-                        Files.move(
-                            stagedExecutable.toPath(),
-                            destination.toPath(),
-                            StandardCopyOption.ATOMIC_MOVE,
-                            StandardCopyOption.REPLACE_EXISTING,
-                        )
-                    } catch (_: AtomicMoveNotSupportedException) {
-                        Files.move(stagedExecutable.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                        Files.copy(stagedExecutable.toPath(), staged.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                        if (platform.os != "windows") {
+                            require(staged.setExecutable(true, true)) { "Unable to stage the CLI executable" }
+                        }
+                        validateExecutable(staged)
+                        try {
+                            Files.move(
+                                staged.toPath(),
+                                destination.toPath(),
+                                StandardCopyOption.ATOMIC_MOVE,
+                                StandardCopyOption.REPLACE_EXISTING,
+                            )
+                        } catch (_: AtomicMoveNotSupportedException) {
+                            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                        }
+                    } finally {
+                        staged.delete()
                     }
                     if (platform.os != "windows") destination.setExecutable(true, true)
                     GitAiCli.invalidateExecutableCache()
@@ -117,16 +131,107 @@ object GitAiInstaller {
         })
     }
 
-    private fun fetchLatestRelease(): ReleaseInfo {
-        val json = HttpRequests.request("https://git-ai.codegg.org/releases/latest")
+    fun fetchLatestReleaseTag(): String = fetchLatestRelease(EmptyProgressIndicator()).tagName
+
+    private fun fetchLatestRelease(indicator: ProgressIndicator): ReleaseInfo {
+        var lastError: Exception? = null
+        for (endpoint in listOf(
+            "https://git-ai.codegg.org/releases/latest",
+            "https://api.github.com/repos/daidi/git-ai/releases/latest",
+        )) {
+            try {
+                val json = withRetry(indicator, "Release metadata lookup") {
+                    downloadText(endpoint, indicator)
+                }
+                val release = Gson().fromJson(json, ReleaseInfo::class.java)
+                require(Regex("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$").matches(release.tagName)) {
+                    "Release service returned an invalid version"
+                }
+                return release
+            } catch (e: ProcessCanceledException) {
+                throw e
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+        throw IllegalStateException("Unable to resolve the latest release: ${lastError?.message ?: "unknown error"}", lastError)
+    }
+
+    private fun downloadToFile(url: String, destination: File, indicator: ProgressIndicator) {
+        HttpRequests.request(url)
+            .forceHttps(true)
+            .redirectLimit(5)
+            .connectTimeout(10_000)
+            .readTimeout(60_000)
+            .connect { request ->
+                val declaredLength = request.connection.contentLengthLong
+                require(declaredLength < 0 || declaredLength <= MAX_ARCHIVE_BYTES) {
+                    "Downloaded archive exceeded the safety limit"
+                }
+                var written = 0L
+                try {
+                    request.inputStream.use { input ->
+                        Files.newOutputStream(
+                            destination.toPath(),
+                            StandardOpenOption.CREATE_NEW,
+                            StandardOpenOption.WRITE,
+                        ).use { output ->
+                            val buffer = ByteArray(8192)
+                            while (true) {
+                                indicator.checkCanceled()
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                written += count
+                                require(written <= MAX_ARCHIVE_BYTES) { "Downloaded archive exceeded the safety limit" }
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    }
+                    require(written > 0) { "Downloaded archive was empty" }
+                } catch (error: Exception) {
+                    Files.deleteIfExists(destination.toPath())
+                    throw error
+                }
+            }
+    }
+
+    private fun downloadText(url: String, indicator: ProgressIndicator): String =
+        HttpRequests.request(url)
+            .forceHttps(true)
+            .redirectLimit(5)
             .connectTimeout(10_000)
             .readTimeout(20_000)
-            .readString()
-        val release = Gson().fromJson(json, ReleaseInfo::class.java)
-        require(Regex("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$").matches(release.tagName)) {
-            "Release service returned an invalid version"
+            .connect { request ->
+                indicator.checkCanceled()
+                val declaredLength = request.connection.contentLengthLong
+                require(declaredLength < 0 || declaredLength <= MAX_METADATA_BYTES) {
+                    "Release metadata response was too large"
+                }
+                val bytes = request.inputStream.use { it.readNBytes(MAX_METADATA_BYTES + 1) }
+                require(bytes.size <= MAX_METADATA_BYTES) { "Release metadata response was too large" }
+                bytes.toString(Charsets.UTF_8)
+            }
+
+    private fun <T> withRetry(
+        indicator: ProgressIndicator,
+        description: String,
+        operation: () -> T,
+    ): T {
+        var lastError: Exception? = null
+        repeat(3) { attempt ->
+            indicator.checkCanceled()
+            try {
+                return operation()
+            } catch (e: ProcessCanceledException) {
+                throw e
+            } catch (e: Exception) {
+                lastError = e
+                if (attempt < 2) {
+                    Thread.sleep(500L shl attempt)
+                }
+            }
         }
-        return release
+        throw IllegalStateException("$description failed after 3 attempts: ${lastError?.message ?: "unknown error"}", lastError)
     }
 
     private fun resolvePlatform(): Platform {
@@ -145,10 +250,12 @@ object GitAiInstaller {
     }
 
     private fun verifyChecksum(archive: File, fileName: String, checksums: String) {
-        val parts = checksums.lineSequence()
+        val matches = checksums.lineSequence()
             .map { it.trim().split(Regex("\\s+"), limit = 2) }
-            .firstOrNull { it.size == 2 && it[1].removePrefix("*") == fileName }
-            ?: throw IllegalStateException("No checksum was published for $fileName")
+            .filter { it.size == 2 && it[1].removePrefix("*") == fileName }
+            .toList()
+        require(matches.size == 1) { "No unique checksum was published for $fileName" }
+        val parts = matches.single()
         val expected = parts[0].lowercase()
         require(expected.matches(Regex("[0-9a-f]{64}"))) { "Published checksum is invalid" }
 
@@ -179,28 +286,53 @@ object GitAiInstaller {
 
     private fun unzip(archive: File, destination: File, targetFile: String) {
         ZipFile(archive).use { zip ->
-            val entry = zip.getEntry(targetFile) ?: throw IllegalStateException("$targetFile not found in archive")
-            require(!entry.isDirectory) { "$targetFile is not a file" }
+            val matches = zip.entries().asSequence().filter { it.name == targetFile }.toList()
+            require(matches.size == 1) { "Archive must contain exactly one $targetFile entry" }
+            val entry = matches.single()
+            require(!entry.isDirectory && entry.size in 1..MAX_BINARY_BYTES) { "$targetFile is not a valid executable" }
             zip.getInputStream(entry).use { input ->
-                Files.copy(input, destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                copyLimited(input, destination)
             }
         }
     }
 
     private fun untar(archive: File, destination: File, targetFile: String) {
+        var found = false
         GZIPInputStream(FileInputStream(archive)).use { gzip ->
             TarArchiveInputStream(gzip).use { tar ->
-                var entry = tar.nextTarEntry
+                var entry = tar.nextEntry
                 while (entry != null) {
-                    if (!entry.isDirectory && (entry.name == targetFile || entry.name.endsWith("/$targetFile"))) {
-                        Files.copy(tar, destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                        return
+                    if (entry.name == targetFile) {
+                        require(!found) { "Archive contains duplicate $targetFile entries" }
+                        require(entry.isFile && entry.size in 1..MAX_BINARY_BYTES) { "$targetFile is not a valid executable" }
+                        copyLimited(tar, destination)
+                        found = true
                     }
-                    entry = tar.nextTarEntry
+                    entry = tar.nextEntry
                 }
             }
         }
-        throw IllegalStateException("$targetFile not found in archive")
+        require(found) { "$targetFile not found in archive" }
+    }
+
+    private fun copyLimited(input: java.io.InputStream, destination: File) {
+        var written = 0L
+        try {
+            Files.newOutputStream(destination.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use { output ->
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    written += count
+                    require(written <= MAX_BINARY_BYTES) { "Extracted executable exceeded the safety limit" }
+                    output.write(buffer, 0, count)
+                }
+            }
+            require(written > 0) { "Extracted executable was empty" }
+        } catch (error: Exception) {
+            Files.deleteIfExists(destination.toPath())
+            throw error
+        }
     }
 
     private data class Platform(val os: String, val arch: String, val executableName: String)

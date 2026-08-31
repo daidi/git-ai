@@ -2,7 +2,7 @@
   "name": "git-ai",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "publisher": "git-ai-async-commit-polisher",
   "license": "MIT",
   "repository": {
@@ -221,9 +221,11 @@
     "vscode:prepublish": "npm run compile && npm run copy-codicons"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.4.0"
+    "@types/node": "18.19.130",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "3.9.2",
+    "ovsx": "1.1.1",
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45"

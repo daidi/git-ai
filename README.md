@@ -54,7 +54,7 @@ You simply type:
 
 And **you are done**. You instantly return to writing code.
 
-Meanwhile, a detached background daemon securely sends your diff to an LLM, applies conventional commit standards, and silently `--amend`s your commit to:
+Meanwhile, a detached background daemon securely sends your diff to an LLM, builds a replacement from the exact recorded commit, and atomically advances the branch only if it has not moved:
 `fix(auth): resolve session timeout on mobile devices`
 
 If you habitually push immediately, Git AI elegantly queues the push, waits for the polish to finish, and auto-pushes when ready. **Zero broken habits.**
@@ -70,7 +70,7 @@ If you habitually push immediately, Git AI elegantly queues the push, waits for 
 | **Habit change?** | New buttons/commands to learn | Standard `git commit` |
 
 1. **Safety First:** Your code enters Git's history *immediately*. Even if the AI service goes down, your work is safely snapshotted.
-2. **Agent-Friendly:** Git log instantly shows an `[⏳]` prefix while polishing, preventing AI coding agents (like Cursor/Claude Code) from making duplicate commits.
+2. **Agent-Friendly:** Git history and workspace files stay unchanged while polishing; CLI and IDE status surfaces report progress without temporary commits.
 3. **Completely Invisible:** Use the terminal, JetBrains, VS Code, or any Git client. Git AI just works in the background.
 
 ---
@@ -113,13 +113,13 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 ## ✨ Core Features
 
 - 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook
-- ⏳ **Real-time status** — `[⏳]` prefix in `git log` shows polishing in progress; auto-removed on success
-- 🛡️ **Auto-recovery** — crashes/timeouts auto-rollback; manual `git-ai recover` for edge cases
+- ⏳ **Real-time status** — CLI and IDE integrations query external application state without placing files in the project
+- 🛡️ **Safe recovery** — network/model crashes leave the original commit untouched and expose retry/configuration actions
 - 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
 - 📝 **4 message formats** — `plain`, `conventional`, `gitmoji`, `subject+body`
 - 🤖 **Multi-provider native support** — Deep integration with OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Ollama, and compatible APIs
 - ✂️ **Smart diff trimming** — handles large diffs with three-tier token truncation
-- 📐 **Commitlint integration** — Automatically reads your local `.commitlintrc` to strictly adhere to repository guidelines
+- 📐 **Safe commitlint integration** — Reads static JSON rules without executing repository scripts or installing dependencies
 - 🎩 **Prompt templates** — Go `text/template` support (`{{.Diff}}`, `{{.Hint}}`) for ultimate control
 - 🧐 **Explain mode** — Optionally generate a short paragraph explaining the *why* of the commit (`git-ai config set explain true`)
 - 🔔 **System notifications** — OS-native toast when polish/push finishes
@@ -207,9 +207,9 @@ That's it. Your commit message is now a clean, descriptive, spec-compliant messa
 
 ## ⚙️ Models & Configuration
 
-git-ai uses a layered config system. Values are resolved in order: **environment variables → repository (`git-ai.*` entries in `.git/config`) → user config in the OS application-config directory → defaults**. API keys are user-level only. Releases ≤ 1.1.4 can still be read from `.git-ai.json` for migration compatibility, but git-ai never creates or modifies that worktree file.
+git-ai uses a layered config system. Values are resolved in order: **environment variables → repository (`git-ai.*` entries in `.git/config`) → user config in the OS application-config directory → defaults**. API keys are user-level only. Legacy `.git-ai.json` worktree files are ignored: trusting repository-distributed model endpoints could expose a user-level credential. Re-enter any old project overrides with `git-ai config set ... --local`, then delete the legacy file yourself.
 
-Runtime state and logs are also kept outside repositories in the OS user-cache directory. Apart from the explicitly installed Git hooks and `.git/config` overrides, Git AI leaves the project and working tree untouched.
+Runtime state, logs, and AI commit-history metadata are kept outside repositories in the OS user-cache directory. Apart from the explicitly installed Git hooks and `.git/config` overrides, Git AI leaves the project and working tree untouched; new releases never create Git notes.
 
 > 💡 **Tip**: Use **fast models** (flash/mini/turbo variants) for commit messages. They're 10x cheaper, respond in ~500ms, and work perfectly for this task. Most users won't experience any noticeable delay.
 
@@ -284,7 +284,7 @@ git commit -m "fix bug"
         └── Exit immediately → you keep coding
 ```
 
-- **`cli/` (Go 1.23+)**: The core engine daemonizing processes, invoking LLMs, and safely replacing recorded commit refs.
+- **`cli/` (Go 1.26.6+)**: The core engine daemonizing processes, invoking LLMs, and safely replacing recorded commit refs.
 - **`idea-plugin/` (Kotlin)**: JetBrains native integration polling the CLI off the UI thread.
 - **`vscode-extension/` (TS)**: Trusted-workspace UI integration polling the CLI and delegating all writes.
 
@@ -309,15 +309,17 @@ A unified script is provided to automate version bumping across all ecosystem co
 
 1. Ensure your working tree is clean. Run the cross-ecosystem bump script:
    ```bash
-   ./scripts/bump-version.sh 0.3.0
+   ./scripts/bump-version.sh 1.2.0
    ```
-2. The script explicitly updates `vscode-extension/package.json` and `idea-plugin/gradle.properties`.
-3. Follow the output to commit and push the release Tag:
+2. The script updates both extension manifests/lockfiles and the localized landing-page version badges. It does not commit or push.
+3. After all release checks pass, commit and push `main`, then create both the product tag and the Go submodule tag:
    ```bash
-   git add vscode-extension/package.json idea-plugin/gradle.properties
-   git commit -m "chore(release): bump version to 0.3.0"
-   git tag v0.3.0
-   git push origin main v0.3.0
+   git add -A
+   GIT_AI_INTERNAL=true git commit -m "chore: bump version to 1.2.0"
+   git push origin HEAD:main
+   git tag v1.2.0
+   git tag cli/v1.2.0
+   git push origin v1.2.0 cli/v1.2.0
    ```
 
 GoReleaser will automatically trigger via GitHub Actions to package and distribute to Homebrew, Scoop, and GitHub Releases seamlessly.

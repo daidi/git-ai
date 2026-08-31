@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,18 @@ var ErrRefMoved = errors.New("target Git reference moved")
 
 // ErrSignedCommit means rewriting would invalidate an existing signature.
 var ErrSignedCommit = errors.New("signed commits are not rewritten automatically")
+
+// ErrOutputTooLarge prevents a pathological commit or repository file from
+// consuming unbounded daemon memory.
+var ErrOutputTooLarge = errors.New("git output exceeded the safety limit")
+
+const (
+	maxCommitMessageBytes = 64 << 10
+	maxDiffBytes          = 8 << 20
+	maxDiffStatBytes      = 1 << 20
+	maxCommitObjectBytes  = 2 << 20
+	maxIgnoreFileBytes    = 64 << 10
+)
 
 // GetRepoRoot returns the absolute path to the repository root.
 func GetRepoRoot() (string, error) {
@@ -38,6 +51,16 @@ func GetGitDir() (string, error) {
 	return filepath.Clean(strings.TrimSpace(out)), nil
 }
 
+// GetCommonGitDir returns the shared Git metadata directory. Linked worktrees
+// have distinct actual Git directories but intentionally share hooks here.
+func GetCommonGitDir() (string, error) {
+	out, err := runGit("rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(strings.TrimSpace(out)), nil
+}
+
 // GetHookPath resolves a hook through Git so core.hooksPath and worktrees are
 // handled correctly.
 func GetHookPath(name string) (string, error) {
@@ -46,6 +69,57 @@ func GetHookPath(name string) (string, error) {
 		return "", err
 	}
 	return filepath.Clean(strings.TrimSpace(out)), nil
+}
+
+// IsRepositoryScopedHookPath rejects global/shared core.hooksPath locations and
+// hook directories inside the worktree. Installing there would make one
+// project's plugin affect unrelated repositories or modify user-owned files.
+func IsRepositoryScopedHookPath(hookPath string) (bool, error) {
+	commonDir, err := GetCommonGitDir()
+	if err != nil {
+		return false, err
+	}
+	base := canonicalDirectory(commonDir)
+	targetDir := canonicalDirectory(filepath.Dir(hookPath))
+	relative, err := filepath.Rel(base, targetDir)
+	if err != nil {
+		return false, err
+	}
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))), nil
+}
+
+func canonicalDirectory(path string) string {
+	if absolute, err := filepath.Abs(path); err == nil {
+		path = absolute
+	}
+	path = filepath.Clean(path)
+
+	// EvalSymlinks requires the full path to exist. Resolve the nearest
+	// existing ancestor so a custom hooks path cannot escape through a symlink
+	// and then append a not-yet-created child directory.
+	current := path
+	var missing []string
+	for {
+		if evaluated, err := filepath.EvalSymlinks(current); err == nil {
+			parts := append([]string{evaluated}, reverseStrings(missing)...)
+			return filepath.Clean(filepath.Join(parts...))
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		missing = append(missing, filepath.Base(current))
+		current = parent
+	}
+	return path
+}
+
+func reverseStrings(values []string) []string {
+	result := make([]string, len(values))
+	for index := range values {
+		result[len(values)-1-index] = values[index]
+	}
+	return result
 }
 
 // GetHeadRef returns the symbolic branch ref or HEAD for detached checkouts.
@@ -69,9 +143,21 @@ func GetLastCommitSHA() (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// RefMatches reports whether a ref still resolves to the expected object.
+func RefMatches(ref, expectedSHA string) (bool, error) {
+	if ref == "" || expectedSHA == "" {
+		return false, nil
+	}
+	current, err := runGit("rev-parse", "--verify", ref)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(current) == expectedSHA, nil
+}
+
 // GetLastCommitMsg returns the commit message of HEAD.
 func GetLastCommitMsg() (string, error) {
-	out, err := runGit("log", "-1", "--format=%B")
+	out, err := runGitLimited(maxCommitMessageBytes, "log", "-1", "--format=%B")
 	if err != nil {
 		return "", err
 	}
@@ -80,11 +166,25 @@ func GetLastCommitMsg() (string, error) {
 
 // GetCommitMsg returns the full message for one commit.
 func GetCommitMsg(sha string) (string, error) {
-	out, err := runGit("show", "-s", "--format=%B", sha)
+	out, err := runGitLimited(maxCommitMessageBytes, "show", "-s", "--format=%B", sha)
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(out), nil
+}
+
+// GetLegacyAINote reads only the bounded, read-only notes created by old
+// releases. New versions never write Git notes.
+func GetLegacyAINote(sha string) (string, error) {
+	return runGitLimited(64<<10, "notes", "--ref=git-ai", "show", sha)
+}
+
+// GetRecentCommitSHAs returns a bounded list used by IDE history views.
+func GetRecentCommitSHAs(limit int) (string, error) {
+	if limit < 1 || limit > 500 {
+		return "", errors.New("invalid commit history limit")
+	}
+	return runGitLimited(128<<10, "log", "-n", fmt.Sprintf("%d", limit), "--format=%H")
 }
 
 // GetDiff returns the diff introduced by a given commit SHA.
@@ -95,7 +195,7 @@ func GetDiff(sha string) (string, error) {
 		args = append(args, "--", ".")
 		args = append(args, ignores...)
 	}
-	return runGit(args...)
+	return runGitLimited(maxDiffBytes, args...)
 }
 
 // GetDiffStat returns a summary of changed files for a commit.
@@ -107,7 +207,7 @@ func GetDiffStat(sha string) (string, error) {
 		args = append(args, ignores...)
 	}
 
-	return runGit(args...)
+	return runGitLimited(maxDiffStatBytes, args...)
 }
 
 // getIgnoreArgs returns pathspecs to ignore when generating dicts.
@@ -125,8 +225,12 @@ func getIgnoreArgs() []string {
 	}
 
 	ignoreFile := filepath.Join(repoRoot, ".git-ai-ignore")
-	data, err := os.ReadFile(ignoreFile)
-	if err == nil {
+	info, statErr := os.Lstat(ignoreFile)
+	if statErr == nil && info.Mode().IsRegular() && info.Size() <= maxIgnoreFileBytes {
+		data, err := os.ReadFile(ignoreFile)
+		if err != nil {
+			return ignores
+		}
 		lines := strings.Split(string(data), "\n")
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
@@ -146,12 +250,20 @@ func RewriteCommitMessageCAS(targetRef, expectedSHA, msg string) (string, error)
 	if targetRef == "" {
 		return "", errors.New("target ref is empty")
 	}
-	current, err := runGit("rev-parse", targetRef)
-	if err != nil || strings.TrimSpace(current) != expectedSHA {
+	// "HEAD" is recorded only for a detached checkout. If it has since become
+	// symbolic (even to a branch at the same SHA), following it would rewrite a
+	// different ref than the one the operation started on.
+	if targetRef == "HEAD" {
+		if err := exec.Command("git", "symbolic-ref", "-q", "HEAD").Run(); err == nil {
+			return "", ErrRefMoved
+		}
+	}
+	matches, err := RefMatches(targetRef, expectedSHA)
+	if err != nil || !matches {
 		return "", ErrRefMoved
 	}
 
-	raw, err := runGit("cat-file", "-p", expectedSHA)
+	raw, err := runGitLimited(maxCommitObjectBytes, "cat-file", "-p", expectedSHA)
 	if err != nil {
 		return "", fmt.Errorf("read target commit: %w", err)
 	}
@@ -159,7 +271,7 @@ func RewriteCommitMessageCAS(targetRef, expectedSHA, msg string) (string, error)
 		if line == "" {
 			break
 		}
-		if strings.HasPrefix(line, "gpgsig ") {
+		if strings.HasPrefix(line, "gpgsig ") || strings.HasPrefix(line, "gpgsig-sha256 ") {
 			return "", ErrSignedCommit
 		}
 	}
@@ -194,7 +306,12 @@ func RewriteCommitMessageCAS(targetRef, expectedSHA, msg string) (string, error)
 		return "", fmt.Errorf("create replacement commit: %s: %w", strings.TrimSpace(stderr.String()), err)
 	}
 	newSHA := strings.TrimSpace(string(created))
-	update := exec.Command("git", "update-ref", "-m", "git-ai: polish commit message", targetRef, newSHA, expectedSHA)
+	updateArgs := []string{"update-ref"}
+	if targetRef == "HEAD" {
+		updateArgs = append(updateArgs, "--no-deref")
+	}
+	updateArgs = append(updateArgs, "-m", "git-ai: polish commit message", targetRef, newSHA, expectedSHA)
+	update := exec.Command("git", updateArgs...)
 	update.Env = append(os.Environ(), "GIT_AI_INTERNAL=true")
 	if output, err := update.CombinedOutput(); err != nil {
 		if current, readErr := runGit("rev-parse", targetRef); readErr == nil && strings.TrimSpace(current) != expectedSHA {
@@ -205,22 +322,14 @@ func RewriteCommitMessageCAS(targetRef, expectedSHA, msg string) (string, error)
 	return newSHA, nil
 }
 
-// AddNotes adds or overwrites git notes for a specific commit.
-func AddNotes(sha string, noteMsg string) error {
-	cmd := exec.Command("git", "notes", "--ref=git-ai", "add", "-f", "-m", noteMsg, sha)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
 // Push pushes to the specified remote. Sets GIT_AI_INTERNAL=true.
 // Stderr is captured and included in the returned error for classification.
 func Push(remote string, refSpecs []string) error {
-	args := []string{"push", remote}
+	args := []string{"push", "--", remote}
 	args = append(args, refSpecs...)
 	// Fallback: if no refSpecs, just push current branch.
 	if len(refSpecs) == 0 {
-		args = []string{"push", remote}
+		args = []string{"push", "--", remote}
 	}
 
 	cmd := exec.Command("git", args...)
@@ -329,4 +438,30 @@ func runGit(args ...string) (string, error) {
 		return "", err
 	}
 	return string(out), nil
+}
+
+func runGitLimited(maxBytes int64, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
+	data, readErr := io.ReadAll(io.LimitReader(stdout, maxBytes+1))
+	if readErr != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return "", readErr
+	}
+	if int64(len(data)) > maxBytes {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return "", ErrOutputTooLarge
+	}
+	if err := cmd.Wait(); err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

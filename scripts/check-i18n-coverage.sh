@@ -138,12 +138,18 @@ done
 # ── Landing Page (docs/script.js) ───────────────────────────
 DOCS_I18N_SCRIPT="$REPO_ROOT/scripts/check-docs-i18n.py"
 if [ -f "$DOCS_I18N_SCRIPT" ]; then
-    docs_output=$(python3 "$DOCS_I18N_SCRIPT" 2>&1)
+    docs_status=0
+    docs_output=$(python3 "$DOCS_I18N_SCRIPT" 2>&1) || docs_status=$?
     echo "$docs_output"
     # Count missing from docs output
     docs_missing=$(echo "$docs_output" | grep -c '↳' || true)
     docs_locale_missing=$(echo "$docs_output" | grep -c 'ENTIRE LOCALE MISSING' || true)
     total_missing=$((total_missing + docs_missing + docs_locale_missing))
+    if [ "$docs_status" -ne 0 ] && [ "$docs_missing" -eq 0 ] && [ "$docs_locale_missing" -eq 0 ]; then
+        # Parsing/runtime errors may not include a missing-key marker, but they
+        # must still fail this aggregate check.
+        total_missing=$((total_missing + 1))
+    fi
 fi
 
 # ── Summary ─────────────────────────────────────────────────
@@ -157,3 +163,7 @@ else
     [ "$total_extra" -gt 0 ] && echo -e "  ${YELLOW}Total extra keys:   $total_extra${NC}"
 fi
 echo ""
+
+if [ "$total_missing" -ne 0 ] || [ "$total_extra" -ne 0 ]; then
+    exit 1
+fi

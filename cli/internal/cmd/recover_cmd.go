@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/state"
 )
 
 var recoverCmd = &cobra.Command{

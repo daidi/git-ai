@@ -26,6 +26,9 @@ import java.awt.Font
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
+import java.io.RandomAccessFile
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.Timer
 import java.util.TimerTask
 import javax.swing.*
@@ -177,6 +180,10 @@ class GitAiToolWindowPanel(private val project: Project) : Disposable {
 }
 
 class GitAiLogPanel(private val project: Project) : Disposable {
+    companion object {
+        private const val MAX_LOG_BYTES = 1024 * 1024
+    }
+
     val component: JPanel
     private val logArea = JTextArea().apply {
         isEditable = false
@@ -206,15 +213,15 @@ class GitAiLogPanel(private val project: Project) : Disposable {
         val stateService = project.service<GitAiStateService>()
         val logDir = stateService.getLogDir() ?: return
         val dir = File(logDir)
-        if (!dir.exists()) return
+        if (!dir.isDirectory || Files.isSymbolicLink(dir.toPath())) return
 
         val latestLog = dir.listFiles()
-            ?.filter { it.extension == "log" }
+            ?.filter { it.extension == "log" && it.isFile && !Files.isSymbolicLink(it.toPath()) }
             ?.maxByOrNull { it.name }
             ?: return
 
         try {
-            val content = latestLog.readText()
+            val content = readLogTail(latestLog)
             SwingUtilities.invokeLater {
                 if (logArea.text != content) {
                     logArea.text = content
@@ -222,6 +229,18 @@ class GitAiLogPanel(private val project: Project) : Disposable {
                 }
             }
         } catch (_: Exception) {}
+    }
+
+    private fun readLogTail(logFile: File): String {
+        RandomAccessFile(logFile, "r").use { input ->
+            val size = input.length()
+            val start = maxOf(0L, size - MAX_LOG_BYTES)
+            val bytes = ByteArray((size - start).toInt())
+            input.seek(start)
+            input.readFully(bytes)
+            val prefix = if (start > 0) "[older log output truncated]\n" else ""
+            return prefix + String(bytes, StandardCharsets.UTF_8)
+        }
     }
 
     override fun dispose() {

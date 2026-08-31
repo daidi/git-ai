@@ -3,101 +3,84 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { t } from './i18n';
 
-/**
- * Output channel for viewing git-ai daemon logs.
- */
+const MAX_LOG_BYTES = 1024 * 1024;
+
+/** Read-only, bounded viewer for the external daemon logs reported by the CLI. */
 export class LogViewer implements vscode.Disposable {
-    private outputChannel: vscode.OutputChannel;
+    private readonly outputChannel = vscode.window.createOutputChannel('Git AI');
     private tailInterval: NodeJS.Timeout | undefined;
-    private lastReadPosition: number = 0;
-    private currentFile: string = '';
+    private currentFile = '';
+    private lastSize = -1;
+    private lastModified = -1;
 
-    constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('Git AI');
-    }
-
-    /**
-     * Show the latest log file from the log directory.
-     */
     showLatest(logDir: string): void {
         this.outputChannel.show(true);
-
-        if (!fs.existsSync(logDir)) {
+        try {
+            const directory = fs.lstatSync(logDir);
+            if (!directory.isDirectory() || directory.isSymbolicLink()) { throw new Error('invalid log directory'); }
+            const files = fs.readdirSync(logDir)
+                .filter(name => name.endsWith('.log'))
+                .map(name => path.join(logDir, name))
+                .filter(candidate => {
+                    try {
+                        const info = fs.lstatSync(candidate);
+                        return info.isFile() && !info.isSymbolicLink();
+                    } catch { return false; }
+                })
+                .sort()
+                .reverse();
+            if (files.length === 0) {
+                this.outputChannel.clear();
+                this.outputChannel.appendLine(t('logViewer.noLogs'));
+                return;
+            }
+            this.tailFile(files[0]);
+        } catch {
+            this.outputChannel.clear();
             this.outputChannel.appendLine(t('logViewer.noDir'));
             this.outputChannel.appendLine(t('logViewer.expectedAt', logDir));
-            return;
         }
-
-        // Find the latest log file.
-        const files = fs.readdirSync(logDir)
-            .filter(f => f.endsWith('.log'))
-            .sort()
-            .reverse();
-
-        if (files.length === 0) {
-            this.outputChannel.appendLine(t('logViewer.noLogs'));
-            return;
-        }
-
-        const latestLog = path.join(logDir, files[0]);
-        this.tailFile(latestLog);
     }
 
-    /**
-     * Start tailing a log file, appending new content as it appears.
-     */
     private tailFile(filePath: string): void {
-        // Stop previous tail.
-        if (this.tailInterval) {
-            clearInterval(this.tailInterval);
-        }
-
+        if (this.tailInterval) { clearInterval(this.tailInterval); }
         this.currentFile = filePath;
-        this.lastReadPosition = 0;
-
-        this.outputChannel.clear();
-        this.outputChannel.appendLine(t('logViewer.watching', filePath));
-        this.outputChannel.appendLine('─'.repeat(60));
-
-        // Initial read.
-        this.readNewContent();
-
-        // Poll for new content every 500ms.
-        this.tailInterval = setInterval(() => {
-            this.readNewContent();
-        }, 500);
+        this.lastSize = -1;
+        this.lastModified = -1;
+        this.readLatestContent();
+        this.tailInterval = setInterval(() => this.readLatestContent(), 500);
     }
 
-    private readNewContent(): void {
+    private readLatestContent(): void {
         try {
-            if (!fs.existsSync(this.currentFile)) { return; }
+            const stat = fs.lstatSync(this.currentFile);
+            if (!stat.isFile() || stat.isSymbolicLink()) { return; }
+            if (stat.size === this.lastSize && stat.mtimeMs === this.lastModified) { return; }
+            this.lastSize = stat.size;
+            this.lastModified = stat.mtimeMs;
 
-            const stat = fs.statSync(this.currentFile);
-            if (stat.size < this.lastReadPosition) {
-                this.lastReadPosition = 0; // The daemon log was rotated/truncated.
-            }
-            if (stat.size === this.lastReadPosition) { return; }
-
+            const start = Math.max(0, stat.size - MAX_LOG_BYTES);
+            const length = stat.size - start;
+            const buffer = Buffer.alloc(length);
             const fd = fs.openSync(this.currentFile, 'r');
-            const bytesToRead = Math.min(stat.size - this.lastReadPosition, 1024 * 1024);
-            const buffer = Buffer.alloc(bytesToRead);
             try {
-                fs.readSync(fd, buffer, 0, buffer.length, this.lastReadPosition);
+                fs.readSync(fd, buffer, 0, length, start);
             } finally {
                 fs.closeSync(fd);
             }
 
-            this.lastReadPosition += bytesToRead;
-            this.outputChannel.append(buffer.toString('utf-8'));
+            this.outputChannel.clear();
+            this.outputChannel.appendLine(t('logViewer.watching', this.currentFile));
+            this.outputChannel.appendLine('─'.repeat(60));
+            if (start > 0) { this.outputChannel.appendLine('[older log output truncated]'); }
+            this.outputChannel.append(buffer.toString('utf8'));
         } catch {
-            // File might be locked.
+            // The daemon may rotate a log between stat and read; the next poll retries.
         }
     }
 
     dispose(): void {
-        if (this.tailInterval) {
-            clearInterval(this.tailInterval);
-        }
+        if (this.tailInterval) { clearInterval(this.tailInterval); }
         this.outputChannel.dispose();
     }
 }

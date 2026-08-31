@@ -2,8 +2,10 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -96,6 +98,37 @@ func TestManagerMigratesLegacyApplicationState(t *testing.T) {
 	}
 }
 
+func TestManagerDoesNotFollowLegacyStateSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink permissions vary on Windows")
+	}
+	t.Setenv(stateDirEnv, filepath.Join(t.TempDir(), "application-cache"))
+	gitDir := filepath.Join(t.TempDir(), ".git")
+	if err := os.MkdirAll(gitDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	targetDir := t.TempDir()
+	target := filepath.Join(targetDir, "state.json")
+	if err := os.WriteFile(target, []byte(`{"current_status":"failed","original_msg":"external"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	legacyDir := filepath.Join(gitDir, "git-ai")
+	if err := os.Symlink(targetDir, legacyDir); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	mgr := NewManager(gitDir)
+	if err := mgr.EnsureDir(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(mgr.StatePath()); !os.IsNotExist(err) {
+		t.Fatalf("symlinked legacy state was migrated: %v", err)
+	}
+	if _, err := os.Lstat(legacyDir); err != nil {
+		t.Fatalf("legacy symlink was modified: %v", err)
+	}
+}
+
 func TestCleanZombieStateHonorsDaemonHandoffGrace(t *testing.T) {
 	t.Setenv(stateDirEnv, t.TempDir())
 	mgr := NewManager(filepath.Join(t.TempDir(), ".git"))
@@ -118,5 +151,69 @@ func TestCleanZombieStateHonorsDaemonHandoffGrace(t *testing.T) {
 	got, _ := mgr.Load()
 	if got.CurrentStatus != StatusFailed || got.LastError == nil || !got.LastError.Retryable {
 		t.Fatalf("zombie state = %#v", got)
+	}
+}
+
+func TestHistoryIsExternalPrivateAndBounded(t *testing.T) {
+	runtimeRoot := filepath.Join(t.TempDir(), "application-cache")
+	t.Setenv(stateDirEnv, runtimeRoot)
+	gitDir := filepath.Join(t.TempDir(), ".git")
+	if err := os.MkdirAll(gitDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	mgr := NewManager(gitDir)
+	if err := mgr.EnsureDir(); err != nil {
+		t.Fatal(err)
+	}
+	seed := History{Records: make([]HistoryRecord, 0, maxHistoryRecords+3)}
+	for i := 0; i < maxHistoryRecords+3; i++ {
+		seed.Records = append(seed.Records, HistoryRecord{SHA: fmt.Sprintf("sha-%d", i), OriginalMessage: "draft"})
+	}
+	seedData, err := json.Marshal(seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeAtomic(mgr.HistoryPath(), seedData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := mgr.AppendHistory(HistoryRecord{
+		SHA: "latest", Model: "test-model", OriginalMessage: strings.Repeat("draft", 2000),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	history, err := mgr.LoadHistory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(history.Records) != maxHistoryRecords {
+		t.Fatalf("history records = %d, want %d", len(history.Records), maxHistoryRecords)
+	}
+	if len(history.Records[len(history.Records)-1].OriginalMessage) > maxHistoryMessageBytes+len("…") {
+		t.Fatal("history message was not bounded")
+	}
+	if strings.HasPrefix(mgr.HistoryPath(), gitDir+string(os.PathSeparator)) {
+		t.Fatalf("history path leaked into repository: %s", mgr.HistoryPath())
+	}
+	info, err := os.Stat(mgr.HistoryPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		t.Fatalf("history permissions are too broad: %o", info.Mode().Perm())
+	}
+}
+
+func TestStateWriterRefusesAnUnreadableOversizedSnapshot(t *testing.T) {
+	t.Setenv(stateDirEnv, t.TempDir())
+	mgr := NewManager(filepath.Join(t.TempDir(), ".git"))
+	if err := mgr.EnsureDir(); err != nil {
+		t.Fatal(err)
+	}
+	oversized := &State{CurrentStatus: StatusPolishing, OriginalMsg: strings.Repeat("x", maxStateFileBytes)}
+	if err := mgr.Save(oversized); err == nil {
+		t.Fatal("oversized state was written")
+	}
+	if _, err := os.Stat(mgr.StatePath()); !os.IsNotExist(err) {
+		t.Fatalf("oversized state left a file behind: %v", err)
 	}
 }

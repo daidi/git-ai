@@ -9,7 +9,7 @@ Developers write a fast, raw commit message (`git commit -m "fix"`). A detached 
 ## 🏗️ Monorepo Architecture
 The application consists of three decoupled components. IDE integrations query the CLI, and the CLI alone owns persistence:
 
-1. **`cli/` (Go 1.23+)**
+1. **`cli/` (Go 1.26.6+)**
    - **Role:** The core engine. It acts as both the lightweight CLI interface and the background daemon.
    - **Key Logic:** Handles Git hooks (`post-commit`, `pre-push`), daemon detachment, LLM prompt engineering, operation locking, and compare-and-swap Git ref updates.
 2. **`idea-plugin/` (Kotlin / IntelliJ Platform SDK V2)**
@@ -20,9 +20,9 @@ The application consists of three decoupled components. IDE integrations query t
    - **Key Logic:** Polls `git-ai status --json`, integrates into the SCM title menu, and delegates settings/actions to the CLI. Restricted workspaces never execute binaries.
 
 ## 🔄 Runtime State & Repository Hygiene
-The CLI stores per-worktree runtime state and logs under the operating system's user cache directory, keyed by a hash of the canonical worktree Git directory. Global configuration uses the operating system's user config directory. Repository overrides use `.git/config` (`git-ai.*`).
+The CLI stores per-worktree runtime state, logs, and AI history metadata under the operating system's user cache directory, keyed by a hash of the canonical worktree Git directory. Global configuration uses the operating system's user config directory. Repository overrides use `.git/config` (`git-ai.*`). New releases do not create Git notes.
 
-**Never create application-owned files in the worktree.** In particular, do not recreate `.git-ai.json` or `.git/git-ai/state.json`. Legacy files may be read once for migration, but new writes belong outside the repository. IDE plugins must use CLI commands rather than read or mutate persistence directly.
+**Never create or trust application-owned files in the worktree.** In particular, do not recreate or automatically read `.git-ai.json`, and do not recreate `.git/git-ai/state.json`. Legacy runtime state inside Git metadata may be migrated once, but worktree configuration must be ignored because it can redirect user credentials. New writes belong outside the repository. IDE plugins must use CLI commands rather than read or mutate state/config persistence directly; they may read only a bounded tail of the external log path returned by the CLI.
 
 Runtime states are:
 - **`idle`**: No active operations.

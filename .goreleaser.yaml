@@ -24,8 +24,7 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/daidi/git-ai/internal/cmd.version={{.Version}}
-      - -X github.com/daidi/git-ai/internal/cmd.commit={{.Commit}}
+      - -X github.com/daidi/git-ai/cli/internal/cmd.version={{.Version}}
 
 archives:
   - id: default
@@ -49,25 +48,20 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-homebrew_casks:
+# Keep publishing a formula: it preserves upgrades for existing installations
+# and supports Linuxbrew. A cask would split the current daidi/tap/git-ai path
+# and silently drop Linux support.
+brews:
   - name: git-ai
     repository:
       owner: daidi
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    directory: Casks
     homepage: "https://github.com/daidi/git-ai"
     description: "AI-powered Git commit message enhancer"
     license: MIT
-    binaries:
-      - git-ai
-    url:
-      verified: github.com/daidi/git-ai/
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/git-ai"]
+    install: |
+      bin.install "git-ai"
 
 scoops:
   - repository:

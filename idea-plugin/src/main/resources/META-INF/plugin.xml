@@ -25,7 +25,10 @@
 
     <change-notes><![CDATA[
         <ul>
-            <li>Initial release of Git AI</li>
+            <li>Keep all runtime state, logs, and user configuration outside the project worktree.</li>
+            <li>Rewrite only the exact recorded commit without touching staged or unstaged files.</li>
+            <li>Handle network, model, daemon, and deferred-push failures with safe recovery actions.</li>
+            <li>Harden CLI downloads with pinned release metadata and SHA-256 verification.</li>
         </ul>
     ]]></change-notes>
 

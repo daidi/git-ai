@@ -20,8 +20,8 @@ repositories {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.apache.commons:commons-compress:1.24.0")
+    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("org.apache.commons:commons-compress:1.28.0")
 
     intellijPlatform {
         // Compile against the oldest supported IDE so accidental use of newer

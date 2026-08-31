@@ -11,4 +11,11 @@ fi
 
 [ "$GIT_AI_INTERNAL" = "true" ] && exit 0
 export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.git-ai/bin"
-exec git-ai hook post-commit
+if ! command -v git-ai >/dev/null 2>&1; then
+  echo "git-ai: CLI unavailable; commit left unchanged" >&2
+  exit 0
+fi
+git-ai hook post-commit || {
+  echo "git-ai: background polish could not start; commit left unchanged" >&2
+  exit 0
+}

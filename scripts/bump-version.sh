@@ -1,61 +1,44 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 <version> (e.g., 0.3.0)"
+VERSION="${1:-}"
+VERSION="${VERSION#v}"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+  echo "Usage: $0 <semver> (for example: 1.2.0)" >&2
   exit 1
 fi
 
-VERSION=$1
-# Remove 'v' prefix if user accidentally included it
-VERSION="${VERSION#v}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
 
-echo "🚀 Bumping version to $VERSION across all projects..."
+node - "$VERSION" <<'NODE'
+const fs = require('fs');
+const version = process.argv[2];
 
-# 1. Bump VS Code Extension
-if [ -f "vscode-extension/package.json" ]; then
-  echo "➡️  Updating VS Code extension..."
-  # Use node to reliably replace the version in package.json
-  node -e "
-    const fs = require('fs');
-    const path = 'vscode-extension/package.json';
-    let pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-    pkg.version = '$VERSION';
-    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-  "
-fi
+function updateJson(path, mutate) {
+  const value = JSON.parse(fs.readFileSync(path, 'utf8'));
+  mutate(value);
+  fs.writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
 
-# 2. Bump IntelliJ Plugin
-if [ -f "idea-plugin/gradle.properties" ]; then
-  echo "➡️  Updating IntelliJ plugin..."
-  # Use sed to replace pluginVersion=...
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' -e "s/^pluginVersion[[:space:]]*=.*/pluginVersion=$VERSION/" idea-plugin/gradle.properties
-  else
-    sed -i -e "s/^pluginVersion[[:space:]]*=.*/pluginVersion=$VERSION/" idea-plugin/gradle.properties
-  fi
-fi
+updateJson('vscode-extension/package.json', value => { value.version = version; });
+updateJson('vscode-extension/package-lock.json', value => {
+  value.version = version;
+  if (value.packages && value.packages['']) value.packages[''].version = version;
+});
 
-# 3. Bump Landing Page
-if [ -f "docs/index.html" ] && [ -f "docs/script.js" ]; then
-  echo "➡️  Updating Landing Page..."
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" docs/index.html docs/script.js
-  else
-    sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/v$VERSION/g" docs/index.html docs/script.js
-  fi
-fi
+const gradlePath = 'idea-plugin/gradle.properties';
+const gradle = fs.readFileSync(gradlePath, 'utf8')
+  .replace(/^pluginVersion\s*=.*$/m, `pluginVersion=${version}`);
+fs.writeFileSync(gradlePath, gradle);
 
-echo "✅ All version files updated to $VERSION"
-echo ""
-echo "📦 Committing and tagging release v$VERSION..."
+for (const path of ['docs/index.html', 'docs/script.js']) {
+  const content = fs.readFileSync(path, 'utf8').replace(/v\d+\.\d+\.\d+/g, `v${version}`);
+  fs.writeFileSync(path, content);
+}
+NODE
 
-git add vscode-extension/package.json idea-plugin/gradle.properties docs/index.html docs/script.js
-GIT_AI_SKIP=true git commit --no-verify -m "chore: bump version to $VERSION"
-
-git tag "v$VERSION"
-git push origin main "v$VERSION"
-
-echo ""
-echo "🚀 Release triggered successfully!"
-echo "👉 Check GitHub Actions progress here: https://github.com/daidi/git-ai/actions"
+echo "Updated version files to $VERSION."
+echo "After verification, commit the changes and create both tags:"
+echo "  v$VERSION       (GitHub/package release)"
+echo "  cli/v$VERSION   (Go module release)"

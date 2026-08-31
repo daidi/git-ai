@@ -5,14 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/cli/internal/config"
 )
 
 // Client is the interface for AI providers
@@ -39,6 +39,11 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 	// Create HTTP client with proper timeouts
 	client := &http.Client{
 		Timeout: 60 * time.Second,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			// Provider redirects can forward prompts or credentials to an origin
+			// the user did not configure. Require the final endpoint explicitly.
+			return &ProviderError{Kind: ErrorModel, Message: "provider redirects are not accepted; configure the final endpoint URL"}
+		},
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
 				Timeout:   10 * time.Second,
@@ -54,10 +59,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 
 	switch cfg.Provider {
 	case "anthropic":
-		url := strings.TrimRight(cfg.BaseURL, "/")
-		if url == "" {
-			url = "https://api.anthropic.com/v1"
-		}
+		url := providerBaseURL(cfg, "https://api.anthropic.com/v1")
 		return &AnthropicClient{
 			baseURL: url,
 			apiKey:  cfg.APIKey,
@@ -67,10 +69,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 			debug:   cfg.IsDebug(),
 		}
 	case "gemini":
-		url := strings.TrimRight(cfg.BaseURL, "/")
-		if url == "" {
-			url = "https://generativelanguage.googleapis.com/v1beta"
-		}
+		url := providerBaseURL(cfg, "https://generativelanguage.googleapis.com/v1beta")
 		return &GeminiClient{
 			baseURL: url,
 			apiKey:  cfg.APIKey,
@@ -82,9 +81,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 	default:
 		url := strings.TrimRight(cfg.BaseURL, "/")
 		if cfg.Provider == "ollama" {
-			if url == "" {
-				url = "http://localhost:11434/v1"
-			}
+			url = providerBaseURL(cfg, "http://localhost:11434/v1")
 			if !strings.HasSuffix(url, "/v1") {
 				url += "/v1"
 			}
@@ -98,6 +95,42 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 			debug:   cfg.IsDebug(),
 		}
 	}
+}
+
+func validateProviderURL(endpoint *url.URL) error {
+	if endpoint == nil || endpoint.Host == "" || endpoint.User != nil {
+		return &ProviderError{Kind: ErrorModel, Message: "configured provider endpoint is invalid"}
+	}
+	if strings.EqualFold(endpoint.Scheme, "https") {
+		return nil
+	}
+	if strings.EqualFold(endpoint.Scheme, "http") && isLoopbackHost(endpoint.Hostname()) {
+		return nil
+	}
+	return &ProviderError{Kind: ErrorModel, Message: "configured provider endpoint must use HTTPS; HTTP is allowed only for localhost"}
+}
+
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") || strings.HasSuffix(strings.ToLower(host), ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// The user interfaces historically persisted the DeepSeek default base URL
+// even after switching to a native provider. Treat that one incompatible
+// inherited value as unset so Anthropic, Gemini, and Ollama use their own
+// defaults instead of sending credentials to the wrong endpoint.
+func providerBaseURL(cfg *config.Config, fallback string) string {
+	url := strings.TrimRight(cfg.BaseURL, "/")
+	if url == strings.TrimRight(config.Defaults().BaseURL, "/") && cfg.Provider != "openai" {
+		url = ""
+	}
+	if url == "" {
+		return fallback
+	}
+	return url
 }
 
 // ChatRequest represents the OpenAI chat completion request
@@ -157,6 +190,9 @@ func (c *OpenAIClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
+	if err := validateProviderURL(req.URL); err != nil {
+		return "", err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
@@ -172,19 +208,16 @@ func (c *OpenAIClient) GenerateCompletion(ctx context.Context, systemPrompt, use
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// Read response
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode != http.StatusOK {
+		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
+	}
+	respBody, err := readProviderResponse(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("read response: %w", err)
+		return "", err
 	}
 
 	if c.debug {
 		c.logger.Printf("[DEBUG] model response: status=%d bytes=%d", resp.StatusCode, len(respBody))
-	}
-
-	// Check HTTP status
-	if resp.StatusCode != http.StatusOK {
-		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
 	}
 
 	// Parse response

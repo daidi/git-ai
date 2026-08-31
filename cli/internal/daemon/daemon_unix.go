@@ -19,7 +19,11 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 		return 0, fmt.Errorf("open log file: %w", err)
 	}
 
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		_ = f.Close()
+		return 0, fmt.Errorf("resolve repository working directory: %w", err)
+	}
 	devNull, err := os.Open(os.DevNull)
 	if err != nil {
 		_ = f.Close()

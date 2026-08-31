@@ -3,8 +3,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/hooks"
-	"github.com/daidi/git-ai/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/hooks"
+	"github.com/daidi/git-ai/cli/internal/i18n"
 )
 
 var retryCmd = &cobra.Command{

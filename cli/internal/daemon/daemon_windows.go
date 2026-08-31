@@ -24,7 +24,12 @@ func startBackground(gitAiBinary string, args []string, logDir string) (int, err
 	}
 	defer func() { _ = f.Close() }()
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return 0, fmt.Errorf("resolve repository working directory: %w", err)
+	}
 	cmd := exec.Command(gitAiBinary, args...)
+	cmd.Dir = wd
 	cmd.Env = SanitizedEnv()
 	cmd.Stdout = f
 	cmd.Stderr = f

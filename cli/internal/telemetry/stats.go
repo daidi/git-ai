@@ -10,10 +10,13 @@ import (
 
 	"github.com/gofrs/flock"
 
-	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/cli/internal/config"
 )
 
-const maxRecords = 10_000
+const (
+	maxRecords            = 1_000
+	maxTelemetryFileBytes = 16 << 20
+)
 
 // Record represents a single item in the local telemetry log.
 type Record struct {
@@ -44,11 +47,18 @@ func legacyTelemetryPath() string {
 // Load reads an atomic telemetry snapshot from the OS application directory.
 func Load() (*Stats, error) {
 	path := telemetryPath()
+	if info, statErr := os.Stat(path); statErr == nil && (!info.Mode().IsRegular() || info.Size() > maxTelemetryFileBytes) {
+		return nil, fmt.Errorf("telemetry file exceeded the safety limit")
+	}
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) && os.Getenv("GIT_AI_CONFIG_DIR") == "" {
 		// Preserve statistics from releases <= 1.1.4. The next SaveRecord writes
 		// them to the OS-native application directory.
-		data, err = os.ReadFile(legacyTelemetryPath())
+		legacyPath := legacyTelemetryPath()
+		if info, statErr := os.Stat(legacyPath); statErr == nil && (!info.Mode().IsRegular() || info.Size() > maxTelemetryFileBytes) {
+			return nil, fmt.Errorf("legacy telemetry file exceeded the safety limit")
+		}
+		data, err = os.ReadFile(legacyPath)
 	}
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -64,6 +74,9 @@ func Load() (*Stats, error) {
 	}
 	if stats.Records == nil {
 		stats.Records = make([]Record, 0)
+	}
+	if len(stats.Records) > maxRecords {
+		stats.Records = stats.Records[len(stats.Records)-maxRecords:]
 	}
 	return &stats, nil
 }

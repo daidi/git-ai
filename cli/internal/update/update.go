@@ -2,6 +2,7 @@ package update
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"github.com/gofrs/flock"
 	"golang.org/x/mod/semver"
 
-	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/cli/internal/config"
 )
 
 type Cache struct {
@@ -60,11 +61,45 @@ type ReleaseMetadata struct {
 }
 
 func FetchLatestRelease() (*ReleaseMetadata, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	req, err := http.NewRequest(http.MethodGet, "https://git-ai.codegg.org/releases/latest", nil)
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 5 {
+				return errors.New("too many release metadata redirects")
+			}
+			if req.URL.Scheme != "https" {
+				return errors.New("refusing non-HTTPS release metadata redirect")
+			}
+			return nil
+		},
+	}
+	endpoints := []string{
+		"https://git-ai.codegg.org/releases/latest",
+		"https://api.github.com/repos/daidi/git-ai/releases/latest",
+	}
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		for _, endpoint := range endpoints {
+			release, err := fetchReleaseMetadata(client, endpoint)
+			if err == nil {
+				return release, nil
+			}
+			lastErr = err
+		}
+		if attempt < 2 {
+			time.Sleep(time.Duration(1<<attempt) * 250 * time.Millisecond)
+		}
+	}
+	return nil, fmt.Errorf("release metadata unavailable after bounded retries: %w", lastErr)
+}
+
+func fetchReleaseMetadata(client *http.Client, endpoint string) (*ReleaseMetadata, error) {
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "git-ai")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -74,9 +109,15 @@ func FetchLatestRelease() (*ReleaseMetadata, error) {
 		return nil, fmt.Errorf("release service returned %s", resp.Status)
 	}
 
+	data, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > 1<<20 {
+		return nil, errors.New("release metadata exceeded the safety limit")
+	}
 	var release ReleaseMetadata
-	decoder := json.NewDecoder(io.LimitReader(resp.Body, 1<<20))
-	if err := decoder.Decode(&release); err != nil {
+	if err := json.Unmarshal(data, &release); err != nil {
 		return nil, err
 	}
 	if !semver.IsValid(release.TagName) {
@@ -100,6 +141,9 @@ func CheckUpdate(currentVersion string) string {
 
 func readCache(path string) Cache {
 	var cache Cache
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() || info.Size() > 1<<20 {
+		return cache
+	}
 	if data, err := os.ReadFile(path); err == nil {
 		_ = json.Unmarshal(data, &cache)
 	}

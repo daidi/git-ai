@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/state"
 )
 
 var undoCmd = &cobra.Command{
@@ -55,15 +55,32 @@ func runUndo(cmd *cobra.Command, args []string) error {
 			return false, rewriteErr
 		}
 		restoredSHA = created
-		current.CurrentStatus = state.StatusIdle
-		current.LastSHA = created
-		current.ResultSHA = ""
-		current.OriginalMsg = ""
-		current.PendingPush = nil
-		current.LastError = nil
+		finalizeUndoState(current, created)
 		return true, nil
 	})
 	if err != nil {
+		if restoredSHA != "" {
+			matches, matchErr := git.RefMatches(s.TargetRef, restoredSHA)
+			if matchErr == nil && matches {
+				finalized := false
+				_, retryErr := mgr.Update(func(current *state.State) (bool, error) {
+					if current.ResultSHA != s.ResultSHA || current.TargetRef != s.TargetRef {
+						return false, nil
+					}
+					finalizeUndoState(current, restoredSHA)
+					finalized = true
+					return true, nil
+				})
+				if retryErr == nil && finalized {
+					Printf("%s", i18n.T("undo.done"))
+					return nil
+				}
+				if retryErr != nil {
+					err = retryErr
+				}
+			}
+			return fmt.Errorf("commit message was restored, but application state could not be saved: %w", err)
+		}
 		return fmt.Errorf("safe undo failed: %w", err)
 	}
 	if restoredSHA == "" {
@@ -72,4 +89,13 @@ func runUndo(cmd *cobra.Command, args []string) error {
 
 	Printf("%s", i18n.T("undo.done"))
 	return nil
+}
+
+func finalizeUndoState(current *state.State, restoredSHA string) {
+	current.CurrentStatus = state.StatusIdle
+	current.LastSHA = restoredSHA
+	current.ResultSHA = ""
+	current.OriginalMsg = ""
+	current.PendingPush = nil
+	current.LastError = nil
 }

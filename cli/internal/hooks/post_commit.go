@@ -14,14 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/daidi/git-ai/internal/ai"
-	"github.com/daidi/git-ai/internal/config"
-	"github.com/daidi/git-ai/internal/daemon"
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/notify"
-	"github.com/daidi/git-ai/internal/state"
-	"github.com/daidi/git-ai/internal/telemetry"
+	"github.com/daidi/git-ai/cli/internal/ai"
+	"github.com/daidi/git-ai/cli/internal/config"
+	"github.com/daidi/git-ai/cli/internal/daemon"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/notify"
+	"github.com/daidi/git-ai/cli/internal/state"
+	"github.com/daidi/git-ai/cli/internal/telemetry"
 )
 
 // RunPostCommit is called by the post-commit hook. Foreground execution records
@@ -212,6 +212,14 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 
 	newSHA, err := applyPolishedMessage(mgr, operationID, polished)
 	if err != nil {
+		if newSHA != "" {
+			// The Git ref moved successfully, but the external application state
+			// could not be finalized. Do not claim that the commit was unchanged.
+			message := "The commit message was polished, but Git AI could not save its local application status. No workspace files were changed; run 'git-ai status' before pushing."
+			logger.Printf("polished target installed but state finalization failed result=%s", shortSHA(newSHA))
+			notify.Send("Git AI", message)
+			return err
+		}
 		if errors.Is(err, git.ErrRefMoved) {
 			failure := state.OperationError{Code: "target_moved", Category: "superseded", Message: "A newer commit or branch change was detected. Git AI left all commits and workspace files unchanged.", OccurredAt: time.Now().Unix()}
 			markOperationFailure(mgr, operationID, failure)
@@ -229,6 +237,12 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 	}
 
 	timeTaken := time.Since(startTime)
+	if err := mgr.AppendHistory(state.HistoryRecord{
+		SHA: newSHA, Model: cfg.Model, GenerationTimeMs: timeTaken.Milliseconds(),
+		OriginalMessage: snapshot.OriginalMsg, EstimatedTimeSavedS: 120,
+	}); err != nil {
+		logger.Printf("local history save skipped: %v", err)
+	}
 	record := telemetry.Record{Repo: repoRoot, Model: cfg.Model, TimeWaitedMs: timeTaken.Milliseconds(), OriginalMsgLen: len(snapshot.OriginalMsg), NewMsgLen: len(polished), EstimatedTimeSavedS: 120}
 	if err := telemetry.SaveRecord(record); err != nil {
 		logger.Printf("telemetry save skipped: %v", err)
@@ -240,31 +254,65 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 }
 
 func applyPolishedMessage(mgr *state.Manager, operationID, polished string) (string, error) {
-	var newSHA string
+	var newSHA, targetRef, targetSHA string
 	_, err := mgr.Update(func(s *state.State) (bool, error) {
 		if s.OperationID != operationID || s.CurrentStatus != state.StatusPolishing {
 			return false, nil
 		}
+		targetRef, targetSHA = s.TargetRef, s.LastSHA
 		created, rewriteErr := git.RewriteCommitMessageCAS(s.TargetRef, s.LastSHA, polished)
 		if rewriteErr != nil {
 			return false, rewriteErr
 		}
 		newSHA = created
-		s.CurrentStatus = state.StatusIdle
-		s.ResultSHA = created
-		s.OperationID = ""
-		s.PID = 0
-		s.StartedAt = 0
-		s.LastError = nil
+		finalizePolishState(s, created)
 		return true, nil
 	})
-	if err != nil {
-		return "", err
+	if err == nil {
+		if newSHA == "" {
+			return "", git.ErrRefMoved
+		}
+		return newSHA, nil
 	}
 	if newSHA == "" {
-		return "", git.ErrRefMoved
+		return "", err
+	}
+
+	// Git refs and the external state file cannot be updated in one filesystem
+	// transaction. If the ref was installed but saving state failed, retry only
+	// the state transition; never create or install a second commit object.
+	matches, matchErr := git.RefMatches(targetRef, newSHA)
+	if matchErr != nil || !matches {
+		return newSHA, fmt.Errorf("polished commit was installed but its ref could not be verified after a state error: %w", err)
+	}
+	finalized := false
+	_, retryErr := mgr.Update(func(s *state.State) (bool, error) {
+		if s.OperationID != operationID || s.CurrentStatus != state.StatusPolishing || s.TargetRef != targetRef || s.LastSHA != targetSHA {
+			return false, nil
+		}
+		finalizePolishState(s, newSHA)
+		finalized = true
+		return true, nil
+	})
+	if retryErr != nil {
+		return newSHA, fmt.Errorf("polished commit was installed but application state could not be saved: %w", retryErr)
+	}
+	if !finalized {
+		return newSHA, errors.New("polished commit was installed but application state changed before it could be finalized")
 	}
 	return newSHA, nil
+}
+
+func finalizePolishState(s *state.State, newSHA string) {
+	s.CurrentStatus = state.StatusIdle
+	s.ResultSHA = newSHA
+	if s.PendingPush != nil && s.PendingPush.TargetRef == s.TargetRef && s.PendingPush.TargetSHA == s.LastSHA {
+		s.PendingPush.ResultSHA = newSHA
+	}
+	s.OperationID = ""
+	s.PID = 0
+	s.StartedAt = 0
+	s.LastError = nil
 }
 
 func markOperationFailure(mgr *state.Manager, operationID string, failure state.OperationError) {
@@ -284,7 +332,7 @@ func markOperationFailure(mgr *state.Manager, operationID string, failure state.
 func handlePendingPush(mgr *state.Manager, logger *log.Logger, resultSHA string) {
 	var pending *state.PendingPush
 	_, err := mgr.Update(func(s *state.State) (bool, error) {
-		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusIdle || s.PendingPush == nil {
+		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusIdle || !pendingPushReady(s.PendingPush, resultSHA) {
 			return false, nil
 		}
 		copy := *s.PendingPush
@@ -301,7 +349,7 @@ func handlePendingPush(mgr *state.Manager, logger *log.Logger, resultSHA string)
 		notify.Send("Git AI", reason)
 		return
 	}
-	refSpecs, err := PendingRefSpecs(pending)
+	refSpecs, err := PendingRefSpecs(pending, pending.ResultSHA)
 	if err != nil {
 		markPushFailure(mgr, resultSHA, "push_not_replayable", "The deferred push could not be replayed safely. Run your original push command again.")
 		return
@@ -324,6 +372,10 @@ func handlePendingPush(mgr *state.Manager, logger *log.Logger, resultSHA string)
 	notify.Send("Git AI", i18n.Sprintf("hook.pushed", pending.Remote))
 }
 
+func pendingPushReady(pending *state.PendingPush, resultSHA string) bool {
+	return pending != nil && resultSHA != "" && pending.ResultSHA == resultSHA
+}
+
 func markPushFailure(mgr *state.Manager, resultSHA, code, message string) {
 	_, _ = mgr.Update(func(s *state.State) (bool, error) {
 		if s.ResultSHA != resultSHA || s.CurrentStatus != state.StatusPushing {
@@ -337,26 +389,46 @@ func markPushFailure(mgr *state.Manager, resultSHA, code, message string) {
 
 // PendingRefSpecs converts captured pre-push updates to conservative explicit
 // refspecs. It never reconstructs force flags or other missing CLI options.
-func PendingRefSpecs(pending *state.PendingPush) ([]string, error) {
+func PendingRefSpecs(pending *state.PendingPush, replacementSHA string) ([]string, error) {
 	if len(pending.Updates) == 0 {
 		// Legacy state cannot reliably reconstruct destination refs.
 		return nil, errors.New("legacy pending push has no structured ref updates")
 	}
 	refSpecs := make([]string, 0, len(pending.Updates))
 	for _, update := range pending.Updates {
-		if update.RemoteRef == "" {
-			return nil, errors.New("missing remote ref")
+		if !isValidRefName(update.RemoteRef) {
+			return nil, errors.New("invalid remote ref")
 		}
 		if isZeroSHA(update.LocalSHA) {
 			refSpecs = append(refSpecs, ":"+update.RemoteRef)
 			continue
 		}
-		if update.LocalRef == "" || update.LocalRef == "(delete)" {
-			return nil, errors.New("missing local ref")
+		sourceSHA := update.LocalSHA
+		if replacementSHA != "" && update.LocalRef == pending.TargetRef && update.LocalSHA == pending.TargetSHA {
+			sourceSHA = replacementSHA
 		}
-		refSpecs = append(refSpecs, update.LocalRef+":"+update.RemoteRef)
+		if !isValidObjectID(sourceSHA) {
+			return nil, errors.New("invalid local object id")
+		}
+		refSpecs = append(refSpecs, sourceSHA+":"+update.RemoteRef)
 	}
 	return refSpecs, nil
+}
+
+func isValidRefName(ref string) bool {
+	return strings.HasPrefix(ref, "refs/") && !strings.ContainsAny(ref, " ~^:?*[\\") && !strings.Contains(ref, "..")
+}
+
+func isValidObjectID(value string) bool {
+	if len(value) != 40 && len(value) != 64 {
+		return false
+	}
+	for _, char := range value {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'f') && (char < 'A' || char > 'F') {
+			return false
+		}
+	}
+	return true
 }
 
 func isZeroSHA(sha string) bool { return sha != "" && strings.Trim(sha, "0") == "" }

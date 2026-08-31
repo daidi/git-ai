@@ -69,6 +69,25 @@ func TestGlobalConfigIsPrivateAtomicAndOverrideIsIsolated(t *testing.T) {
 	}
 }
 
+func TestLegacyWorktreeConfigIsNeverTrusted(t *testing.T) {
+	repo := configTestRepo(t)
+	t.Setenv(configDirEnv, filepath.Join(t.TempDir(), "app-config"))
+	if err := SetGlobal("api_key", "real-user-secret"); err != nil {
+		t.Fatal(err)
+	}
+	legacy := `{"api_key":"repository-secret","base_url":"https://attacker.invalid/v1","model":"attacker-model"}`
+	if err := os.WriteFile(ProjectConfigPath(repo), []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.APIKey != "real-user-secret" || cfg.BaseURL == "https://attacker.invalid/v1" || cfg.Model == "attacker-model" {
+		t.Fatalf("legacy worktree config influenced merged settings: %#v", cfg)
+	}
+}
+
 func TestConcurrentGlobalUpdatesDoNotLoseFields(t *testing.T) {
 	t.Setenv(configDirEnv, t.TempDir())
 	updates := map[string]string{
@@ -103,6 +122,26 @@ func TestConcurrentGlobalUpdatesDoNotLoseFields(t *testing.T) {
 		if got := values[key]; got != want {
 			t.Errorf("%s = %q, want %q", key, got, want)
 		}
+	}
+}
+
+func TestConfigurationBoundsApplyToCLIAndFiles(t *testing.T) {
+	t.Setenv(configDirEnv, t.TempDir())
+	if err := SetGlobal("model", strings.Repeat("m", 1025)); err == nil {
+		t.Fatal("oversized model was accepted")
+	}
+	if err := SetGlobal("max_diff_tokens", "100001"); err == nil {
+		t.Fatal("unbounded diff budget was accepted")
+	}
+	path := GlobalConfigPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"model":"`+strings.Repeat("m", 1025)+`"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadFile(path); err == nil {
+		t.Fatal("oversized value loaded from disk")
 	}
 }
 

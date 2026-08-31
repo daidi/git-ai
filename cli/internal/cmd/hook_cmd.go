@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/hooks"
+	"github.com/daidi/git-ai/cli/internal/hooks"
 )
 
 var (
@@ -38,7 +40,13 @@ var hookPrePushCmd = &cobra.Command{
 		if len(args) >= 2 {
 			remoteURL = args[1]
 		}
-		return hooks.RunPrePush(remote, remoteURL)
+		err := hooks.RunPrePush(remote, remoteURL)
+		if errors.Is(err, hooks.ErrStopPush) {
+			// EX_TEMPFAIL is reserved for an intentional block/defer decision.
+			// The shell dispatcher treats every other CLI failure as fail-open.
+			return withExitCode(err, 75)
+		}
+		return err
 	},
 }
 

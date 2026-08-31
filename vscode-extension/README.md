@@ -33,7 +33,7 @@ You simply type your lazy, dirty commit message:
 
 And **you are done.** You instantly return to writing code.
 
-Meanwhile, a detached background daemon securely sends your diff to an LLM, processes conventional semantic rules, and silently `--amend`s your local commit in the background to:
+Meanwhile, a detached background daemon securely sends your diff to an LLM and atomically replaces only the exact recorded commit if its branch has not moved:
 `fix(auth): resolve session timeout on mobile devices`
 
 If you habitually type `git commit -am "wip"` and immediately `git push`, Git AI elegantly queues the push, waits for the polish to finish, and executes it perfectly. **Zero broken habits.**

@@ -5,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/config"
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/hooks"
-	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/cli/internal/config"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/hooks"
+	"github.com/daidi/git-ai/cli/internal/state"
 )
 
 var statusJSON bool
@@ -78,11 +77,11 @@ var cancelCmd = &cobra.Command{
 			}
 			pid = s.PID
 			canceled = true
-			s.CurrentStatus = state.StatusFailed
+			s.CurrentStatus = state.StatusIdle
 			s.OperationID = ""
 			s.PID = 0
 			s.StartedAt = 0
-			s.LastError = &state.OperationError{Code: "canceled", Category: "canceled", Message: "Polishing was canceled. The commit and workspace were left unchanged.", Retryable: true, OccurredAt: time.Now().Unix()}
+			s.LastError = nil
 			return true, nil
 		})
 		if err != nil {
@@ -138,8 +137,11 @@ func hooksInstalled() bool {
 	if err != nil {
 		return false
 	}
+	if safe, err := git.IsRepositoryScopedHookPath(path); err != nil || !safe {
+		return false
+	}
 	data, err := os.ReadFile(path)
-	return err == nil && strings.Contains(string(data), "git-ai hook post-commit")
+	return err == nil && isManagedHook(data, "post-commit")
 }
 
 func currentStateManager() (*state.Manager, error) {
@@ -187,7 +189,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 	var refSpecs []string
 	if pending != nil {
 		remote = pending.Remote
-		refSpecs, err = hooks.PendingRefSpecs(pending)
+		refSpecs, err = hooks.PendingRefSpecs(pending, pending.ResultSHA)
 		if err != nil {
 			// Old pending state cannot be reconstructed; a normal push is safer
 			// than inventing a destination ref.

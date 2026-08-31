@@ -116,7 +116,7 @@
                     <div class="step-marker"></div>
                     <span class="tech-label">PHASE 03</span>
                     <h3 data-i18n="flow_step3_title">Ghost Polishing</h3>
-                    <p data-i18n="flow_step3_desc">The script fetches the diff, streams to the LLM, and runs git commit --amend silently.</p>
+                    <p data-i18n="flow_step3_desc">The daemon asks the LLM, builds a replacement from the recorded commit, and atomically advances the ref only if it has not moved.</p>
                 </div>
 
                 <!-- Step 4 -->
@@ -124,7 +124,7 @@
                     <div class="step-marker"></div>
                     <span class="tech-label">PHASE 04</span>
                     <h3 data-i18n="flow_step4_title">Auto-Queue</h3>
-                    <p data-i18n="flow_step4_desc">If you run git push early, the payload queues until the amend finishes.</p>
+                    <p data-i18n="flow_step4_desc">If you push early, the exact ref updates are queued until the safe replacement finishes.</p>
                 </div>
             </div>
 
@@ -172,7 +172,7 @@
             <div class="f-card-inner">
                 <span class="tech-label">ECOSYSTEM</span>
                 <h3 data-i18n="eco_title">Deep IDE Integration</h3>
-                <p data-i18n="eco_desc">Don't want to use the terminal? Native VS Code and IntelliJ IDEA plugins monitor the state file to provide real-time background status, streaming logs, and controls directly where you write code.</p>
+                <p data-i18n="eco_desc">Native VS Code and IntelliJ IDEA plugins query the CLI for external app state, logs, and safe controls without creating project files.</p>
             </div>
         </div>
         <div class="f-card stagger-item">
@@ -192,11 +192,11 @@
         <div class="faq-list">
             <div class="faq-item">
                 <h4 data-i18n="faq1_q">Will it mess up my git history?</h4>
-                <p data-i18n="faq1_a">No. Git AI uses a strictly matched lock prefix [⏳]. It only ever amends the latest exact commit it was initiated on.</p>
+                <p data-i18n="faq1_a">No. Git AI records the exact commit SHA and ref, then uses an atomic compare-and-swap update. If the ref moved or any step fails, Git and workspace files stay unchanged.</p>
             </div>
             <div class="faq-item">
                 <h4 data-i18n="faq2_q">What if I push while it's still generating?</h4>
-                <p data-i18n="faq2_a">By default, the pre-push hook intercepts the network call, puts it in an execution queue, and releases the terminal. The actual network push runs automatically in the background.</p>
+                <p data-i18n="faq2_a">By default, the pre-push hook queues the exact ref updates while polishing. If replay cannot be proven safe or credentials are unavailable, Git AI stops and asks you to retry manually.</p>
             </div>
             <div class="faq-item">
                 <h4 data-i18n="faq3_q">Which LLMs are supported?</h4>

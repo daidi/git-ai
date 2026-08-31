@@ -1,52 +1,76 @@
 package ai
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"os/exec"
-	"time"
+	"io"
+	"os"
+	"path/filepath"
 )
 
-// GetCommitlintConfig runs npx commitlint --print-config to extract local repository rules.
-// Returns the JSON string containing only the "rules" to save prompt space, or empty string on failure.
+const (
+	maxCommitlintFileBytes  = 1 << 20
+	maxCommitlintRulesBytes = 8 << 10
+)
+
+// GetCommitlintConfig reads only static JSON configuration. It intentionally
+// never invokes npx/Node or loads JavaScript from the repository: polishing a
+// commit must not install dependencies, execute project code, or mutate the
+// user's workspace. Extends and executable configuration are ignored.
 func GetCommitlintConfig(repoRoot string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "npx", "commitlint", "--print-config")
-	cmd.Dir = repoRoot
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	// Silently fail if npx/commitlint is missing or user has no local config
-	if err := cmd.Run(); err != nil {
+	if repoRoot == "" {
 		return ""
 	}
-
-	// Try to parse the config to only extract the "rules" sub-object to save context window.
-	var config map[string]interface{}
-	if err := json.Unmarshal(out.Bytes(), &config); err != nil {
-		return ""
+	candidates := []struct {
+		name        string
+		fromPackage bool
+	}{
+		{name: ".commitlintrc.json"},
+		{name: ".commitlintrc"},
+		{name: "commitlint.config.json"},
+		{name: "package.json", fromPackage: true},
 	}
-
-	rules, ok := config["rules"]
-	if !ok {
-		return ""
+	for _, candidate := range candidates {
+		data, ok := readStaticConfig(filepath.Join(repoRoot, candidate.name))
+		if !ok {
+			continue
+		}
+		var document map[string]json.RawMessage
+		if err := json.Unmarshal(data, &document); err != nil {
+			continue
+		}
+		if candidate.fromPackage {
+			var nested map[string]json.RawMessage
+			if err := json.Unmarshal(document["commitlint"], &nested); err != nil {
+				continue
+			}
+			document = nested
+		}
+		rules, exists := document["rules"]
+		if !exists || !json.Valid(rules) {
+			continue
+		}
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(rules, &object); err != nil || object == nil {
+			continue
+		}
+		compact, err := json.Marshal(map[string]json.RawMessage{"rules": rules})
+		if err == nil && len(compact) <= maxCommitlintRulesBytes {
+			return string(compact)
+		}
 	}
+	return ""
+}
 
-	// Re-marshal just the rules part
-	compactConfig, err := json.Marshal(map[string]interface{}{"rules": rules})
+func readStaticConfig(path string) ([]byte, bool) {
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() > maxCommitlintFileBytes {
+		return nil, false
+	}
+	file, err := os.Open(path)
 	if err != nil {
-		return ""
+		return nil, false
 	}
-
-	result := string(compactConfig)
-	// Truncate to avoid overloading prompts if the config is unreasonably large
-	if len(result) > 2000 {
-		return result[:2000] + `... (truncated)`
-	}
-
-	return result
+	defer func() { _ = file.Close() }()
+	data, err := io.ReadAll(io.LimitReader(file, maxCommitlintFileBytes+1))
+	return data, err == nil && len(data) <= maxCommitlintFileBytes
 }

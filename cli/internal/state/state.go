@@ -16,9 +16,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gofrs/flock"
 )
@@ -28,6 +30,14 @@ const (
 	StatusPolishing = "polishing"
 	StatusPushing   = "pushing"
 	StatusFailed    = "failed"
+)
+
+const (
+	maxStateFileBytes      = 2 << 20
+	maxHistoryRecords      = 500
+	maxHistoryMessageBytes = 8 << 10
+	maxHistoryFileBytes    = 8 << 20
+	maxLegacyLogBytes      = 8 << 20
 )
 
 const stateDirEnv = "GIT_AI_STATE_DIR"
@@ -62,8 +72,11 @@ type State struct {
 // PendingPush holds a deferred, non-interactive push request captured from the
 // Git pre-push protocol.
 type PendingPush struct {
-	Remote  string       `json:"remote"`
-	Updates []PushUpdate `json:"updates,omitempty"`
+	Remote    string       `json:"remote"`
+	Updates   []PushUpdate `json:"updates,omitempty"`
+	TargetRef string       `json:"target_ref,omitempty"`
+	TargetSHA string       `json:"target_sha,omitempty"`
+	ResultSHA string       `json:"result_sha,omitempty"`
 	// RefSpecs is retained only for reading state created by versions <= 1.1.4.
 	RefSpecs  []string `json:"ref_specs,omitempty"`
 	Timestamp int64    `json:"timestamp"`
@@ -75,6 +88,21 @@ type PushUpdate struct {
 	LocalSHA  string `json:"local_sha"`
 	RemoteRef string `json:"remote_ref"`
 	RemoteSHA string `json:"remote_sha"`
+}
+
+// HistoryRecord is local application metadata for one polished commit. It is
+// kept alongside runtime state, never in Git notes or the worktree.
+type HistoryRecord struct {
+	SHA                 string `json:"sha"`
+	Model               string `json:"model"`
+	GenerationTimeMs    int64  `json:"generation_time_ms"`
+	OriginalMessage     string `json:"original_message"`
+	EstimatedTimeSavedS int    `json:"estimated_time_saved_s"`
+	Timestamp           int64  `json:"timestamp"`
+}
+
+type History struct {
+	Records []HistoryRecord `json:"records"`
 }
 
 // Manager handles state file operations for one repository.
@@ -130,6 +158,9 @@ func (m *Manager) StatePath() string { return filepath.Join(m.stateDir, "state.j
 // LogDir returns the external daemon log directory path.
 func (m *Manager) LogDir() string { return filepath.Join(m.stateDir, "logs") }
 
+// HistoryPath returns the external per-repository history file.
+func (m *Manager) HistoryPath() string { return filepath.Join(m.stateDir, "history.json") }
+
 // EnsureDir creates private runtime directories and migrates application-owned
 // state left in .git/git-ai by older releases.
 func (m *Manager) EnsureDir() error {
@@ -152,7 +183,7 @@ func (m *Manager) EnsureDir() error {
 func (m *Manager) Load() (*State, error) { return m.loadUnlocked() }
 
 func (m *Manager) loadUnlocked() (*State, error) {
-	data, err := os.ReadFile(m.StatePath())
+	data, err := readRegularFile(m.StatePath(), maxStateFileBytes)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &State{CurrentStatus: StatusIdle}, nil
@@ -179,6 +210,74 @@ func (m *Manager) Save(s *State) error {
 		s.Revision = current.Revision + 1
 		return m.saveUnlocked(s)
 	})
+}
+
+// LoadHistory reads external commit metadata without creating repository files.
+func (m *Manager) LoadHistory() (*History, error) { return m.loadHistoryUnlocked() }
+
+func (m *Manager) loadHistoryUnlocked() (*History, error) {
+	data, err := readRegularFile(m.HistoryPath(), maxHistoryFileBytes)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &History{Records: make([]HistoryRecord, 0)}, nil
+		}
+		return nil, err
+	}
+	var history History
+	if err := json.Unmarshal(data, &history); err != nil {
+		return nil, fmt.Errorf("parse history: %w", err)
+	}
+	if history.Records == nil {
+		history.Records = make([]HistoryRecord, 0)
+	}
+	return &history, nil
+}
+
+// AppendHistory records a bounded local history entry under the state lock.
+func (m *Manager) AppendHistory(record HistoryRecord) error {
+	return m.WithLock(func() error {
+		if err := m.EnsureDir(); err != nil {
+			return err
+		}
+		history, err := m.loadHistoryUnlocked()
+		if err != nil {
+			return err
+		}
+		record.OriginalMessage = clipHistoryText(record.OriginalMessage)
+		if record.Timestamp == 0 {
+			record.Timestamp = time.Now().Unix()
+		}
+		if record.EstimatedTimeSavedS == 0 {
+			record.EstimatedTimeSavedS = 120
+		}
+		filtered := history.Records[:0]
+		for _, existing := range history.Records {
+			if existing.SHA != record.SHA {
+				filtered = append(filtered, existing)
+			}
+		}
+		history.Records = append(filtered, record)
+		if len(history.Records) > maxHistoryRecords {
+			history.Records = history.Records[len(history.Records)-maxHistoryRecords:]
+		}
+		data, err := json.MarshalIndent(history, "", "  ")
+		if err != nil {
+			return err
+		}
+		return writeAtomic(m.HistoryPath(), append(data, '\n'), 0o600)
+	})
+}
+
+func clipHistoryText(value string) string {
+	value = strings.ToValidUTF8(value, "�")
+	if len(value) <= maxHistoryMessageBytes {
+		return value
+	}
+	value = value[:maxHistoryMessageBytes]
+	for !utf8.ValidString(value) {
+		value = value[:len(value)-1]
+	}
+	return value + "…"
 }
 
 // Update performs a locked read-modify-write transaction. Returning changed=false
@@ -216,6 +315,9 @@ func (m *Manager) saveUnlocked(s *State) error {
 		return fmt.Errorf("marshal state: %w", err)
 	}
 	data = append(data, '\n')
+	if int64(len(data)) > maxStateFileBytes {
+		return errors.New("application state exceeded the safety limit")
+	}
 	return writeAtomic(m.StatePath(), data, 0o600)
 }
 
@@ -332,12 +434,32 @@ func (m *Manager) migrateLegacyState() error {
 	if canonicalPath(m.legacyDir) == canonicalPath(m.stateDir) {
 		return nil
 	}
+	legacyInfo, err := os.Lstat(m.legacyDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if !legacyInfo.IsDir() || legacyInfo.Mode()&os.ModeSymlink != 0 {
+		return nil
+	}
 	legacyState := filepath.Join(m.legacyDir, "state.json")
-	if _, err := os.Stat(m.StatePath()); os.IsNotExist(err) {
-		if data, readErr := os.ReadFile(legacyState); readErr == nil {
-			if writeErr := writeAtomic(m.StatePath(), data, 0o600); writeErr != nil {
-				return fmt.Errorf("migrate legacy state: %w", writeErr)
+	if _, destinationErr := os.Stat(m.StatePath()); os.IsNotExist(destinationErr) {
+		if data, readErr := readRegularFile(legacyState, maxStateFileBytes); readErr == nil {
+			var legacy State
+			if json.Unmarshal(data, &legacy) == nil {
+				if writeErr := writeAtomic(m.StatePath(), data, 0o600); writeErr != nil {
+					return fmt.Errorf("migrate legacy state: %w", writeErr)
+				}
+				_ = os.Remove(legacyState)
 			}
+		}
+	} else if destinationErr == nil {
+		// A newer external snapshot wins. Remove only a valid regular legacy
+		// state file so an unexpected symlink or user file is never touched.
+		if _, readErr := readRegularFile(legacyState, maxStateFileBytes); readErr == nil {
+			_ = os.Remove(legacyState)
 		}
 	}
 
@@ -345,7 +467,7 @@ func (m *Manager) migrateLegacyState() error {
 	entries, err := os.ReadDir(legacyLogs)
 	if err == nil {
 		for _, entry := range entries {
-			if entry.IsDir() {
+			if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 				continue
 			}
 			src := filepath.Join(legacyLogs, entry.Name())
@@ -353,40 +475,53 @@ func (m *Manager) migrateLegacyState() error {
 			if _, statErr := os.Stat(dst); statErr == nil {
 				continue
 			}
-			if renameErr := os.Rename(src, dst); renameErr != nil {
-				if copyErr := copyFile(src, dst); copyErr != nil {
-					return fmt.Errorf("migrate legacy log %s: %w", entry.Name(), copyErr)
-				}
-				_ = os.Remove(src)
+			data, readErr := readRegularFile(src, maxLegacyLogBytes)
+			if readErr != nil {
+				continue
 			}
+			if writeErr := writeAtomic(dst, data, 0o600); writeErr != nil {
+				return fmt.Errorf("migrate legacy log %s: %w", entry.Name(), writeErr)
+			}
+			_ = os.Remove(src)
 		}
 	}
 
 	// Remove only files/directories owned by git-ai. Never recursively delete a
 	// broad or unresolved path.
-	_ = os.Remove(legacyState)
 	_ = os.Remove(filepath.Join(m.legacyDir, "state.lock"))
 	_ = os.Remove(legacyLogs)
 	_ = os.Remove(m.legacyDir)
 	return nil
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
+func readRegularFile(path string, maxBytes int64) ([]byte, error) {
+	info, err := os.Lstat(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer func() { _ = in.Close() }()
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, errors.New("application data path is not a regular file")
+	}
+	if info.Size() > maxBytes {
+		return nil, errors.New("application data file exceeded the safety limit")
+	}
+	file, err := os.Open(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if _, err := io.Copy(out, in); err != nil {
-		_ = out.Close()
-		_ = os.Remove(dst)
-		return err
+	defer func() { _ = file.Close() }()
+	openedInfo, err := file.Stat()
+	if err != nil || !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
+		return nil, errors.New("application data file changed while opening")
 	}
-	return out.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, errors.New("application data file exceeded the safety limit")
+	}
+	return data, nil
 }
 
 func isProcessAlive(pid int) bool {

@@ -1,6 +1,5 @@
 // Package config manages layered configuration for git-ai.
-// Priority: environment -> repository-local Git config -> legacy project file
-// (read-only compatibility) -> user config -> defaults.
+// Priority: environment -> repository-local Git config -> user config -> defaults.
 package config
 
 import (
@@ -19,6 +18,8 @@ import (
 )
 
 const configDirEnv = "GIT_AI_CONFIG_DIR"
+
+const maxConfigFileBytes int64 = 1 << 20
 
 // Scope identifies a persisted configuration layer.
 type Scope string
@@ -88,8 +89,10 @@ func LegacyGlobalConfigPath() string {
 	return filepath.Join(home, ".config", "git-ai", "config.json")
 }
 
-// ProjectConfigPath returns the legacy worktree config path. New versions never
-// create or modify this file; it is read only so existing users can migrate.
+// ProjectConfigPath returns the path used by legacy releases. It is exposed for
+// diagnostics/tests only: current versions never read, create, or modify this
+// worktree file. Trusting it could let a cloned repository redirect a user's
+// global API key to an attacker-controlled endpoint.
 func ProjectConfigPath(repoRoot string) string { return filepath.Join(repoRoot, ".git-ai.json") }
 
 // Load resolves all configuration layers.
@@ -101,15 +104,6 @@ func Load(repoRoot string) (*Config, error) {
 		return nil, err
 	}
 	mergeConfig(cfg, global)
-
-	// Keep legacy worktree configuration as a lower-priority, read-only layer.
-	if repoRoot != "" {
-		if legacy, err := LoadFile(ProjectConfigPath(repoRoot)); err == nil {
-			mergeConfig(cfg, legacy)
-		} else if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("read legacy project config: %w", err)
-		}
-	}
 
 	local, err := LoadScope(repoRoot, ScopeLocal)
 	if err != nil {
@@ -163,6 +157,9 @@ func LoadScope(repoRoot string, scope Scope) (*Config, error) {
 
 // Save writes a JSON config atomically with private permissions.
 func Save(cfg *Config, path string) error {
+	if err := Validate(cfg); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
@@ -176,12 +173,20 @@ func Save(cfg *Config, path string) error {
 
 // LoadFile reads a config from one JSON file without merging.
 func LoadFile(path string) (*Config, error) {
+	if info, err := os.Stat(path); err != nil {
+		return nil, err
+	} else if !info.Mode().IsRegular() || info.Size() > maxConfigFileBytes {
+		return nil, errors.New("configuration file is not a bounded regular file")
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	if err := Validate(&cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
@@ -308,12 +313,24 @@ func ResetScope(repoRoot string, scope Scope) error {
 
 // SetValue parses and assigns one config value.
 func SetValue(cfg *Config, key, value string) error {
+	if strings.ContainsRune(value, '\x00') {
+		return fmt.Errorf("invalid %s: NUL bytes are not allowed", key)
+	}
 	switch key {
 	case "api_key":
+		if err := checkValueLength(key, value, 16<<10); err != nil {
+			return err
+		}
 		cfg.APIKey = value
 	case "model":
+		if err := checkValueLength(key, value, 1024); err != nil {
+			return err
+		}
 		cfg.Model = value
 	case "base_url":
+		if err := checkValueLength(key, value, 4096); err != nil {
+			return err
+		}
 		cfg.BaseURL = value
 	case "provider":
 		if !oneOf(value, "openai", "ollama", "anthropic", "gemini") {
@@ -321,8 +338,14 @@ func SetValue(cfg *Config, key, value string) error {
 		}
 		cfg.Provider = value
 	case "language":
+		if err := checkValueLength(key, value, 128); err != nil {
+			return err
+		}
 		cfg.Language = value
 	case "ui_language":
+		if err := checkValueLength(key, value, 128); err != nil {
+			return err
+		}
 		cfg.UILanguage = value
 	case "push_policy":
 		if !oneOf(value, "queue", "block") {
@@ -335,6 +358,9 @@ func SetValue(cfg *Config, key, value string) error {
 		}
 		cfg.MessageFormat = value
 	case "prompt_template":
+		if err := checkValueLength(key, value, 64<<10); err != nil {
+			return err
+		}
 		cfg.PromptTemplate = value
 	case "log_level":
 		if !oneOf(value, "error", "info", "debug") {
@@ -343,7 +369,7 @@ func SetValue(cfg *Config, key, value string) error {
 		cfg.LogLevel = value
 	case "max_diff_tokens":
 		v, err := strconv.Atoi(value)
-		if err != nil || v <= 0 {
+		if err != nil || v <= 0 || v > 100_000 {
 			return fmt.Errorf("invalid max_diff_tokens value: %s", value)
 		}
 		cfg.MaxDiffTokens = v
@@ -361,6 +387,24 @@ func SetValue(cfg *Config, key, value string) error {
 		cfg.Explain = boolPtr(v)
 	default:
 		return &UnknownKeyError{Key: key}
+	}
+	return nil
+}
+
+func checkValueLength(key, value string, maximum int) error {
+	if len(value) > maximum {
+		return fmt.Errorf("%s exceeds the %d-byte safety limit", key, maximum)
+	}
+	return nil
+}
+
+// Validate applies the same bounds and enum checks to configuration decoded
+// directly from disk as to values set through the CLI.
+func Validate(cfg *Config) error {
+	for key, value := range Values(cfg) {
+		if err := SetValue(&Config{}, key, value); err != nil {
+			return err
+		}
 	}
 	return nil
 }

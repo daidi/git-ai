@@ -33,7 +33,7 @@ You simply type your fast, messy commit message in the JetBrains Commit Tool Win
 
 And **you are done.** You instantly return to writing code.
 
-Meanwhile, a detached background daemon securely sends your diff to an LLM, applies conventional commit standards, and silently `--amend`s your commit in the background to:
+Meanwhile, a detached background daemon securely sends your diff to an LLM and atomically replaces only the exact recorded commit if its branch has not moved:
 `fix(ui): resolve layout shift on high-DPI displays`
 
 Even if you click "Commit and Push", Git AI elegantly queues the push, waits for the polish to finish, and safely syncs with your remote. **Zero broken habits.**

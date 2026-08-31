@@ -8,7 +8,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/daidi/git-ai/internal/config"
+	"github.com/daidi/git-ai/cli/internal/config"
 )
 
 // Polish generates an AI-polished commit message for the given diff and original message.

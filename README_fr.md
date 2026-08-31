@@ -48,7 +48,7 @@ Tapez simplement :
 
 **C'est tout. Vous en avez terminé.** Vous retournez immédiatement à l'écriture de votre code.
 
-Pendant ce temps, un démon d'arrière-plan détaché envoie en toute sécurité votre diff à un service LLM, applique les standards de commits conventionnels et utilise discrètement `--amend` sur votre commit :
+Pendant ce temps, un démon détaché envoie le diff au LLM, construit un commit de remplacement depuis le SHA enregistré et ne déplace la référence que si elle n’a pas changé :
 `fix(auth): resolve session timeout on mobile devices`
 
 Même si vous avez l'habitude de pusher immédiatement après votre commit, Git AI met sagement votre push dans une file d'attente et l'exécute automatiquement une fois votre message finalisé. **Zéro altération de vos habitudes.**
@@ -87,8 +87,8 @@ Ne changez rien. Utilisez Git AI directement depuis votre IDE favori. Nos plugin
 ## ✨ Fonctionnalités Fondamentales
 
 - 🔄 **Polissage Asynchrone par IA** —— Exécution en mode `post-commit` détaché en arrière-plan
-- ⏳ **Affichage du statut en temps réel** —— Ajout du préfixe `[⏳]` devant les logs de Git pour ne pas dupliquer l'automatisation de scripts et plugins externes.
-- 🛡️ **Récupération Automatique** —— Un système infaillible permettant une restauration à l'état originel s'il y a des timeouts
+- ⏳ **Statut en temps réel** —— Le CLI et les IDE consultent un état externe sans créer de fichier dans le projet.
+- 🛡️ **Récupération sûre** —— Une panne réseau ou un timeout laisse le commit original et l’espace de travail intacts.
 - 🚀 **Push différé et mis en file d'attente** —— Permet d'enchaîner l'écriture et l'envoi de fichier.
 - 🤖 **Support natif de multiples IA** —— Intégration d'OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Ollama, ainsi que tous les fournisseurs compatibles avec le schéma open-source d'OpenAI.
 

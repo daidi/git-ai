@@ -3,11 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/state"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/state"
 	"github.com/spf13/cobra"
 )
 
@@ -30,11 +29,41 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	}
 
 	Printf("%s", i18n.Sprintf("uninstall.start", repoRoot))
+	mgr := state.NewManager(gitDir)
+	if snapshot, loadErr := mgr.Load(); loadErr == nil && snapshot.CurrentStatus == state.StatusPolishing && snapshot.OperationID != "" {
+		invalidated := false
+		if _, updateErr := mgr.Update(func(current *state.State) (bool, error) {
+			if current.OperationID != snapshot.OperationID || current.CurrentStatus != state.StatusPolishing {
+				return false, nil
+			}
+			current.CurrentStatus = state.StatusIdle
+			current.OperationID = ""
+			current.PID = 0
+			current.StartedAt = 0
+			current.PendingPush = nil
+			current.LastError = nil
+			invalidated = true
+			return true, nil
+		}); updateErr != nil {
+			return fmt.Errorf("stop active polishing before uninstall: %w", updateErr)
+		}
+		if invalidated {
+			stopProcess(snapshot.PID)
+		}
+	}
 
 	for _, hookName := range []string{"post-commit", "pre-push"} {
 		hookPath, err := git.GetHookPath(hookName)
 		if err != nil {
 			return fmt.Errorf("resolve %s hook: %w", hookName, err)
+		}
+		repositoryScoped, err := git.IsRepositoryScopedHookPath(hookPath)
+		if err != nil {
+			return fmt.Errorf("validate %s hook path: %w", hookName, err)
+		}
+		if !repositoryScoped {
+			Printf("Skipped %s outside this repository's Git metadata: %s\n", hookName, hookPath)
+			continue
 		}
 		backupPath := hookPath + ".git-ai.backup"
 		legacyBackupPath := hookPath + ".backup"
@@ -44,8 +73,7 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		// Check if the current hook is ours.
 		content, err := os.ReadFile(hookPath)
 		if err == nil {
-			// If it contains "git-ai hook", we delete it.
-			if string(content) != "" && strings.Contains(string(content), "git-ai hook") {
+			if isManagedHook(content, hookName) {
 				if err := os.Remove(hookPath); err != nil {
 					return fmt.Errorf("remove %s: %w", hookName, err)
 				}
@@ -80,7 +108,7 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Clean up only this repository's external application runtime directory.
-	gitAiDir := state.NewManager(gitDir).StateDir()
+	gitAiDir := mgr.StateDir()
 	if _, err := os.Stat(gitAiDir); err == nil {
 		if err := os.RemoveAll(gitAiDir); err != nil {
 			Printf("%s", i18n.Sprintf("uninstall.state_warn", gitAiDir, err))

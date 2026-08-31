@@ -2,16 +2,17 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/config"
-	"github.com/daidi/git-ai/internal/git"
-	"github.com/daidi/git-ai/internal/i18n"
-	"github.com/daidi/git-ai/internal/state"
-	"github.com/daidi/git-ai/internal/update"
+	"github.com/daidi/git-ai/cli/internal/config"
+	"github.com/daidi/git-ai/cli/internal/git"
+	"github.com/daidi/git-ai/cli/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/state"
+	"github.com/daidi/git-ai/cli/internal/update"
 )
 
 var (
@@ -20,8 +21,25 @@ var (
 	noColor bool
 
 	// gitRoot is resolved once and shared across subcommands.
-	gitRoot string
+	gitRoot          string
+	showUpdateNotice bool
 )
+
+type exitCodeError struct {
+	code int
+	err  error
+}
+
+func (e *exitCodeError) Error() string { return e.err.Error() }
+func (e *exitCodeError) Unwrap() error { return e.err }
+func (e *exitCodeError) ExitCode() int { return e.code }
+
+func withExitCode(err error, code int) error {
+	if err == nil {
+		return nil
+	}
+	return &exitCodeError{code: code, err: err}
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "git-ai",
@@ -33,6 +51,10 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 
 	Version: version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		isHook := hasCommandAncestor(cmd, "hook")
+		isStatus := cmd.Name() == "status"
+		showUpdateNotice = !isHook && !isStatus
+
 		// Config commands may run outside a repository, but when invoked inside one
 		// they still need the repository root for local overrides. Discover it on a
 		// best-effort basis instead of marking the whole command tree as git-free.
@@ -79,7 +101,9 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 				if cfg.CheckUpdate != nil {
 					enabled = *cfg.CheckUpdate
 				}
-				update.BackgroundCheck(enabled)
+				if showUpdateNotice {
+					update.BackgroundCheck(enabled)
+				}
 			}
 		} else {
 			// Even without a repo, try global config for ui_language.
@@ -107,6 +131,9 @@ func init() {
 
 // PostExecuteUpdateCheck checks if an update is available and prints a notice to stderr if so.
 func PostExecuteUpdateCheck() {
+	if !showUpdateNotice {
+		return
+	}
 	cfg, err := config.Load(gitRoot)
 	if err == nil && cfg.CheckUpdate != nil && !*cfg.CheckUpdate {
 		return
@@ -120,6 +147,26 @@ func PostExecuteUpdateCheck() {
 func Execute() error {
 	rootCmd.Version = version
 	return rootCmd.Execute()
+}
+
+// ExitCode preserves the normal CLI exit code while allowing hidden hook
+// commands to communicate a deliberate Git decision separately from an
+// application failure. Hook dispatchers fail open for every other error.
+func ExitCode(err error) int {
+	var coded interface{ ExitCode() int }
+	if errors.As(err, &coded) && coded.ExitCode() > 0 {
+		return coded.ExitCode()
+	}
+	return 1
+}
+
+func hasCommandAncestor(cmd *cobra.Command, name string) bool {
+	for current := cmd; current != nil; current = current.Parent() {
+		if current.Name() == name {
+			return true
+		}
+	}
+	return false
 }
 
 // GetGitRoot returns the resolved git repository root.

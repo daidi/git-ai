@@ -9,26 +9,111 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: git-ai-release
+  cancel-in-progress: false
 
 jobs:
+  release-checks:
+    name: Release — Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.6'
+          cache: false
+
+      - name: Test CLI
+        working-directory: cli
+        run: go test ./... -race -count=1
+
+      - name: Lint CLI
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.11.4
+          working-directory: cli
+          args: --timeout=5m
+
+      - name: Scan reachable Go vulnerabilities
+        working-directory: cli
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install VS Code dependencies
+        working-directory: vscode-extension
+        run: npm ci --ignore-scripts
+
+      - name: Compile VS Code extension
+        working-directory: vscode-extension
+        run: npm run compile
+
+      - name: Package VS Code extension
+        working-directory: vscode-extension
+        run: npx --no-install vsce package --no-dependencies
+
+      - name: Set up JDK
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-disabled: true
+
+      - name: Build and verify IntelliJ plugin
+        working-directory: idea-plugin
+        run: ./gradlew buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
+
+      - name: Check translation key coverage
+        run: bash scripts/check-i18n-coverage.sh
+
+      - name: Validate shell installer syntax
+        run: bash -n install.sh
+
+      - name: Validate PowerShell installer syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path "install.ps1"), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+
   # ── CLI Release (goreleaser) ───────────────────────────
   cli-release:
     name: CLI — Release
+    needs: release-checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # GoReleaser creates the release and uploads CLI assets.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26'
-          cache-dependency-path: cli/go.sum
+          go-version: '1.26.6'
+          cache: false
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           version: '~> v2'
           args: release --clean
@@ -41,47 +126,47 @@ jobs:
     name: VS Code — Package
     needs: cli-release
     runs-on: ubuntu-latest
-    env:
-      VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    permissions:
+      contents: write # This job attaches the signed VSIX to the release.
     defaults:
       run:
         working-directory: vscode-extension
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: vscode-extension/package-lock.json
+          package-manager-cache: false
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Compile
         run: npm run compile
 
       - name: Package VSIX
-        run: npx -y @vscode/vsce package --no-dependencies
+        run: npx --no-install vsce package --no-dependencies
 
       - name: Upload VSIX to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: vscode-extension/*.vsix
+        run: gh release upload "$GITHUB_REF_NAME" ./*.vsix --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Publish to VS Code Marketplace
-        if: env.VSCE_PAT != ''
-        run: npx -y @vscode/vsce publish --packagePath *.vsix -p ${{ env.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then echo "VSCE_PAT is not configured; skipping Marketplace publish"; exit 0; fi
+          npx --no-install vsce publish --packagePath *.vsix -p "$VSCE_PAT"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX Registry
-        if: env.OVSX_PAT != ''
-        run: npx -y ovsx publish --packagePath *.vsix -p ${{ env.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then echo "OVSX_PAT is not configured; skipping Open VSX publish"; exit 0; fi
+          npx --no-install ovsx publish --packagePath *.vsix -p "$OVSX_PAT"
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
@@ -90,39 +175,56 @@ jobs:
     name: IntelliJ — Package
     needs: cli-release
     runs-on: ubuntu-latest
-    env:
-      PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+    permissions:
+      contents: write # This job attaches the signed plugin ZIP to the release.
     defaults:
       run:
         working-directory: idea-plugin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-disabled: true
 
       - name: Build and verify plugin
         run: ./gradlew buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
+
+      - name: Sign and verify plugin archive
+        run: ./gradlew signPlugin verifyPluginSignature
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
 
       - name: Upload plugin to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: idea-plugin/build/distributions/*.zip
+        shell: bash
+        run: |
+          shopt -s nullglob
+          archives=(./build/distributions/*-signed.zip)
+          if (( ${#archives[@]} != 1 )); then
+            echo "Expected exactly one signed plugin archive, found ${#archives[@]}" >&2
+            exit 1
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${archives[0]}" --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Publish to JetBrains Marketplace
-        if: env.PUBLISH_TOKEN != ''
-        run: ./gradlew publishPlugin
+        run: |
+          if [ -z "$PUBLISH_TOKEN" ]; then echo "PUBLISH_TOKEN is not configured; skipping Marketplace publish"; exit 0; fi
+          ./gradlew publishPlugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}

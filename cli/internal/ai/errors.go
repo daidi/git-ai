@@ -134,6 +134,10 @@ func classifyHTTPStatus(status int, retryAfter string) *ProviderError {
 }
 
 func classifyTransportError(err error) error {
+	var providerErr *ProviderError
+	if errors.As(err, &providerErr) {
+		return providerErr
+	}
 	if errors.Is(err, context.Canceled) {
 		return context.Canceled
 	}

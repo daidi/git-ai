@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daidi/git-ai/internal/ai"
-	"github.com/daidi/git-ai/internal/config"
-	"github.com/daidi/git-ai/internal/i18n"
+	"github.com/daidi/git-ai/cli/internal/ai"
+	"github.com/daidi/git-ai/cli/internal/config"
+	"github.com/daidi/git-ai/cli/internal/i18n"
 )
 
 var (
@@ -172,6 +172,9 @@ var configTestCmd = &cobra.Command{
 		cfg, err := config.Load(GetGitRoot())
 		if err != nil {
 			return err
+		}
+		if cfg.Provider != "ollama" && strings.TrimSpace(cfg.APIKey) == "" {
+			return errors.New("API key is not configured in the user-level Git AI settings")
 		}
 		fmt.Printf("Testing configuration for provider: %s, model: %s...\n", cfg.Provider, cfg.Model)
 		ctx, cancel := context.WithTimeout(cmd.Context(), 35*time.Second)

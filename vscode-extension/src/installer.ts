@@ -4,9 +4,15 @@ import * as fs from 'fs';
 import * as https from 'https';
 import * as os from 'os';
 import * as path from 'path';
+import { Transform } from 'stream';
+import { pipeline } from 'stream/promises';
 import * as vscode from 'vscode';
 import { notifyError, notifyInfo, notifyWarning } from './notifications';
 import { t } from './i18n';
+
+const MAX_ARCHIVE_BYTES = 150 * 1024 * 1024;
+const MAX_METADATA_BYTES = 1024 * 1024;
+const MAX_BINARY_BYTES = 100 * 1024 * 1024;
 
 export function getExecutablePath(binary: string): string {
     if (binary !== 'git-ai') { return binary; }
@@ -70,37 +76,34 @@ async function installCliAuto(): Promise<void> {
 
                 progress.report({ message: t('installer.downloading', fileName) });
                 const [archive, checksumFile] = await Promise.all([
-                    downloadBuffer(`${baseUrl}/${fileName}`),
-                    downloadBuffer(`${baseUrl}/checksums.txt`),
+                    downloadBuffer(`${baseUrl}/${fileName}`, MAX_ARCHIVE_BYTES),
+                    downloadBuffer(`${baseUrl}/checksums.txt`, MAX_METADATA_BYTES),
                 ]);
                 verifyChecksum(fileName, archive, checksumFile.toString('utf8'));
 
                 const archivePath = path.join(tempDir, fileName);
                 fs.writeFileSync(archivePath, archive, { mode: 0o600 });
                 const exeName = os.platform() === 'win32' ? 'git-ai.exe' : 'git-ai';
-                cp.execFileSync('tar', extension === 'zip'
-                    ? ['-xf', archivePath, '-C', tempDir, exeName]
-                    : ['-xzf', archivePath, '-C', tempDir, exeName],
-                { windowsHide: true, stdio: 'ignore' });
-
                 const extracted = path.join(tempDir, exeName);
-                if (!fs.existsSync(extracted)) { throw new Error('Downloaded archive did not contain the Git AI executable'); }
+                await extractExecutable(archivePath, extension, exeName, extracted);
                 if (os.platform() !== 'win32') { fs.chmodSync(extracted, 0o755); }
                 await execFile(extracted, ['--version'], undefined, 5000);
 
                 const binFolder = path.join(os.homedir(), '.git-ai', 'bin');
                 fs.mkdirSync(binFolder, { recursive: true, mode: 0o700 });
                 const destination = path.join(binFolder, exeName);
-                const staged = `${destination}.new-${process.pid}`;
-                fs.copyFileSync(extracted, staged);
-                if (os.platform() !== 'win32') { fs.chmodSync(staged, 0o755); }
+                const stagingDir = fs.mkdtempSync(path.join(binFolder, '.git-ai-stage-'));
+                const staged = path.join(stagingDir, exeName);
                 try {
+                    fs.copyFileSync(extracted, staged);
+                    if (os.platform() !== 'win32') { fs.chmodSync(staged, 0o755); }
+                    await execFile(staged, ['--version'], undefined, 5000);
                     try {
                         fs.renameSync(staged, destination);
                     } catch {
                         // Preserve a working installation if Windows cannot
                         // replace an existing executable atomically.
-                        const backup = `${destination}.backup-${process.pid}`;
+                        const backup = path.join(stagingDir, `${exeName}.previous`);
                         if (!fs.existsSync(destination)) { throw new Error('Unable to install the downloaded CLI'); }
                         fs.renameSync(destination, backup);
                         try {
@@ -112,7 +115,7 @@ async function installCliAuto(): Promise<void> {
                         }
                     }
                 } finally {
-                    if (fs.existsSync(staged)) { fs.unlinkSync(staged); }
+                    fs.rmSync(stagingDir, { recursive: true, force: true });
                 }
                 notifyInfo(t('installer.success'));
             } catch (error) {
@@ -128,10 +131,11 @@ async function installCliAuto(): Promise<void> {
 export async function installCliUpdate(): Promise<void> { await installCliAuto(); }
 
 function verifyChecksum(fileName: string, contents: Buffer, checksums: string): void {
-    const expected = checksums.split(/\r?\n/)
+    const matches = checksums.split(/\r?\n/)
         .map(line => line.trim().split(/\s+/))
-        .find(parts => parts.length >= 2 && parts[1].replace(/^\*/, '') === fileName)?.[0];
-    if (!expected) { throw new Error(`Release checksum is missing for ${fileName}`); }
+        .filter(parts => parts.length >= 2 && parts[1].replace(/^\*/, '') === fileName);
+    if (matches.length !== 1) { throw new Error(`Release checksum is not unique for ${fileName}`); }
+    const expected = matches[0][0];
     if (!/^[0-9a-fA-F]{64}$/.test(expected)) { throw new Error('Release checksum has an invalid format'); }
     const actual = crypto.createHash('sha256').update(contents).digest('hex');
     if (!crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(expected, 'hex'))) {
@@ -139,54 +143,151 @@ function verifyChecksum(fileName: string, contents: Buffer, checksums: string): 
     }
 }
 
-async function fetchLatestTag(): Promise<string> {
-    const metadata = await downloadBuffer('https://git-ai.codegg.org/releases/latest');
-    let tag: unknown;
-    try {
-        tag = JSON.parse(metadata.toString('utf8')).tag_name;
-    } catch {
-        throw new Error('Release service returned invalid metadata');
-    }
-    if (typeof tag !== 'string' || !/^v\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/.test(tag)) {
-        throw new Error('Release service returned an invalid version');
-    }
-    return tag;
+export async function fetchLatestTag(): Promise<string> {
+	let lastError: unknown;
+	for (const endpoint of [
+		'https://git-ai.codegg.org/releases/latest',
+		'https://api.github.com/repos/daidi/git-ai/releases/latest',
+	]) {
+		try {
+			const metadata = await downloadBuffer(endpoint, MAX_METADATA_BYTES);
+			const tag: unknown = JSON.parse(metadata.toString('utf8')).tag_name;
+			if (typeof tag !== 'string' || !/^v\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/.test(tag)) {
+				throw new Error('Release service returned an invalid version');
+			}
+			return tag;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	throw new Error(`Unable to resolve the latest release: ${errorMessage(lastError)}`);
 }
 
-function downloadBuffer(url: string, redirects = 0): Promise<Buffer> {
-    if (redirects > 5) { return Promise.reject(new Error('Too many download redirects')); }
-    return new Promise((resolve, reject) => {
-        const request = https.get(url, { timeout: 15_000 }, response => {
-            if (response.statusCode && [301, 302, 303, 307, 308].includes(response.statusCode)) {
-                const location = response.headers.location;
+class DownloadError extends Error {
+	constructor(message: string, readonly retryable: boolean) { super(message); }
+}
+
+async function downloadBuffer(url: string, maxBytes: number): Promise<Buffer> {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		try {
+			return await downloadBufferOnce(url, 0, maxBytes);
+		} catch (error) {
+			lastError = error;
+			if (error instanceof DownloadError && !error.retryable) { throw error; }
+			if (attempt < 2) { await delay(500 * (2 ** attempt)); }
+		}
+	}
+	throw new Error(`Download failed after 3 attempts: ${errorMessage(lastError)}`);
+}
+
+function downloadBufferOnce(url: string, redirects: number, maxBytes: number): Promise<Buffer> {
+	if (redirects > 5) { return Promise.reject(new Error('Too many download redirects')); }
+	return new Promise((resolve, reject) => {
+		let finished = false;
+		const complete = (value: Buffer) => {
+			if (finished) { return; }
+			finished = true;
+			clearTimeout(deadline);
+			resolve(value);
+		};
+		const fail = (error: Error) => {
+			if (finished) { return; }
+			finished = true;
+			clearTimeout(deadline);
+			reject(error);
+		};
+		const request = https.get(url, {
+			timeout: 15_000,
+			headers: { 'User-Agent': 'git-ai-vscode', Accept: 'application/vnd.github+json' },
+		}, response => {
+			if (response.statusCode && [301, 302, 303, 307, 308].includes(response.statusCode)) {
+				const location = response.headers.location;
+				response.resume();
+				if (!location) { fail(new DownloadError('Download redirect had no location', false)); return; }
+				const next = new URL(location, url);
+				if (next.protocol !== 'https:') { fail(new DownloadError('Refusing a non-HTTPS download redirect', false)); return; }
+				clearTimeout(deadline);
+				downloadBufferOnce(next.toString(), redirects + 1, maxBytes).then(complete, fail);
+				return;
+			}
+			if (response.statusCode !== 200) {
+				response.resume();
+				const status = response.statusCode ?? 0;
+				const retryable = status === 408 || status === 429 || status >= 500;
+				fail(new DownloadError(t('installer.downloadFailed', String(status)), retryable));
+				return;
+			}
+            const declaredLength = Number(response.headers['content-length'] ?? 0);
+            if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
                 response.resume();
-                if (!location) { reject(new Error('Download redirect had no location')); return; }
-                const next = new URL(location, url);
-                if (next.protocol !== 'https:') { reject(new Error('Refusing a non-HTTPS download redirect')); return; }
-                downloadBuffer(next.toString(), redirects + 1).then(resolve, reject);
-                return;
-            }
-            if (response.statusCode !== 200) {
-                response.resume();
-                reject(new Error(t('installer.downloadFailed', String(response.statusCode))));
+                fail(new DownloadError('Download exceeded the safety limit', false));
                 return;
             }
             const chunks: Buffer[] = [];
             let size = 0;
             response.on('data', (chunk: Buffer) => {
                 size += chunk.length;
-                if (size > 100 * 1024 * 1024) {
-                    request.destroy(new Error('Download exceeded the 100 MB safety limit'));
-                    return;
-                }
-                chunks.push(chunk);
-            });
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        });
-        request.on('timeout', () => request.destroy(new Error('Download timed out')));
-        request.on('error', reject);
+				if (size > maxBytes) {
+					request.destroy(new DownloadError('Download exceeded the safety limit', false));
+					return;
+				}
+				chunks.push(chunk);
+			});
+			response.on('end', () => complete(Buffer.concat(chunks)));
+			response.on('error', fail);
+		});
+		const deadline = setTimeout(() => request.destroy(new Error('Download exceeded the 60 second time limit')), 60_000);
+		request.on('timeout', () => request.destroy(new Error('Download timed out')));
+		request.on('error', fail);
+	});
+}
+
+async function extractExecutable(archivePath: string, extension: string, entryName: string, destination: string): Promise<void> {
+    const listArgs = extension === 'zip' ? ['-tf', archivePath] : ['-tzf', archivePath];
+    const entries = (await execFile('tar', listArgs, undefined, 10_000))
+        .split(/\r?\n/)
+        .filter(entry => entry === entryName);
+    if (entries.length !== 1) { throw new Error(`Downloaded archive must contain exactly one ${entryName} entry`); }
+
+    const extractArgs = extension === 'zip'
+        ? ['-xOf', archivePath, entryName]
+        : ['-xOzf', archivePath, entryName];
+    const child = cp.spawn('tar', extractArgs, { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+    let extractedBytes = 0;
+    const limiter = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+            extractedBytes += chunk.length;
+            if (extractedBytes > MAX_BINARY_BYTES) {
+                callback(new Error('Extracted executable exceeded the safety limit'));
+                return;
+            }
+            callback(null, chunk);
+        },
     });
+    const exited = new Promise<void>((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', code => code === 0 ? resolve() : reject(new Error('Unable to extract the verified executable')));
+    });
+    try {
+        await Promise.all([
+            pipeline(child.stdout, limiter, fs.createWriteStream(destination, { flags: 'wx', mode: 0o600 })),
+            exited,
+        ]);
+        if (extractedBytes === 0) { throw new Error('Extracted executable was empty'); }
+    } catch (error) {
+        child.kill();
+        try { fs.unlinkSync(destination); } catch { /* no partial file */ }
+        throw error;
+    }
+}
+
+function delay(milliseconds: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error ?? 'unknown error');
 }
 
 export async function autoInitialize(workspaceRoot: string): Promise<void> {
@@ -206,7 +307,7 @@ export async function autoInitialize(workspaceRoot: string): Promise<void> {
 
 function execFile(binary: string, args: string[], cwd?: string, timeout = 5000): Promise<string> {
     return new Promise((resolve, reject) => {
-        cp.execFile(binary, args, { cwd, timeout, windowsHide: true }, (error, stdout) => {
+        cp.execFile(binary, args, { cwd, timeout, windowsHide: true, maxBuffer: 2 * 1024 * 1024 }, (error, stdout) => {
             if (error) { reject(error); return; }
             resolve(stdout);
         });

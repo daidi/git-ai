@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 )
@@ -67,6 +66,9 @@ func (c *AnthropicClient) GenerateCompletion(ctx context.Context, systemPrompt, 
 	if err != nil {
 		return "", fmt.Errorf("create anthropic request: %w", err)
 	}
+	if err := validateProviderURL(req.URL); err != nil {
+		return "", err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", c.apiKey)
@@ -82,17 +84,16 @@ func (c *AnthropicClient) GenerateCompletion(ctx context.Context, systemPrompt, 
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode != http.StatusOK {
+		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
+	}
+	respBody, err := readProviderResponse(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("read response: %w", err)
+		return "", err
 	}
 
 	if c.debug {
 		c.logger.Printf("[DEBUG] model response: status=%d bytes=%d", resp.StatusCode, len(respBody))
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", classifyHTTPStatus(resp.StatusCode, resp.Header.Get("Retry-After"))
 	}
 
 	var chatResp anthropicResponse
