@@ -14,8 +14,8 @@ const MAX_ARCHIVE_BYTES = 150 * 1024 * 1024;
 const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_BINARY_BYTES = 100 * 1024 * 1024;
 
-export function getExecutablePath(binary: string): string {
-    if (binary !== 'git-ai') { return binary; }
+export function getExecutableCandidates(binary: string): string[] {
+    if (binary !== 'git-ai') { return [binary]; }
     const exeName = os.platform() === 'win32' ? 'git-ai.exe' : 'git-ai';
     const homeDir = os.homedir();
     const commonPaths = [
@@ -26,7 +26,11 @@ export function getExecutablePath(binary: string): string {
         path.join(homeDir, '.cargo', 'bin', exeName),
         `/usr/bin/${exeName}`,
     ];
-    return commonPaths.find(candidate => fs.existsSync(candidate)) ?? binary;
+    return [...new Set([...commonPaths.filter(candidate => fs.existsSync(candidate)), binary])];
+}
+
+export function getExecutablePath(binary: string): string {
+    return getExecutableCandidates(binary)[0];
 }
 
 export async function checkAndPromptInstall(): Promise<void> {
@@ -54,12 +58,12 @@ function promptInstall(): void {
     });
 }
 
-async function installCliAuto(): Promise<void> {
+async function installCliAuto(showResultNotification = true): Promise<boolean> {
     if (!vscode.workspace.isTrusted) {
         notifyWarning('Trust this workspace before installing or updating Git AI.');
-        return;
+        return false;
     }
-    await vscode.window.withProgress(
+    return vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: t('installer.progress'), cancellable: false },
         async progress => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-ai-install-'));
@@ -117,10 +121,16 @@ async function installCliAuto(): Promise<void> {
                 } finally {
                     fs.rmSync(stagingDir, { recursive: true, force: true });
                 }
-                notifyInfo(t('installer.success'));
+                if (showResultNotification) { notifyInfo(t('installer.success')); }
+                return true;
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                notifyError(t('installer.failed', message));
+                if (showResultNotification) {
+                    notifyError(t('installer.failed', message));
+                } else {
+                    console.warn(`[Git AI] CLI compatibility repair failed: ${message}`);
+                }
+                return false;
             } finally {
                 fs.rmSync(tempDir, { recursive: true, force: true });
             }
@@ -128,7 +138,9 @@ async function installCliAuto(): Promise<void> {
     );
 }
 
-export async function installCliUpdate(): Promise<void> { await installCliAuto(); }
+export async function installCliUpdate(showResultNotification = true): Promise<boolean> {
+    return installCliAuto(showResultNotification);
+}
 
 function verifyChecksum(fileName: string, contents: Buffer, checksums: string): void {
     const matches = checksums.split(/\r?\n/)

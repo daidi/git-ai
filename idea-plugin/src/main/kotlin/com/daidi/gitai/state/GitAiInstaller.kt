@@ -33,6 +33,11 @@ object GitAiInstaller {
     private const val MAX_BINARY_BYTES = 100L * 1024L * 1024L
     private const val MAX_METADATA_BYTES = 1 shl 20
 
+    internal data class InstallResult(
+        val success: Boolean,
+        val errorMessage: String? = null,
+    )
+
     fun notifyMissingCli(project: Project) {
         val notification = NotificationGroupManager.getInstance()
             .getNotificationGroup("git-ai.notifications")
@@ -51,84 +56,99 @@ object GitAiInstaller {
     fun installCli(project: Project) {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("installer.downloading"), true) {
             override fun run(indicator: ProgressIndicator) {
-                var tempDir: File? = null
-                try {
-                    val platform = resolvePlatform()
-                    val release = fetchLatestRelease(indicator)
-                    val extension = if (platform.os == "windows") "zip" else "tar.gz"
-                    val fileName = "git-ai_${platform.os}_${platform.arch}.$extension"
-                    val baseUrl = "https://github.com/daidi/git-ai/releases/download/${release.tagName}"
-
-                    tempDir = Files.createTempDirectory("git-ai-install-").toFile()
-                    val archive = File(tempDir, fileName)
-                    val stagedExecutable = File(tempDir, platform.executableName)
-
-                    indicator.text = GitAiBundle.message("installer.downloading")
-                    withRetry(indicator, "Release archive download") {
-                        Files.deleteIfExists(archive.toPath())
-                        downloadToFile("$baseUrl/$fileName", archive, indicator)
-                    }
-                    require(archive.length() in 1..MAX_ARCHIVE_BYTES) { "Downloaded archive has an invalid size" }
-
-                    val checksums = withRetry(indicator, "Release checksum download") {
-                        downloadText("$baseUrl/checksums.txt", indicator)
-                    }
-                    verifyChecksum(archive, fileName, checksums)
-
-                    indicator.text = GitAiBundle.message("installer.extracting")
-                    if (platform.os == "windows") {
-                        unzip(archive, stagedExecutable, platform.executableName)
-                    } else {
-                        untar(archive, stagedExecutable, platform.executableName)
-                        require(stagedExecutable.setExecutable(true, true)) { "Unable to make the CLI executable" }
-                    }
-                    require(stagedExecutable.isFile && stagedExecutable.length() > 0) { "Downloaded CLI is empty" }
-                    validateExecutable(stagedExecutable)
-
-                    val binFolder = File(System.getProperty("user.home"), ".git-ai/bin")
-                    Files.createDirectories(binFolder.toPath())
-                    val destination = File(binFolder, platform.executableName)
-                    val staged = Files.createTempFile(binFolder.toPath(), ".git-ai-install-", ".tmp").toFile()
-                    try {
-                        Files.copy(stagedExecutable.toPath(), staged.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                        if (platform.os != "windows") {
-                            require(staged.setExecutable(true, true)) { "Unable to stage the CLI executable" }
-                        }
-                        validateExecutable(staged)
-                        try {
-                            Files.move(
-                                staged.toPath(),
-                                destination.toPath(),
-                                StandardCopyOption.ATOMIC_MOVE,
-                                StandardCopyOption.REPLACE_EXISTING,
-                            )
-                        } catch (_: AtomicMoveNotSupportedException) {
-                            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                        }
-                    } finally {
-                        staged.delete()
-                    }
-                    if (platform.os != "windows") destination.setExecutable(true, true)
-                    GitAiCli.invalidateExecutableCache()
-
+                val result = installCliNow(indicator)
+                if (result.success) {
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("git-ai.notifications")
                         .createNotification(GitAiBundle.message("installer.success"), NotificationType.INFORMATION)
                         .notify(project)
-                } catch (e: Exception) {
-                    log.warn("Failed to install git-ai", e)
+                } else {
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("git-ai.notifications")
                         .createNotification(
-                            GitAiBundle.message("installer.failed", e.message ?: "Unknown error"),
+                            GitAiBundle.message("installer.failed", result.errorMessage ?: "Unknown error"),
                             NotificationType.ERROR,
                         )
                         .notify(project)
-                } finally {
-                    tempDir?.deleteRecursively()
                 }
             }
         })
+    }
+
+    /**
+     * Installs the latest checksum-verified CLI on the current background task.
+     * This blocking form lets settings repair an incompatible CLI and retry the
+     * exact command without asking the user to close and reopen the dialog.
+     */
+    internal fun installCliNow(indicator: ProgressIndicator): InstallResult {
+        var tempDir: File? = null
+        return try {
+            val platform = resolvePlatform()
+            val release = fetchLatestRelease(indicator)
+            val extension = if (platform.os == "windows") "zip" else "tar.gz"
+            val fileName = "git-ai_${platform.os}_${platform.arch}.$extension"
+            val baseUrl = "https://github.com/daidi/git-ai/releases/download/${release.tagName}"
+
+            tempDir = Files.createTempDirectory("git-ai-install-").toFile()
+            val archive = File(tempDir, fileName)
+            val stagedExecutable = File(tempDir, platform.executableName)
+
+            indicator.text = GitAiBundle.message("installer.downloading")
+            withRetry(indicator, "Release archive download") {
+                Files.deleteIfExists(archive.toPath())
+                downloadToFile("$baseUrl/$fileName", archive, indicator)
+            }
+            require(archive.length() in 1..MAX_ARCHIVE_BYTES) { "Downloaded archive has an invalid size" }
+
+            val checksums = withRetry(indicator, "Release checksum download") {
+                downloadText("$baseUrl/checksums.txt", indicator)
+            }
+            verifyChecksum(archive, fileName, checksums)
+
+            indicator.text = GitAiBundle.message("installer.extracting")
+            if (platform.os == "windows") {
+                unzip(archive, stagedExecutable, platform.executableName)
+            } else {
+                untar(archive, stagedExecutable, platform.executableName)
+                require(stagedExecutable.setExecutable(true, true)) { "Unable to make the CLI executable" }
+            }
+            require(stagedExecutable.isFile && stagedExecutable.length() > 0) { "Downloaded CLI is empty" }
+            validateExecutable(stagedExecutable)
+
+            val binFolder = File(System.getProperty("user.home"), ".git-ai/bin")
+            Files.createDirectories(binFolder.toPath())
+            val destination = File(binFolder, platform.executableName)
+            val staged = Files.createTempFile(binFolder.toPath(), ".git-ai-install-", ".tmp").toFile()
+            try {
+                Files.copy(stagedExecutable.toPath(), staged.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                if (platform.os != "windows") {
+                    require(staged.setExecutable(true, true)) { "Unable to stage the CLI executable" }
+                }
+                validateExecutable(staged)
+                try {
+                    Files.move(
+                        staged.toPath(),
+                        destination.toPath(),
+                        StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING,
+                    )
+                } catch (_: AtomicMoveNotSupportedException) {
+                    Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                }
+            } finally {
+                staged.delete()
+            }
+            if (platform.os != "windows") destination.setExecutable(true, true)
+            GitAiCli.invalidateExecutableCache()
+            InstallResult(success = true)
+        } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("Failed to install git-ai", e)
+            InstallResult(success = false, errorMessage = e.message ?: "Unknown error")
+        } finally {
+            tempDir?.deleteRecursively()
+        }
     }
 
     fun fetchLatestReleaseTag(): String = fetchLatestRelease(EmptyProgressIndicator()).tagName

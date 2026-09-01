@@ -41,6 +41,7 @@ type Config struct {
 	PushPolicy     string `json:"push_policy,omitempty"`
 	MessageFormat  string `json:"message_format,omitempty"`
 	PromptTemplate string `json:"prompt_template,omitempty"`
+	SmartSkip      *bool  `json:"smart_skip,omitempty"`
 	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
 	LogLevel       string `json:"log_level,omitempty"`
 	CheckUpdate    *bool  `json:"check_update,omitempty"`
@@ -55,6 +56,11 @@ func (c *Config) IsDebug() bool { return c.LogLevel == "debug" }
 // ExplainEnabled resolves the optional explain setting.
 func (c *Config) ExplainEnabled() bool { return c.Explain != nil && *c.Explain }
 
+// SmartSkipEnabled resolves whether valid, non-repeated messages should bypass
+// AI polishing. Load always applies a default, while raw config scopes may
+// intentionally leave this unset so they can inherit another layer.
+func (c *Config) SmartSkipEnabled() bool { return c.SmartSkip != nil && *c.SmartSkip }
+
 // Defaults returns a Config with default values.
 func Defaults() *Config {
 	return &Config{
@@ -64,6 +70,7 @@ func Defaults() *Config {
 		Language:      "en",
 		PushPolicy:    "queue",
 		MessageFormat: "conventional",
+		SmartSkip:     boolPtr(true),
 		MaxDiffTokens: 8000,
 		LogLevel:      "info",
 		CheckUpdate:   boolPtr(true),
@@ -362,6 +369,12 @@ func SetValue(cfg *Config, key, value string) error {
 			return err
 		}
 		cfg.PromptTemplate = value
+	case "smart_skip":
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid smart_skip value: %s", value)
+		}
+		cfg.SmartSkip = boolPtr(v)
 	case "log_level":
 		if !oneOf(value, "error", "info", "debug") {
 			return fmt.Errorf("invalid log_level: %s", value)
@@ -430,6 +443,8 @@ func UnsetValue(cfg *Config, key string) error {
 		cfg.MessageFormat = ""
 	case "prompt_template":
 		cfg.PromptTemplate = ""
+	case "smart_skip":
+		cfg.SmartSkip = nil
 	case "max_diff_tokens":
 		cfg.MaxDiffTokens = 0
 	case "log_level":
@@ -488,6 +503,9 @@ func Values(cfg *Config) map[string]string {
 	if cfg.PromptTemplate != "" {
 		values["prompt_template"] = cfg.PromptTemplate
 	}
+	if cfg.SmartSkip != nil {
+		values["smart_skip"] = strconv.FormatBool(*cfg.SmartSkip)
+	}
 	if cfg.MaxDiffTokens > 0 {
 		values["max_diff_tokens"] = strconv.Itoa(cfg.MaxDiffTokens)
 	}
@@ -506,7 +524,7 @@ func Values(cfg *Config) map[string]string {
 func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider", "language", "ui_language",
-		"push_policy", "message_format", "prompt_template", "max_diff_tokens",
+		"push_policy", "message_format", "prompt_template", "smart_skip", "max_diff_tokens",
 		"log_level", "check_update", "explain",
 	}
 }
@@ -546,6 +564,9 @@ func mergeConfig(dst, src *Config) {
 	if src.PromptTemplate != "" {
 		dst.PromptTemplate = src.PromptTemplate
 	}
+	if src.SmartSkip != nil {
+		dst.SmartSkip = boolPtr(*src.SmartSkip)
+	}
 	if src.MaxDiffTokens > 0 {
 		dst.MaxDiffTokens = src.MaxDiffTokens
 	}
@@ -567,6 +588,7 @@ func applyEnvOverrides(cfg *Config) {
 		"language": "GIT_AI_LANGUAGE", "ui_language": "GIT_AI_UI_LANGUAGE",
 		"push_policy": "GIT_AI_PUSH_POLICY", "message_format": "GIT_AI_MESSAGE_FORMAT",
 		"prompt_template": "GIT_AI_PROMPT_TEMPLATE", "log_level": "GIT_AI_LOG_LEVEL",
+		"smart_skip":      "GIT_AI_SMART_SKIP",
 		"max_diff_tokens": "GIT_AI_MAX_DIFF_TOKENS", "check_update": "GIT_AI_CHECK_UPDATE",
 		"explain": "GIT_AI_EXPLAIN",
 	}
@@ -582,7 +604,8 @@ var gitConfigNames = map[string]string{
 	"provider": "provider", "language": "language", "ui_language": "ui-language",
 	"push_policy": "push-policy", "message_format": "message-format",
 	"prompt_template": "prompt-template", "max_diff_tokens": "max-diff-tokens",
-	"log_level": "log-level", "check_update": "check-update", "explain": "explain",
+	"smart_skip": "smart-skip",
+	"log_level":  "log-level", "check_update": "check-update", "explain": "explain",
 }
 
 var configKeysByGitName = func() map[string]string {

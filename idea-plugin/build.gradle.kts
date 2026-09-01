@@ -23,6 +23,7 @@ repositories {
 dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.apache.commons:commons-compress:1.28.0")
+    testImplementation(kotlin("test-junit"))
 
     intellijPlatform {
         // Compile against the oldest supported IDE so accidental use of newer

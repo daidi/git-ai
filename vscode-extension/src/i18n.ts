@@ -4,6 +4,9 @@ import * as vscode from 'vscode';
 
 const TRANSLATIONS: Record<string, Record<string, string>> = {
     en: {
+        'settings.field.smartSkip': 'Skip AI for valid messages',
+        'settings.hint.smartSkip': 'Keep a new commit message when it matches Message Format and differs from its parent; otherwise polish it with AI. Custom Prompt always uses AI.',
+        'settings.cli.incompatible': 'The installed Git AI CLI is incompatible with this extension. Update the CLI and reopen Settings.',
         // Settings Panel
         'settings.title': 'Git AI Settings',
         'settings.subtitle': 'Configure AI commit message polishing. Project settings override Global.',
@@ -172,6 +175,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits AI-Polished',
     },
     'zh-cn': {
+        'settings.field.smartSkip': '智能跳过润色',
+        'settings.hint.smartSkip': '若本次 Commit 信息符合所选格式且与前一次不同，则直接保留；否则交给 AI 润色。自定义提示词始终使用 AI。',
+        'settings.cli.incompatible': '已安装的 Git AI CLI 与此扩展不兼容。请更新 CLI 后重新打开设置。',
         // Settings Panel
         'settings.title': 'Git AI 偏好设置',
         'settings.subtitle': '配置 AI 提交润色行为。项目级设定将覆盖全局设定。',
@@ -340,6 +346,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 次 AI 自动润色',
     },
     'zh-tw': {
+        'settings.field.smartSkip': '智慧跳過潤飾',
+        'settings.hint.smartSkip': '若本次 Commit 訊息符合所選格式且與前一次不同，則直接保留；否則交給 AI 潤飾。自訂提示詞一律使用 AI。',
+        'settings.cli.incompatible': '已安裝的 Git AI CLI 與此擴充功能不相容。請更新 CLI 後重新開啟設定。',
         'settings.title': 'Git AI 偏好設定', 'settings.subtitle': '配置 AI 提交潤飾行為。專案級設定將覆蓋全域設定。', 'settings.tab.global': '全域', 'settings.tab.project': '目前專案', 'settings.badge.shared': '全域共用', 'settings.badge.override': '專案覆蓋',
         'settings.section.auth': '鑑權與大模型供應商', 'settings.section.format': 'Commit 格式化規範', 'settings.section.behavior': '自動推播行為', 'settings.section.installation': '安裝狀態',
         'settings.field.apiKey': 'API 金鑰', 'settings.field.provider': '介面通道', 'settings.field.baseUrl': '服務基址', 'settings.field.model': '模型識別', 'settings.field.messageFormat': '訊息結構', 'settings.field.language': '產生語言', 'settings.field.explain': '追加動機說明', 'settings.field.promptTemplate': '自訂提示詞', 'settings.field.pushPolicy': '推播時機', 'settings.field.maxDiffTokens': 'Diff 截斷閾值', 'settings.field.logLevel': '日誌級別', 'settings.field.uiLanguage': '介面語言', 'settings.field.projectEnabled': '啟用 Git AI',
@@ -360,6 +369,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 次 AI 自動潤飾',
     },
     'fr': {
+        'settings.field.smartSkip': 'Ignorer l\'IA pour les messages valides',
+        'settings.hint.smartSkip': 'Conserver le nouveau message s\'il respecte le format et diffère du précédent ; sinon, le polir avec l\'IA. Un prompt personnalisé utilise toujours l\'IA.',
+        'settings.cli.incompatible': 'La version installée de Git AI CLI est incompatible avec cette extension. Mettez à jour la CLI puis rouvrez les paramètres.',
         'settings.title': 'Paramètres Git AI', 'settings.subtitle': 'Configurer l\'IA de commit. Projet annule Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projet', 'settings.badge.shared': 'partagé', 'settings.badge.override': 'écraser',
         'settings.section.auth': 'Authentification', 'settings.section.format': 'Format de commit', 'settings.section.behavior': 'Comportement', 'settings.section.installation': 'Installation',
         'settings.field.apiKey': 'Clé API', 'settings.field.provider': 'Fournisseur', 'settings.field.baseUrl': 'URL de base', 'settings.field.model': 'Modèle', 'settings.field.messageFormat': 'Format de message', 'settings.field.language': 'Langue', 'settings.field.explain': 'Expliquer pourquoi', 'settings.field.promptTemplate': 'Prompt personnalisé', 'settings.field.pushPolicy': 'Politique de Push', 'settings.field.maxDiffTokens': 'Tokens Max Diff', 'settings.field.logLevel': 'Niveau de Log', 'settings.field.uiLanguage': 'Langue de l\'UI', 'settings.field.projectEnabled': 'Activer Git AI',
@@ -380,6 +392,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits polis par l\'IA',
     },
     'it': {
+        'settings.field.smartSkip': 'Salta IA per messaggi validi',
+        'settings.hint.smartSkip': 'Mantieni il nuovo messaggio se rispetta il formato ed è diverso dal precedente; altrimenti perfezionalo con l\'IA. Un prompt personalizzato usa sempre l\'IA.',
+        'settings.cli.incompatible': 'La versione installata di Git AI CLI non è compatibile con questa estensione. Aggiorna la CLI e riapri le Impostazioni.',
         'settings.title': 'Impostazioni Git AI', 'settings.subtitle': 'Configura l\'IA per i commit.', 'settings.tab.global': 'Globale', 'settings.tab.project': 'Progetto', 'settings.badge.shared': 'condiviso', 'settings.badge.override': 'locale',
         'settings.section.auth': 'Autenticazione', 'settings.section.format': 'Formato', 'settings.section.behavior': 'Comportamento', 'settings.section.installation': 'Installazione',
         'settings.field.apiKey': 'Chiave API', 'settings.field.provider': 'Provider', 'settings.field.baseUrl': 'Base URL', 'settings.field.model': 'Modello', 'settings.field.messageFormat': 'Formato Messaggio', 'settings.field.language': 'Lingua', 'settings.field.explain': 'Spiega Perché', 'settings.field.promptTemplate': 'Prompt', 'settings.field.pushPolicy': 'Policy Push', 'settings.field.maxDiffTokens': 'Token Massimi', 'settings.field.logLevel': 'Livello Log', 'settings.field.uiLanguage': 'Lingua UI', 'settings.field.projectEnabled': 'Abilita Git AI',
@@ -400,6 +415,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commit migliorati dall\'IA',
     },
     'de': {
+        'settings.field.smartSkip': 'KI bei gültigen Nachrichten überspringen',
+        'settings.hint.smartSkip': 'Eine neue Commit-Nachricht beibehalten, wenn sie dem Format entspricht und sich von der vorherigen unterscheidet; andernfalls mit KI polieren. Ein benutzerdefinierter Prompt verwendet immer KI.',
+        'settings.cli.incompatible': 'Die installierte Git AI CLI ist mit dieser Erweiterung nicht kompatibel. Aktualisieren Sie die CLI und öffnen Sie die Einstellungen erneut.',
         'settings.title': 'Git AI Einstellungen', 'settings.subtitle': 'Projekt überschreibt Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projekt', 'settings.badge.shared': 'geteilt', 'settings.badge.override': 'lokal',
         'settings.section.auth': 'Authentifizierung', 'settings.section.format': 'Format', 'settings.section.behavior': 'Verhalten', 'settings.section.installation': 'Installation',
         'settings.field.apiKey': 'API Schlüssel', 'settings.field.provider': 'Anbieter', 'settings.field.baseUrl': 'Basis URL', 'settings.field.model': 'Modell', 'settings.field.messageFormat': 'Nachrichtenformat', 'settings.field.language': 'Sprache', 'settings.field.explain': 'Erkläre Warum', 'settings.field.promptTemplate': 'Prompt Vorlage', 'settings.field.pushPolicy': 'Push Policy', 'settings.field.maxDiffTokens': 'Max Tokens', 'settings.field.logLevel': 'Log Phase', 'settings.field.uiLanguage': 'UI Sprache', 'settings.field.projectEnabled': 'Git AI aktivieren',
@@ -420,6 +438,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} KI-polierte Commits',
     },
     'es': {
+        'settings.field.smartSkip': 'Omitir IA para mensajes válidos',
+        'settings.hint.smartSkip': 'Conserva el mensaje nuevo si coincide con el formato y difiere del anterior; de lo contrario, lo pule con IA. Un prompt personalizado siempre usa IA.',
+        'settings.cli.incompatible': 'La versión instalada de Git AI CLI no es compatible con esta extensión. Actualiza la CLI y vuelve a abrir Configuración.',
         'settings.title': 'Ajustes de Git AI', 'settings.subtitle': 'Configurar IA. Proyecto sobrescribe Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Proyecto', 'settings.badge.shared': 'compartido', 'settings.badge.override': 'local',
         'settings.section.auth': 'Autenticación', 'settings.section.format': 'Formato de Commit', 'settings.section.behavior': 'Comportamiento', 'settings.section.installation': 'Instalación',
         'settings.field.apiKey': 'Clave API', 'settings.field.provider': 'Proveedor', 'settings.field.baseUrl': 'URL Base', 'settings.field.model': 'Modelo', 'settings.field.messageFormat': 'Formato', 'settings.field.language': 'Idioma', 'settings.field.explain': 'Explicar', 'settings.field.promptTemplate': 'Prompt', 'settings.field.pushPolicy': 'Política Push', 'settings.field.maxDiffTokens': 'Tokens Maximos', 'settings.field.logLevel': 'Nivel de Log', 'settings.field.uiLanguage': 'Idioma UI', 'settings.field.projectEnabled': 'Habilitar Git AI',
@@ -440,6 +461,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits pulidos por IA',
     },
     'ja': {
+        'settings.field.smartSkip': '有効なメッセージではAIをスキップ',
+        'settings.hint.smartSkip': '新しいコミットメッセージが指定形式に一致し、直前と異なる場合はそのまま使用します。それ以外はAIで推敲します。カスタムプロンプトは常にAIを使用します。',
+        'settings.cli.incompatible': 'インストール済みの Git AI CLI はこの拡張機能と互換性がありません。CLI を更新して設定を開き直してください。',
         'settings.title': 'Git AI 設定', 'settings.subtitle': 'AIコミットを構成します。プロジェクト設定はグローバルを上書きします。', 'settings.tab.global': 'グローバル', 'settings.tab.project': 'プロジェクト', 'settings.badge.shared': '共有', 'settings.badge.override': '上書き',
         'settings.section.auth': '認証とプロバイダー', 'settings.section.format': 'コミットフォーマット', 'settings.section.behavior': 'プッシュ動作', 'settings.section.installation': 'インストール状態',
         'settings.field.apiKey': 'APIキー', 'settings.field.provider': 'プロバイダー', 'settings.field.baseUrl': 'ベースURL', 'settings.field.model': 'モデル', 'settings.field.messageFormat': 'メッセージフォーマット', 'settings.field.language': '言語', 'settings.field.explain': '理由を追加', 'settings.field.promptTemplate': 'カスタムプロンプト', 'settings.field.pushPolicy': 'プッシュポリシー', 'settings.field.maxDiffTokens': '最大Diffトークン', 'settings.field.logLevel': 'ログレベル', 'settings.field.uiLanguage': 'UI言語', 'settings.field.projectEnabled': 'Git AIを有効化',
@@ -460,6 +484,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 件のAI推敲済みコミット',
     },
     'ko': {
+        'settings.field.smartSkip': '유효한 메시지는 AI 건너뛰기',
+        'settings.hint.smartSkip': '새 커밋 메시지가 지정 형식에 맞고 이전 메시지와 다르면 그대로 사용합니다. 그렇지 않으면 AI로 다듬습니다. 사용자 지정 프롬프트는 항상 AI를 사용합니다.',
+        'settings.cli.incompatible': '설치된 Git AI CLI가 이 확장과 호환되지 않습니다. CLI를 업데이트한 뒤 설정을 다시 여세요.',
         'settings.title': 'Git AI 설정', 'settings.subtitle': 'AI 커밋 구성을 조정합니다. 프로젝트 설정이 전체 설정을 덮어씁니다.', 'settings.tab.global': '글로벌', 'settings.tab.project': '프로젝트', 'settings.badge.shared': '공유됨', 'settings.badge.override': '덮어쓰기',
         'settings.section.auth': '인증 및 프로바이더', 'settings.section.format': '커밋 포맷', 'settings.section.behavior': '푸시 동작', 'settings.section.installation': '설치 상태',
         'settings.field.apiKey': 'API 키', 'settings.field.provider': '프로바이더', 'settings.field.baseUrl': '기본 URL', 'settings.field.model': '모델', 'settings.field.messageFormat': '메시지 포맷', 'settings.field.language': '언어', 'settings.field.explain': '이유 설명', 'settings.field.promptTemplate': '사용자 지정 프롬프트', 'settings.field.pushPolicy': '푸시 정책', 'settings.field.maxDiffTokens': '최대 Diff 토큰', 'settings.field.logLevel': '로그 수준', 'settings.field.uiLanguage': 'UI 언어', 'settings.field.projectEnabled': 'Git AI 활성화',
@@ -480,6 +507,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0}개의 AI 윤색 커밋',
     },
     'pt': {
+        'settings.field.smartSkip': 'Ignorar IA em mensagens válidas',
+        'settings.hint.smartSkip': 'Mantenha a nova mensagem quando ela seguir o formato e for diferente da anterior; caso contrário, refine com IA. Um prompt personalizado sempre usa IA.',
+        'settings.cli.incompatible': 'A versão instalada do Git AI CLI não é compatível com esta extensão. Atualize a CLI e reabra as Configurações.',
         'settings.title': 'Configurações Git AI', 'settings.subtitle': 'Configurar IA de commit. O Projeto substitui Global.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projeto', 'settings.badge.shared': 'compartilhado', 'settings.badge.override': 'local',
         'settings.section.auth': 'Autenticação', 'settings.section.format': 'Formato do Commit', 'settings.section.behavior': 'Comportamento', 'settings.section.installation': 'Instalação',
         'settings.field.apiKey': 'Chave API', 'settings.field.provider': 'Provedor', 'settings.field.baseUrl': 'URL Base', 'settings.field.model': 'Modelo', 'settings.field.messageFormat': 'Formato', 'settings.field.language': 'Idioma', 'settings.field.explain': 'Explicar', 'settings.field.promptTemplate': 'Prompt', 'settings.field.pushPolicy': 'Política Push', 'settings.field.maxDiffTokens': 'Tokens Máx', 'settings.field.logLevel': 'Log Level', 'settings.field.uiLanguage': 'Idioma UI', 'settings.field.projectEnabled': 'Ativar Git AI',
@@ -500,6 +530,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits polidos por IA',
     },
     'ru': {
+        'settings.field.smartSkip': 'Пропускать ИИ для корректных сообщений',
+        'settings.hint.smartSkip': 'Сохранять новое сообщение, если оно соответствует формату и отличается от предыдущего; иначе улучшать его с помощью ИИ. Пользовательский промпт всегда использует ИИ.',
+        'settings.cli.incompatible': 'Установленная версия Git AI CLI несовместима с этим расширением. Обновите CLI и снова откройте настройки.',
         'settings.title': 'Настройки Git AI', 'settings.subtitle': 'Настройка ИИ. Проект переопределяет Глобальные.', 'settings.tab.global': 'Глобальные', 'settings.tab.project': 'Проект', 'settings.badge.shared': 'общие', 'settings.badge.override': 'локальные',
         'settings.section.auth': 'Аутентификация', 'settings.section.format': 'Формат коммита', 'settings.section.behavior': 'Поведение Push', 'settings.section.installation': 'Установка',
         'settings.field.apiKey': 'API Ключ', 'settings.field.provider': 'Провайдер', 'settings.field.baseUrl': 'Базовый URL', 'settings.field.model': 'Модель', 'settings.field.messageFormat': 'Формат', 'settings.field.language': 'Язык', 'settings.field.explain': 'Объяснить', 'settings.field.promptTemplate': 'Промпт', 'settings.field.pushPolicy': 'Политика Push', 'settings.field.maxDiffTokens': 'Макс. Diff Токенов', 'settings.field.logLevel': 'Уровень логов', 'settings.field.uiLanguage': 'Язык интерфейса', 'settings.field.projectEnabled': 'Включить Git AI',
@@ -520,6 +553,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} коммитов отшлифовано ИИ',
     },
     'ar': {
+        'settings.field.smartSkip': 'تخطي الذكاء الاصطناعي للرسائل الصالحة',
+        'settings.hint.smartSkip': 'احتفظ برسالة الالتزام الجديدة عندما تطابق التنسيق وتختلف عن السابقة؛ وإلا فقم بتحسينها بالذكاء الاصطناعي. يستخدم القالب المخصص الذكاء الاصطناعي دائمًا.',
+        'settings.cli.incompatible': 'إصدار Git AI CLI المثبت غير متوافق مع هذه الإضافة. حدّث CLI ثم أعد فتح الإعدادات.',
         'settings.title': 'إعدادات Git AI', 'settings.subtitle': 'إعداد الذكاء الاصطناعي للإيداع.', 'settings.tab.global': 'عام', 'settings.tab.project': 'مشروع', 'settings.badge.shared': 'مشترك', 'settings.badge.override': 'تجاوز',
         'settings.section.auth': 'المصادقة', 'settings.section.format': 'التنسيق', 'settings.section.behavior': 'سلوك الدفع', 'settings.section.installation': 'التثبيت',
         'settings.field.apiKey': 'مفتاح API', 'settings.field.provider': 'المزود', 'settings.field.baseUrl': 'عنوان URL الأساسي', 'settings.field.model': 'النموذج', 'settings.field.messageFormat': 'صيغة الرسالة', 'settings.field.language': 'اللغة', 'settings.field.explain': 'اشرح السبب', 'settings.field.promptTemplate': 'قالب مخصص', 'settings.field.pushPolicy': 'سياسة الدفع', 'settings.field.maxDiffTokens': 'الحد الأقصى للرموز', 'settings.field.logLevel': 'مستوى السجل', 'settings.field.uiLanguage': 'لغة الواجهة', 'settings.field.projectEnabled': 'تفعيل Git AI',
@@ -540,6 +576,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} إيداعات تم تحسينها',
     },
     'vi': {
+        'settings.field.smartSkip': 'Bỏ qua AI khi thông điệp hợp lệ',
+        'settings.hint.smartSkip': 'Giữ thông điệp commit mới khi đúng định dạng và khác thông điệp trước; nếu không, dùng AI trau chuốt. Prompt tùy chỉnh luôn dùng AI.',
+        'settings.cli.incompatible': 'Git AI CLI đã cài đặt không tương thích với tiện ích này. Hãy cập nhật CLI rồi mở lại Cài đặt.',
         'settings.title': 'Cấu hình Git AI', 'settings.subtitle': 'Cấu hình AI commit. Cấu hình dự án sẽ ghi đè Toàn cục.', 'settings.tab.global': 'Toàn cục', 'settings.tab.project': 'Dự án', 'settings.badge.shared': 'dùng chung', 'settings.badge.override': 'ghi đè',
         'settings.section.auth': 'Xác thực', 'settings.section.format': 'Định dạng Commit', 'settings.section.behavior': 'Hành vi Push', 'settings.section.installation': 'Cài đặt',
         'settings.field.apiKey': 'Mã API Key', 'settings.field.provider': 'Nhà cung cấp', 'settings.field.baseUrl': 'Base URL', 'settings.field.model': 'Mô hình', 'settings.field.messageFormat': 'Định dạng', 'settings.field.language': 'Ngôn ngữ', 'settings.field.explain': 'Giải thích', 'settings.field.promptTemplate': 'Mẫu Prompt', 'settings.field.pushPolicy': 'Chính sách Push', 'settings.field.maxDiffTokens': 'Tokens tối đa', 'settings.field.logLevel': 'Mức Log', 'settings.field.uiLanguage': 'Ngôn ngữ UI', 'settings.field.projectEnabled': 'Bật Git AI',
@@ -560,6 +599,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commit đã được AI trau chuốt',
     },
     'th': {
+        'settings.field.smartSkip': 'ข้าม AI เมื่อข้อความถูกต้อง',
+        'settings.hint.smartSkip': 'ใช้ข้อความคอมมิตใหม่ทันทีเมื่อรูปแบบถูกต้องและต่างจากข้อความก่อนหน้า มิฉะนั้นให้ AI ปรับแต่ง พรอมต์แบบกำหนดเองจะใช้ AI เสมอ',
+        'settings.cli.incompatible': 'Git AI CLI ที่ติดตั้งอยู่ไม่เข้ากันกับส่วนขยายนี้ โปรดอัปเดต CLI แล้วเปิดการตั้งค่าอีกครั้ง',
         'settings.title': 'ตั้งค่า Git AI', 'settings.subtitle': 'ตั้งค่าการเรียบเรียง AI', 'settings.tab.global': 'Global', 'settings.tab.project': 'Project', 'settings.badge.shared': 'ใช้ร่วมกัน', 'settings.badge.override': 'เขียนทับ',
         'settings.section.auth': 'การยืนยันตัวตน', 'settings.section.format': 'รูปแบบข้อความ', 'settings.section.behavior': 'การกระทำ(Push)', 'settings.section.installation': 'สถานะการติดตั้ง',
         'settings.field.apiKey': 'API Key', 'settings.field.provider': 'ผู้ให้บริการ', 'settings.field.baseUrl': 'Base URL', 'settings.field.model': 'โมเดล', 'settings.field.messageFormat': 'รูปแบบข้อความ', 'settings.field.language': 'ภาษา', 'settings.field.explain': 'อธิบายโมเดล', 'settings.field.promptTemplate': 'เทมเพลตคำสั่ง', 'settings.field.pushPolicy': 'นโยบายการพุช', 'settings.field.maxDiffTokens': 'จำนวนโทเคนขีดสุด', 'settings.field.logLevel': 'ระดับ Log', 'settings.field.uiLanguage': 'ภาษา UI', 'settings.field.projectEnabled': 'เปิด Git AI',
@@ -580,6 +622,9 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} คอมมิตที่ขัดเกลาโดย AI',
     },
     'id': {
+        'settings.field.smartSkip': 'Lewati AI untuk pesan valid',
+        'settings.hint.smartSkip': 'Pakai pesan commit baru jika formatnya sesuai dan berbeda dari sebelumnya; kalau tidak, poles dengan AI. Prompt khusus selalu memakai AI.',
+        'settings.cli.incompatible': 'Git AI CLI yang terpasang tidak kompatibel dengan ekstensi ini. Perbarui CLI lalu buka kembali Pengaturan.',
         'settings.title': 'Pengaturan Git AI', 'settings.subtitle': 'Konfigurasi Git AI Commit.', 'settings.tab.global': 'Global', 'settings.tab.project': 'Projek', 'settings.badge.shared': 'berbagi', 'settings.badge.override': 'timpa setting',
         'settings.section.auth': 'Autentikasi', 'settings.section.format': 'Format Pesan', 'settings.section.behavior': 'Perilaku Push', 'settings.section.installation': 'Instalasi',
         'settings.field.apiKey': 'Kunci API', 'settings.field.provider': 'Provider', 'settings.field.baseUrl': 'Base URL', 'settings.field.model': 'Model', 'settings.field.messageFormat': 'Format', 'settings.field.language': 'Bahasa', 'settings.field.explain': 'Jelaskan Mengapa', 'settings.field.promptTemplate': 'Prompt', 'settings.field.pushPolicy': 'Kebijakan Push', 'settings.field.maxDiffTokens': 'Maksimal Diff', 'settings.field.logLevel': 'Tingkat Log', 'settings.field.uiLanguage': 'Bahasa UI', 'settings.field.projectEnabled': 'Aktifkan Git AI',

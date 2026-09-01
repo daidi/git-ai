@@ -98,16 +98,19 @@ func runForeground(mgr *state.Manager, originalOverride string, consumeSkip bool
 	if err != nil {
 		return err
 	}
-	targetRef, err := git.GetHeadRef()
-	if err != nil {
-		return err
-	}
 	origMsg, err := git.GetCommitMsg(sha)
 	if err != nil {
 		return err
 	}
 	if originalOverride != "" {
 		origMsg = originalOverride
+	}
+	if consumeSkip && shouldSmartSkipPolish(sha, origMsg) {
+		return nil
+	}
+	targetRef, err := git.GetHeadRef()
+	if err != nil {
+		return err
 	}
 	operationID, err := newOperationID()
 	if err != nil {
@@ -155,6 +158,29 @@ func runForeground(mgr *state.Manager, originalOverride string, consumeSkip bool
 	})
 	fmt.Print(i18n.Sprintf("hook.forked", pid))
 	return nil
+}
+
+func shouldSmartSkipPolish(sha, currentMessage string) bool {
+	repoRoot, err := git.GetRepoRoot()
+	if err != nil {
+		return false
+	}
+	cfg, err := config.Load(repoRoot)
+	if err != nil || !cfg.SmartSkipEnabled() || strings.TrimSpace(cfg.PromptTemplate) != "" {
+		return false
+	}
+	previousMessage, found, err := git.GetFirstParentCommitMsg(sha)
+	if err != nil {
+		return false
+	}
+	if found && normalizedCommitMessage(currentMessage) == normalizedCommitMessage(previousMessage) {
+		return false
+	}
+	return ai.MatchesMessageFormat(currentMessage, ai.Format(cfg.MessageFormat), cfg.ExplainEnabled())
+}
+
+func normalizedCommitMessage(message string) string {
+	return strings.TrimSpace(strings.ReplaceAll(message, "\r\n", "\n"))
 }
 
 func runDaemon(mgr *state.Manager, operationID string) error {

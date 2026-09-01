@@ -9,6 +9,7 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -29,11 +30,15 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
     override fun createComponent(): JComponent {
         val settings = GitAiSettingsComponent(project.basePath)
         component = settings
+        settings.setChangeListener { updateTestActions() }
         settings.gTestConfigBtn.addActionListener { testConfiguration() }
         settings.pTestConfigBtn.addActionListener { testConfiguration() }
         reloadFromCli()
         return settings.mainPanel
     }
+
+    override fun getPreferredFocusedComponent(): JComponent? =
+        component?.getPreferredFocusedComponent()
 
     override fun isModified(): Boolean {
         val settings = component ?: return false
@@ -60,12 +65,12 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
 
         ProgressManager.getInstance().run(object : Task.Modal(project, GitAiBundle.message("settings.saving"), true) {
             override fun run(indicator: ProgressIndicator) {
-                val globalResult = GitAiConfigManager.replace(project, "global", global)
+                val globalResult = GitAiConfigManager.replace(project, "global", global, indicator)
                 if (!globalResult.success) {
                     failure = globalResult.errorText
                     return
                 }
-                val localResult = GitAiConfigManager.replace(project, "local", local)
+                val localResult = GitAiConfigManager.replace(project, "local", local, indicator)
                 if (!localResult.success) {
                     failure = localResult.errorText
                     return
@@ -80,11 +85,17 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
         })
 
         failure?.let { throw ConfigurationException(it) }
+        val apiKeyConfigured = global.apiKey != null || savedGlobal.apiKeyConfigured
         global.apiKey = null // Do not retain a plaintext credential in the Swing model.
+        global.apiKeyConfigured = apiKeyConfigured
         savedGlobal = global.copy()
         savedProject = local.copy()
         savedInitialized = shouldInitialize
         settings.setGlobalConfig(savedGlobal)
+        settings.setProjectConfig(savedProject, savedGlobal)
+        settings.pEnabled.isSelected = savedInitialized
+        settings.markBaseline()
+        updateTestActions()
         project.service<GitAiStateService>().refreshNow()
     }
 
@@ -101,13 +112,14 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
         val settings = component ?: return
         val generation = loadGeneration.incrementAndGet()
         loading = true
-        settings.mainPanel.isEnabled = false
+        settings.setLoading(true)
+        updateTestActions()
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("settings.loading"), false) {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("settings.loading"), true) {
             override fun run(indicator: ProgressIndicator) {
                 try {
-                    val rawGlobal = GitAiConfigManager.load(project, "global")
-                    val rawProject = GitAiConfigManager.load(project, "local")
+                    val rawGlobal = GitAiConfigManager.load(project, "global", indicator)
+                    val rawProject = GitAiConfigManager.load(project, "local", indicator)
                     val effectiveGlobal = withDefaults(rawGlobal)
                     val initialized = queryInitialized()
                     ApplicationManager.getApplication().invokeLater({
@@ -118,20 +130,29 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
                         settings.setGlobalConfig(effectiveGlobal)
                         settings.setProjectConfig(rawProject, effectiveGlobal)
                         settings.pEnabled.isSelected = initialized
-                        settings.pEnabled.actionListeners.forEach {
-                            it.actionPerformed(java.awt.event.ActionEvent(settings.pEnabled, 0, "reload"))
-                        }
                         loading = false
-                        settings.mainPanel.isEnabled = true
+                        settings.setLoading(false)
+                        settings.markBaseline()
+                        updateTestActions()
                     }, project.disposed)
+                } catch (e: ProcessCanceledException) {
+                    throw e
                 } catch (e: Exception) {
                     ApplicationManager.getApplication().invokeLater({
                         if (project.isDisposed || generation != loadGeneration.get()) return@invokeLater
                         loading = false
-                        settings.mainPanel.isEnabled = true
+                        settings.setLoading(false)
+                        updateTestActions()
                         Messages.showErrorDialog(project, e.message ?: "Unable to load Git AI settings", GitAiBundle.message("notification.title"))
                     }, project.disposed)
                 }
+            }
+
+            override fun onCancel() {
+                if (project.isDisposed || generation != loadGeneration.get()) return
+                loading = false
+                settings.setLoading(false)
+                updateTestActions()
             }
         })
     }
@@ -174,6 +195,16 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
         })
     }
 
+    private fun updateTestActions() {
+        val settings = component ?: return
+        val hasUnsavedChanges = !loading && isModified()
+        val canTest = !loading && !hasUnsavedChanges
+        settings.setTestActionsEnabled(canTest, canTest)
+        val tooltip = if (hasUnsavedChanges) GitAiBundle.message("settings.test.unsaved") else null
+        settings.gTestConfigBtn.toolTipText = tooltip
+        settings.pTestConfigBtn.toolTipText = tooltip
+    }
+
     private fun withDefaults(raw: GitAiConfig): GitAiConfig {
         val defaults = GitAiConfigManager.DEFAULTS
         return GitAiConfig(
@@ -185,6 +216,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable {
             pushPolicy = raw.pushPolicy ?: defaults.pushPolicy,
             messageFormat = raw.messageFormat ?: defaults.messageFormat,
             promptTemplate = raw.promptTemplate ?: defaults.promptTemplate,
+            smartSkip = raw.smartSkip ?: defaults.smartSkip,
             maxDiffTokens = raw.maxDiffTokens ?: defaults.maxDiffTokens,
             logLevel = raw.logLevel ?: defaults.logLevel,
             checkUpdate = raw.checkUpdate ?: defaults.checkUpdate,

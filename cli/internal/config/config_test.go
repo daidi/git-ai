@@ -145,6 +145,41 @@ func TestConfigurationBoundsApplyToCLIAndFiles(t *testing.T) {
 	}
 }
 
+func TestSmartSkipDefaultsAndLayering(t *testing.T) {
+	repo := configTestRepo(t)
+	t.Setenv(configDirEnv, filepath.Join(t.TempDir(), "app-config"))
+
+	cfg, err := Load(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.SmartSkipEnabled() {
+		t.Fatal("smart skip should be enabled by default")
+	}
+
+	if err := SetGlobal("smart_skip", "false"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SmartSkipEnabled() {
+		t.Fatal("global smart_skip=false was not applied")
+	}
+
+	if err := SetLocal(repo, "smart_skip", "true"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.SmartSkipEnabled() {
+		t.Fatal("repository smart_skip=true did not override global config")
+	}
+}
+
 func configTestRepo(t *testing.T) string {
 	t.Helper()
 	repo := t.TempDir()

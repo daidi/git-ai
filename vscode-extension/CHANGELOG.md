@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- Added Smart Skip to keep already-valid, non-repeated commit messages without an unnecessary AI request.
+- Redesigned the VS Code and JetBrains settings experiences with clearer hierarchy, richer feedback, and polished interactive states.
+- Added automatic CLI compatibility recovery when an IDE plugin finds an older settings protocol.
+- Refreshed both Marketplace listings with clearer onboarding, feature discovery, and search-friendly documentation.
+- Expanded regression coverage and kept all 14 localized settings experiences in sync.
+
 ## 1.2.2
 
 - Fixed IntelliJ signature verification by using temporary certificate and key files outside the checkout.

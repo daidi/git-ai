@@ -173,6 +173,24 @@ func GetCommitMsg(sha string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// GetFirstParentCommitMsg returns the message of a commit's first parent. A
+// root commit has no parent and is reported with found=false.
+func GetFirstParentCommitMsg(sha string) (message string, found bool, err error) {
+	out, err := runGit("show", "-s", "--format=%P", sha)
+	if err != nil {
+		return "", false, err
+	}
+	parents := strings.Fields(out)
+	if len(parents) == 0 {
+		return "", false, nil
+	}
+	message, err = GetCommitMsg(parents[0])
+	if err != nil {
+		return "", false, err
+	}
+	return message, true, nil
+}
+
 // GetLegacyAINote reads only the bounded, read-only notes created by old
 // releases. New versions never write Git notes.
 func GetLegacyAINote(sha string) (string, error) {

@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -20,6 +21,7 @@ object GitAiCli {
     private val log = Logger.getInstance(GitAiCli::class.java)
     private const val MAX_OUTPUT_BYTES = 4 * 1024 * 1024
     private val missingNotificationShown = AtomicBoolean(false)
+    private val incompatibleExecutables = ConcurrentHashMap.newKeySet<String>()
 
     @Volatile
     private var cachedExecutable: String? = null
@@ -55,7 +57,19 @@ object GitAiCli {
 
     fun invalidateExecutableCache() {
         cachedExecutable = null
+        incompatibleExecutables.clear()
         missingNotificationShown.set(false)
+    }
+
+    /**
+     * Temporarily rejects the executable that just failed protocol negotiation
+     * and selects another known installation, if one exists.
+     */
+    internal fun rejectIncompatibleExecutableAndSelectNext(): Boolean {
+        val current = cachedExecutable ?: return false
+        incompatibleExecutables.add(current)
+        cachedExecutable = null
+        return getExecutablePath() != null
     }
 
     private fun runCommand(
@@ -78,7 +92,9 @@ object GitAiCli {
 
     private fun getExecutablePath(): String? {
         cachedExecutable?.let { cached ->
-            if (!File(cached).isAbsolute || isExecutable(File(cached))) return cached
+            if (cached !in incompatibleExecutables && (!File(cached).isAbsolute || isExecutable(File(cached)))) {
+                return cached
+            }
             cachedExecutable = null
         }
 
@@ -93,14 +109,16 @@ object GitAiCli {
             File(homeDir, ".cargo/bin/$executableName"),
             File("/usr/bin/$executableName"),
         )
-        candidates.firstOrNull(::isExecutable)?.absolutePath?.let {
+        candidates.firstOrNull { candidate ->
+            candidate.absolutePath !in incompatibleExecutables && isExecutable(candidate)
+        }?.absolutePath?.let {
             cachedExecutable = it
             return it
         }
 
         // GUI-launched IDEs often have a reduced PATH, but retain it as a final
         // fallback for package-manager and user-specific installations.
-        if (probeExecutable(executableName)) {
+        if (executableName !in incompatibleExecutables && probeExecutable(executableName)) {
             cachedExecutable = executableName
             return executableName
         }
