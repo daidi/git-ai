@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JComponent
 
 /** Settings UI backed exclusively by CLI commands. */
-class GitAiSettingsConfigurable(private val project: Project) : Configurable {
+class GitAiSettingsConfigurable(private val project: Project) : Configurable, Configurable.NoScroll {
     private var component: GitAiSettingsComponent? = null
     private var savedGlobal = GitAiConfigManager.DEFAULTS.copy()
     private var savedProject = GitAiConfig()

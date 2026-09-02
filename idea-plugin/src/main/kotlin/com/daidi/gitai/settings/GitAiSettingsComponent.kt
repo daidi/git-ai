@@ -240,7 +240,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(gApiKey)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.apiKey"))
+                    .comment(settingsComment("settings.hint.apiKey"))
             }
             row(GitAiBundle.message("settings.field.baseUrl")) {
                 cell(gBaseUrl).align(AlignX.FILL).resizableColumn()
@@ -255,7 +255,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             }
             row {
                 cell(gSmartSkip)
-                    .comment(GitAiBundle.message("settings.hint.smartSkip"))
+                    .comment(settingsComment("settings.hint.smartSkip"))
             }
             row(GitAiBundle.message("settings.field.language")) {
                 cell(gLanguage).align(AlignX.FILL).resizableColumn()
@@ -264,7 +264,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(JBScrollPane(gPromptTemplate))
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.promptTemplate"))
+                    .comment(settingsComment("settings.hint.promptTemplate"))
             }.resizableRow()
         }
         group(GitAiBundle.message("settings.section.behavior")) {
@@ -272,13 +272,13 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(gPushPolicy)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.pushPolicy"))
+                    .comment(settingsComment("settings.hint.pushPolicy"))
             }
             row(GitAiBundle.message("settings.field.maxDiffTokens")) {
                 cell(gMaxDiffTokens)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.maxDiffTokens"))
+                    .comment(settingsComment("settings.hint.maxDiffTokens"))
             }
             row(GitAiBundle.message("settings.field.logLevel")) {
                 cell(gLogLevel).align(AlignX.FILL).resizableColumn()
@@ -287,11 +287,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(gUiLanguage)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.uiLanguage"))
+                    .comment(settingsComment("settings.hint.uiLanguage"))
             }
             row {
                 cell(gExplain)
-                    .comment(GitAiBundle.message("settings.hint.explain"))
+                    .comment(settingsComment("settings.hint.explain"))
             }
             row {
                 cell(gTestConfigBtn)
@@ -324,7 +324,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(pSmartSkip)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.smartSkip"))
+                    .comment(settingsComment("settings.hint.smartSkip"))
             }
             row(GitAiBundle.message("settings.field.language")) {
                 cell(pLanguage).align(AlignX.FILL).resizableColumn()
@@ -333,7 +333,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(JBScrollPane(pPromptTemplate))
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.promptTemplate"))
+                    .comment(settingsComment("settings.hint.promptTemplate"))
             }.resizableRow()
         }
         group(GitAiBundle.message("settings.section.behavior")) {
@@ -341,13 +341,13 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(pPushPolicy)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.pushPolicy"))
+                    .comment(settingsComment("settings.hint.pushPolicy"))
             }
             row(GitAiBundle.message("settings.field.maxDiffTokens")) {
                 cell(pMaxDiffTokens)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.maxDiffTokens"))
+                    .comment(settingsComment("settings.hint.maxDiffTokens"))
             }
             row(GitAiBundle.message("settings.field.logLevel")) {
                 cell(pLogLevel).align(AlignX.FILL).resizableColumn()
@@ -356,13 +356,13 @@ class GitAiSettingsComponent(private val basePath: String?) {
                 cell(pUiLanguage)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.uiLanguage"))
+                    .comment(settingsComment("settings.hint.uiLanguage"))
             }
             row(GitAiBundle.message("settings.field.explain")) {
                 cell(pExplain)
                     .align(AlignX.FILL)
                     .resizableColumn()
-                    .comment(GitAiBundle.message("settings.hint.explain"))
+                    .comment(settingsComment("settings.hint.explain"))
             }
             row {
                 cell(pTestConfigBtn)
@@ -653,6 +653,11 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     private fun displayValue(value: String?): String = value?.takeIf { it.isNotBlank() } ?: EM_DASH
 
+    /** UI DSL comments add their own HTML root; legacy translations may already contain one. */
+    private fun settingsComment(key: String): String = GitAiBundle.message(key)
+        .removePrefix("<html>")
+        .removeSuffix("</html>")
+
     private fun scopeButton(text: String, position: String): JToggleButton = JToggleButton(text).apply {
         putClientProperty("JButton.buttonType", "segmented")
         putClientProperty("JButton.segmentPosition", position)
@@ -708,7 +713,10 @@ class GitAiSettingsComponent(private val basePath: String?) {
             }
             add(label, BorderLayout.NORTH)
             add(valueLabel, BorderLayout.CENTER)
-            accessibleContext.accessibleName = labelText
+            // Inside a Swing subclass, Kotlin can resolve `accessibleContext`
+            // to JComponent's protected backing field, which is null until the
+            // getter initializes it. Always call the getter explicitly.
+            getAccessibleContext().accessibleName = labelText
         }
 
         override fun paintComponent(graphics: Graphics) {

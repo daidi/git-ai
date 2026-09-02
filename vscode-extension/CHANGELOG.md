@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- Fixed the JetBrains settings page appearing blank when Swing had not initialized a card's accessibility context.
+- Hardened JetBrains UI DSL comments and added a regression test that constructs the complete settings surface on the event dispatch thread.
+
 ## 1.3.0
 
 - Added Smart Skip to keep already-valid, non-repeated commit messages without an unnecessary AI request.
