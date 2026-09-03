@@ -36,6 +36,32 @@ func MatchesMessageFormat(message string, format Format, explain bool) bool {
 	}
 }
 
+// ValidatePolishedMessage verifies the final message before a replacement
+// commit can be created. Built-in prompts have an objective output contract;
+// custom prompts retain their intentionally user-defined structure. In both
+// cases, the original trailer block must remain unchanged.
+func ValidatePolishedMessage(message, original string, format Format, explain, enforceFormat bool) error {
+	if strings.TrimSpace(message) == "" {
+		return &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an empty completion"}
+	}
+	if len(message) > maxGeneratedMessageBytes {
+		return &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an oversized completion"}
+	}
+	if strings.ContainsRune(message, '\x00') {
+		return &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an invalid completion"}
+	}
+
+	content, trailers := splitCommitTrailers(message)
+	_, originalTrailers := splitCommitTrailers(original)
+	if trailers != originalTrailers {
+		return &ProviderError{Kind: ErrorInvalidResponse, Message: "generated commit trailers did not match the original message"}
+	}
+	if enforceFormat && !MatchesMessageFormat(content, format, explain) {
+		return &ProviderError{Kind: ErrorInvalidResponse, Message: "provider completion did not match the configured commit message format"}
+	}
+	return nil
+}
+
 func messageLines(message string) []string {
 	normalized := strings.TrimSpace(strings.ReplaceAll(message, "\r\n", "\n"))
 	if normalized == "" {

@@ -67,7 +67,7 @@ Traditional AI commit tools make you wait for a model before Git records your wo
 | **Native Settings page** | Global configuration plus project-level overrides under **Tools → Git AI** |
 | **Repository discovery** | Detects Git projects and offers one-click hook initialization |
 | **Managed engine** | Downloads and updates the matching CLI with published SHA-256 verification |
-| **Localized interface** | Native translations across 15 languages |
+| **Localized interface** | Native translations across 16 languages, including Malay |
 
 The plugin delegates Git operations and persistence to the Git AI engine, keeping the IDE responsive and the integration consistent with the CLI and VS Code extension.
 

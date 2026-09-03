@@ -105,6 +105,9 @@ func runForeground(mgr *state.Manager, originalOverride string, consumeSkip bool
 	if originalOverride != "" {
 		origMsg = originalOverride
 	}
+	if isAutosquashCommitMessage(origMsg) {
+		return nil
+	}
 	if consumeSkip && shouldSmartSkipPolish(sha, origMsg) {
 		return nil
 	}
@@ -158,6 +161,14 @@ func runForeground(mgr *state.Manager, originalOverride string, consumeSkip bool
 	})
 	fmt.Print(i18n.Sprintf("hook.forked", pid))
 	return nil
+}
+
+func isAutosquashCommitMessage(message string) bool {
+	message = strings.TrimSpace(strings.ReplaceAll(message, "\r\n", "\n"))
+	subject, _, _ := strings.Cut(message, "\n")
+	return strings.HasPrefix(subject, "fixup! ") ||
+		strings.HasPrefix(subject, "squash! ") ||
+		strings.HasPrefix(subject, "amend! ")
 }
 
 func shouldSmartSkipPolish(sha, currentMessage string) bool {
@@ -232,6 +243,13 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 		failure := ai.DescribeError(err)
 		markOperationFailure(mgr, operationID, state.OperationError{Code: failure.Code, Category: failure.Category, Message: failure.Message, Retryable: failure.Retryable, OccurredAt: time.Now().Unix()})
 		logger.Printf("polishing failed category=%s retryable=%t", failure.Category, failure.Retryable)
+		notify.Send("Git AI", failure.Message)
+		return err
+	}
+	if err := ai.ValidatePolishedMessage(polished, snapshot.OriginalMsg, ai.Format(cfg.MessageFormat), cfg.ExplainEnabled(), strings.TrimSpace(cfg.PromptTemplate) == ""); err != nil {
+		failure := ai.DescribeError(err)
+		markOperationFailure(mgr, operationID, state.OperationError{Code: failure.Code, Category: failure.Category, Message: failure.Message, Retryable: failure.Retryable, OccurredAt: time.Now().Unix()})
+		logger.Printf("polished message rejected before rewrite category=%s", failure.Category)
 		notify.Send("Git AI", failure.Message)
 		return err
 	}

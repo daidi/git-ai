@@ -99,6 +99,64 @@ func TestSmartSkipCanBeDisabledAndDoesNotGuessCustomPromptFormat(t *testing.T) {
 	}
 }
 
+func TestRunPostCommitAlwaysSkipsAutosquashMessages(t *testing.T) {
+	for _, message := range []string{
+		"fixup! feat: add fixture",
+		"squash! feat: add fixture",
+		"amend! feat: add fixture",
+	} {
+		t.Run(strings.Fields(message)[0], func(t *testing.T) {
+			repo := initPostCommitTestRepo(t)
+			t.Chdir(repo)
+			t.Setenv("GIT_AI_CONFIG_DIR", filepath.Join(t.TempDir(), "config"))
+			t.Setenv("GIT_AI_STATE_DIR", filepath.Join(t.TempDir(), "state"))
+			t.Setenv("GIT_AI_INTERNAL", "")
+			t.Setenv("GIT_AI_SKIP", "")
+			if err := config.SetLocal(repo, "smart_skip", "false"); err != nil {
+				t.Fatal(err)
+			}
+			commitPostCommitFixture(t, repo, "fixture.txt", "fixture\n", message)
+			wantSHA := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
+
+			if err := RunPostCommit(false, ""); err != nil {
+				t.Fatal(err)
+			}
+			if got := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD")); got != wantSHA {
+				t.Fatalf("autosquash commit changed: got %s want %s", got, wantSHA)
+			}
+
+			gitDir, err := gitpkg.GetGitDir()
+			if err != nil {
+				t.Fatal(err)
+			}
+			snapshot, err := state.NewManager(gitDir).Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if snapshot.CurrentStatus != state.StatusIdle || snapshot.OperationID != "" {
+				t.Fatalf("autosquash commit started an operation: %#v", snapshot)
+			}
+		})
+	}
+}
+
+func TestAutosquashMessageDetectionUsesTheSubjectPrefix(t *testing.T) {
+	for _, message := range []string{
+		"fixup! target\n\nbody",
+		"squash! target\r\n\r\nbody",
+		"amend! target",
+	} {
+		if !isAutosquashCommitMessage(message) {
+			t.Errorf("autosquash message not detected: %q", message)
+		}
+	}
+	for _, message := range []string{"fixup target", "Fixup! target", "prefix fixup! target", "fixup!"} {
+		if isAutosquashCommitMessage(message) {
+			t.Errorf("ordinary message treated as autosquash: %q", message)
+		}
+	}
+}
+
 func initPostCommitTestRepo(t *testing.T) string {
 	t.Helper()
 	repo := t.TempDir()

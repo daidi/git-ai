@@ -1,334 +1,367 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" alt="git-ai logo" />
+  <img src="assets/icon.png" width="112" alt="Git AI 标志——异步 AI Git Commit Message 生成器" />
 </p>
 
-<h1 align="center">Git AI：零摩擦的异步提交润色</h1>
+<h1 align="center">Git AI — 异步 AI Git Commit Message 生成器</h1>
 
 <p align="center">
-  <strong>告别等待。你只管写代码，让 Git AI 在后台默默为你写好提交信息。</strong>
+  <strong>先提交，继续写代码。让 AI 在后台润色提交信息。</strong>
+  <br />
+  Git 安全记录工作之后，再把随手写下的 Commit Message 变成清晰的 Conventional Commits。
 </p>
 
 <p align="center">
-  <a href="http://codegg.org/git-ai/"><img src="https://img.shields.io/badge/Website-codegg.org-10b981?style=flat&logo=googlechrome&logoColor=white" alt="Official Website" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
-  <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
-  <a href="https://goreportcard.com/report/github.com/daidi/git-ai/cli"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai/cli" alt="Go Report Card" /></a>
-  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&logo=github&label=Build" alt="Build Status" /></a>
-  <br/>
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat&color=007ACC&label=VS%20Code&logo=visualstudiocode" alt="VS Code Installs" /></a>
-  <a href="https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai"><img src="https://img.shields.io/open-vsx/dt/git-ai-async-commit-polisher/git-ai?style=flat&color=1C1C1C&label=Open%20VSX&logo=vscodium&logoColor=white" alt="Open VSX Installs" /></a>
-  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
-  <br/>
-  <h4>
-    <a href="README.md">English</a> |
-    简体中文 |
-    <a href="README_zh-TW.md">繁體中文</a> |
-    <a href="README_fr.md">Français</a> |
-    <a href="README_it.md">Italiano</a> |
-    <a href="README_de.md">Deutsch</a> |
-    <a href="README_es.md">Español</a> |
-    <a href="README_ja.md">日本語</a> |
-    <a href="README_ko.md">한국어</a> |
-    <a href="README_pt.md">Português</a> |
-    <a href="README_ru.md">Русский</a> |
-    <a href="README_ar.md">العربية</a> |
-    <a href="README_vi.md">Tiếng Việt</a> |
-    <a href="README_th.md">ไทย</a> |
-    <a href="README_id.md">Bahasa Indonesia</a>
-  </h4>
+  <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?style=flat-square&color=7C3AED" alt="Git AI 最新版本" /></a>
+  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="Git AI 构建状态" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/daidi/git-ai?style=flat-square&color=64748B" alt="Git AI MIT 开源协议" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat-square&color=007ACC&label=VS%20Code" alt="Git AI VS Code 安装量" /></a>
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/jetbrains/plugin/d/31221-git-ai?style=flat-square&logo=jetbrains&label=JetBrains&color=000000" alt="Git AI JetBrains 下载量" /></a>
 </p>
-
----
-
-## ⚡️ 痛点：AI 工具正在打破你的心流
-
-绝大多数 AI Git 工具都在强迫你进入一场同步的“等待游戏”：暂存代码，点击“生成”，盯着加载条等待，检视修改，*最后*再点击提交。这种摩擦感严重破坏了开发者的心流。
-
-## 🚀 破局：“先提交，后思考”
-
-Git AI 以纯异步、纯后台的处理机制彻底颠覆了这个流程。
-
-你只需要像往常一样敲下：
-`git commit -m "修个bug"`
-
-**这就够了。你可以立刻回去继续写你的代码。**
-
-在这个瞬间，一个解耦的后台守护进程会安全地将 Diff 发送给 LLM，基于触发时记录的精确提交构造替代提交，并且仅在分支没有移动时才原子更新：
-`fix(auth): resolve session timeout on mobile devices`
-
-即使你习惯于提交后直接 Push，Git AI 也会优雅地拦截并排队你的 Push 请求，等待润色完成后自动推送到远端。**零习惯破坏。**
-
-## 💡 为什么它体验更好？
-
-| | 传统 AI 提交工具 | Git AI |
-|:---|:---|:---|
-| **工作流** | 生成 → 等待 → 评审 → 提交 | 提交 → 写代码 → 后台润色 |
-| **等待延迟** | 2–5 秒阻塞式等待 | **绝对的零等待。** |
-| **若 AI 断网/挂机？**| 提交被迫中断 | 你的提交已在本地，绝对安全 |
-| **需要改变习惯吗？**| 需要学习新按钮/新快捷键 | 标准的 `git commit` |
-
-1. **安全至上：** 你的代码在 `commit` 的一瞬间就进入了 Git 的版本历史。哪怕 API Key 过期、网络断开，你的心血也被安全快照保存。
-2. **AI 智能体友好：** 润色期间 Git 历史和工作区保持不变；CLI 与 IDE 通过工作区外的应用状态显示进度，不制造临时提交。
-3. **绝佳的兼容性：** 无论你使用终端、JetBrains、VS Code 还是 Fork，Git AI 都在幕后无缝工作。
-
----
-
-# 👩‍💻 献给使用者 (For Users)
-
-## 🖥️ 沉浸式 IDE 体验
-
-不需要改变任何习惯，直接在你的 IDE 里使用 Git AI！两款插件均提供原生集成 —— 状态展示、一键操作、全中文化设置面板。
-
-### JetBrains IDEA 插件
-
-原生 UI，支持操作撤销、重试和配置。
 
 <p align="center">
-  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai">
-    <img src="https://img.shields.io/badge/JetBrains_Marketplace-Install_Plugin-black?style=for-the-badge&logo=intellijidea&logoColor=white" alt="Install JetBrains Plugin" />
-  </a>
+  <a href="https://codegg.org/git-ai/"><strong>官网</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#安装">安装</a>
+  &nbsp;·&nbsp;
+  <a href="#快速开始">快速开始</a>
+  &nbsp;·&nbsp;
+  <a href="#工作原理">工作原理</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai/issues">支持</a>
 </p>
-
-### VS Code 扩展
-
-支持状态栏与侧边栏的实时更新监听。
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai">
-    <img src="https://img.shields.io/badge/VS_Code_Marketplace-Install_Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Install VS Code Extension" />
-  </a>
-  <a href="https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai">
-    <img src="https://img.shields.io/badge/Open_VSX-Install_Extension-1C1C1C?style=for-the-badge&logo=vscodium&logoColor=white" alt="Install Open VSX Extension" />
-  </a>
+  <sub>
+    <a href="README.md">English</a> ·
+    简体中文 ·
+    <a href="README_zh-TW.md">繁體中文</a> ·
+    <a href="README_fr.md">Français</a> ·
+    <a href="README_de.md">Deutsch</a> ·
+    <a href="README_es.md">Español</a> ·
+    <a href="README_it.md">Italiano</a> ·
+    <a href="README_ja.md">日本語</a> ·
+    <a href="README_ko.md">한국어</a> ·
+    <a href="README_pt.md">Português</a> ·
+    <a href="README_ru.md">Русский</a> ·
+    <a href="README_ar.md">العربية</a> ·
+    <a href="README_vi.md">Tiếng Việt</a> ·
+    <a href="README_th.md">ไทย</a> ·
+    <a href="README_id.md">Bahasa Indonesia</a> ·
+    <a href="README_ms.md">Bahasa Melayu</a>
+  </sub>
 </p>
 
-打开 VS Code，按 `Cmd+Shift+X` 并搜索 **git-ai**，或使用以下命令：
+<p align="center">
+  <img src="assets/readme-hero.png" width="100%" alt="Git AI 异步提交信息生成流程：立即提交、继续编码、后台安全润色" />
+</p>
+
+Git AI 是一款免费开源的 **AI Commit Message 生成器**，支持终端、VS Code 和 JetBrains IDE。它能把 `fix auth` 这样的随手草稿变成有价值的提交历史，同时不会让你停下来等待 LLM 响应。
+
+与提交前生成工具不同，Git AI 通过 `post-commit` Hook 工作。原始提交会先真实存在；随后，独立后台进程只读取这一次提交，调用你配置的模型，用相同的文件树与父提交创建替代 Commit，并且只在分支仍处于安全状态时才更新引用。
+
+> Git AI 也在自己的仓库中使用这套工作流。可以直接[查看本项目的提交历史](https://github.com/daidi/git-ai/commits/main)验证效果。
+
+## 看看有什么不同
+
+```console
+$ git commit -m "fix auth"
+[main 1a2b3c4] fix auth
+✨ Git AI: 正在后台润色（PID 2418）
+
+# 终端已立即可用。润色完成后：
+$ git log -1 --pretty=%s
+fix(auth): prevent expired sessions on mobile
+```
+
+Git 会立即返回。模型工作期间，你可以继续编辑、测试、切换工具，甚至直接执行 `git push`；Git AI 会在后台协调后续流程。
+
+## 为什么选择 Git AI
+
+大多数 AI 提交工具把生成过程放在提交的关键路径上。Git AI 刻意把它移到了提交之后。
+
+| | 常见 AI Commit 生成器 | Git AI |
+|:--|:--|:--|
+| **工作流** | 生成 → 等待 → 审阅 → 提交 | 提交 → 继续编码 → 后台润色 |
+| **操作方式** | 专用命令、按钮或弹窗 | 原来的 `git commit` |
+| **AI 失败时** | Commit 可能根本没有创建 | 原始 Commit 完整保留 |
+| **后续改动** | 盲目 amend 可能捕获错误状态 | 只使用已记录 Commit 的文件树和父提交 |
+| **分支安全** | 取决于具体工具 | 原子比较并交换；引用移动后安全退出 |
+| **立即推送** | 需要等待或手动协调 | 精确推送排队，或选择严格阻止模式 |
+| **使用位置** | 通常局限于某个 CLI 或编辑器 | 终端、VS Code、JetBrains 与其他 Git 客户端 |
+
+**先提交，后思考**意味着在 AI 参与之前，你的代码已经被 Git 安全快照。
+
+## 安装
+
+选择你本来就在使用的入口。IDE 插件会自动安装并更新匹配版本的 Git AI CLI，并通过发布的 SHA-256 校验值验证二进制文件。
+
+| 使用环境 | 安装入口 | 原生体验 |
+|:--|:--|:--|
+| **VS Code / 兼容编辑器** | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai) · [Open VSX](https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai) | Activity Bar、状态、历史、设置、统计、日志与恢复操作 |
+| **JetBrains IDE** | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31221-git-ai) | 原生工具窗口、状态栏组件、设置、历史、统计、日志与 VCS 操作 |
+| **终端 / 任意 Git 客户端** | [GitHub Releases](https://github.com/daidi/git-ai/releases) · 下方包管理器 | 独立 Go 二进制文件与可组合 Git Hook |
+
+### 独立 CLI
+
+```bash
+# Homebrew（macOS / Linux）
+brew install daidi/tap/git-ai
+
+# macOS / Linux 校验安装脚本
+curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
+
+# 从源码安装（需要 Go 1.26.6+）
+go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
+```
+
+```powershell
+# Scoop（Windows）
+scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
+scoop install daidi/git-ai
+
+# Windows PowerShell 校验安装脚本
+iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
+```
+
+macOS、Linux 和 Windows 的 AMD64/ARM64 预编译文件、校验值、`.deb` 与 `.rpm` 包都可以在 [GitHub Releases](https://github.com/daidi/git-ai/releases) 下载。
+
+## 快速开始
+
+IDE 用户只需打开 Git AI 设置、连接模型，并接受一次性的仓库初始化提示。独立 CLI 用户可以执行：
+
+```bash
+# 每个仓库执行一次，安装可组合 Hook
+cd your-project
+git-ai init
+
+# 默认端点为 DeepSeek；请替换成自己的密钥
+git-ai config set api_key "sk-..." --global
+git-ai config test
+
+# 之后继续使用原来的 Git 命令
+git commit -m "fix login"
+```
+
+日常使用到这里就结束了。需要查看进度时运行 `git-ai status`；否则 Git AI 会安静地待在后台。
+
+希望模型完全在本地运行？Ollama 不需要 API Key：
+
+```bash
+git-ai config set provider ollama --global
+git-ai config set model llama3 --global
+git-ai config set base_url http://localhost:11434 --global
+git-ai config test
+```
+
+## 核心能力
+
+- **真正异步的润色** — `post-commit` Hook 记录目标后立即返回，模型请求由独立后台进程处理。
+- **Git 安全替换** — 只使用已记录的 Commit 创建新对象，绝不会读取之后暂存的内容。
+- **推送感知** — 默认 `queue` 策略会在润色后重放精确引用更新；`block` 策略保留手动控制。
+- **四种消息格式** — [Conventional Commits](https://www.conventionalcommits.org/)、[Gitmoji](https://gitmoji.dev/)、纯文本主题和结构化主题加正文。
+- **自带模型** — 支持 OpenAI 兼容 API、Anthropic Claude、Google Gemini、DeepSeek、通义千问以及本地 Ollama。
+- **理解仓库上下文** — 智能裁剪大型 Diff、安全读取静态 Commitlint JSON 规则、输出语言、自定义 Prompt 与可选原因说明。
+- **内置输出契约校验** — 拒绝空白、过大、无效或格式错误的模型结果，并精确保留原始 Git Trailer。
+- **智能跳过** — 合规的新消息可以保持不变，粗糙或重复的草稿才交给模型润色。
+- **恢复控制** — 支持查看状态、重试、撤销、取消、跳过下一次提交和中断恢复。
+- **本地可观测性** — AI 历史、生成耗时、效率统计、受限日志与原生系统通知都保存在本机。
+- **原生 IDE 集成** — 为 [VS Code](vscode-extension/README.md) 和 [JetBrains IDE](idea-plugin/README.md) 提供可视化控制与托管安装。
+- **16 种界面语言** — 英语，以及阿拉伯语、简体中文、繁体中文、法语、德语、印尼语、意大利语、日语、韩语、马来语、葡萄牙语、俄语、西班牙语、泰语和越南语本地化。
+- **可复现质量评测** — [公开 Commit 评测工具](cli/eval/README.md)会衡量格式、语义、Trailer 保留、Diff 上下文与延迟。
+
+## 工作原理
+
+```mermaid
+flowchart LR
+    A["git commit -m 'fix'"] --> B["原始 Commit 已存在"]
+    B --> C["记录精确 SHA 与引用<br/>随后立即返回"]
+    C --> D["继续编码"]
+    B -. 独立后台进程 .-> E["读取已记录 Commit 的 Diff"]
+    E --> F["调用已配置的 LLM"]
+    F --> G["使用原文件树与父提交<br/>创建替代 Commit"]
+    G --> H{"引用仍指向<br/>原始 SHA？"}
+    H -- 是 --> I["原子执行 git update-ref"]
+    H -- 否 --> J["安全退出，不做修改"]
+    I --> K{"存在排队推送？"}
+    K -- 是 --> L["推送精确引用更新"]
+    K -- 否 --> M["完成"]
+```
+
+### 安全设计
+
+Git AI **不会**在后台盲目执行 `git commit --amend`。
+
+1. Git 先创建原始 Commit，Git AI 才开始模型工作。
+2. Hook 记录精确的 Commit SHA 与分支引用，然后退出。
+3. 后台进程读取已记录的 Commit，而不是当前 Index 或工作区。
+4. 替代 Commit 复用原来的文件树与父提交。
+5. 只有预期 SHA 仍匹配时，才通过 `git update-ref <ref> <new> <expected>` 推进分支。
+6. 新 Commit、分支移动、网络异常、凭据错误、限流、无效响应或模型故障都会保留原始 Commit 和工作区。
+
+Commit Message 是 Git Commit 对象的一部分，因此润色成功后会产生新的 SHA。安全检查确保 Git AI 只修改最初记录的那一次提交。
+
+### 隐私与本地所有权
+
+- **没有 Git AI 中转服务器。** 受限长度的 Commit Diff 与草稿会直接发送到你配置的模型端点。
+- **支持本地推理。** 不希望代码离开设备时可以使用 Ollama。
+- **凭据不会进入仓库。** 持久化 API Key 只能保存在用户级配置中，也支持环境变量。
+- **运行状态不会进入工作区。** 状态、日志与 AI 历史保存在用户缓存目录，仓库覆盖项使用 `.git/config`。
+- **不上传分析数据。** 效率统计与 Commit 元数据只保存在本地。
+- **诊断信息排除敏感内容。** 日志不会记录 API Key、Prompt、Diff、响应正文或包含凭据的远程 URL。
+- **下载经过验证。** 安装脚本和 IDE 插件都会使用发布的 SHA-256 校验值验证二进制文件。
+
+版本检查和托管下载可能会访问 GitHub 或 Git AI 发布服务。
+
+## Provider 与配置
+
+| Provider 模式 | 适用服务 | API Key |
+|:--|:--|:--|
+| `openai` | DeepSeek、OpenAI、通义千问及其他 OpenAI 兼容端点 | 需要 |
+| `anthropic` | Anthropic Claude 原生 API | 需要 |
+| `gemini` | Google Gemini 原生 API | 需要 |
+| `ollama` | 本地 Ollama 服务 | 不需要 |
+
+OpenAI 兼容端点示例：
+
+```bash
+git-ai config set provider openai --global
+git-ai config set base_url https://api.example.com/v1 --global
+git-ai config set model your-model --global
+git-ai config set api_key "sk-..." --global
+git-ai config test
+```
+
+| 配置项 | 默认值 | 用途 |
+|:--|:--|:--|
+| `message_format` | `conventional` | `plain`、`conventional`、`gitmoji` 或 `subject-body` |
+| `language` | `en` | 生成 Commit Message 使用的语言 |
+| `smart_skip` | `true` | 合规新消息直接保留，不调用模型 |
+| `push_policy` | `queue` | 安全排队后台推送；设为 `block` 可完全手动控制 |
+| `max_diff_tokens` | `8000` | 限制发送给模型的 Diff 上下文 |
+| `explain` | `false` | 增加一段简短正文说明改动原因 |
+| `prompt_template` | 空 | 使用 `{{.Diff}}`、`{{.Hint}}` 与 `{{.Language}}` 自定义生成 |
+
+配置优先级为：`GIT_AI_*` 环境变量 → `.git/config` 仓库覆盖项 → 操作系统用户配置 → 默认值。API Key 只能存储在用户级配置中；工作区里的旧 `.git-ai.json` 会被忽略，避免克隆的仓库把用户凭据重定向到不可信端点。
+
+## 常用命令
+
+| 命令 | 作用 |
+|:--|:--|
+| `git-ai status` | 查看 `idle`、`polishing`、`pushing` 或 `failed` 状态 |
+| `git-ai retry` | 在后台安全重试当前 Commit |
+| `git-ai undo` | 恢复原始草稿消息 |
+| `git-ai cancel` | 终止润色但不修改 Git |
+| `git-ai skip-next` | 保持下一次提交不变 |
+| `git-ai push` | 恢复延迟推送或推送当前分支 |
+| `git-ai log` | 查看带本地 AI 元数据的 Git 历史 |
+| `git-ai stats` | 查看本地效率统计 |
+| `git-ai config list` | 查看已隐藏密钥的最终配置 |
+| `git-ai update` | 安装最新且经过验证的 CLI 版本 |
+| `git-ai uninstall` | 移除 Git AI Hook 并恢复原有 Hook |
+
+运行 `git-ai --help` 或 `git-ai <command> --help` 查看完整 CLI 说明。
+
+## IDE 集成
+
+### VS Code
+
+[VS Code 扩展](vscode-extension/README.md)支持 VS Code 1.85+ 及兼容 Open VSX 的编辑器，提供 Activity Bar 控制中心、实时状态、AI 历史、全局/项目可视化设置、本地效率统计、日志和一键恢复操作。受限工作区不会执行二进制文件、下载更新或安装 Hook。
 
 ```bash
 code --install-extension git-ai-async-commit-polisher.git-ai
 ```
 
-## ✨ 核心特性
+### JetBrains IDE
 
-- 🔄 **异步 AI 润色** —— 通过 `post-commit` 钩子在后台增强提交信息
-- ⏳ **实时状态可见** —— CLI 与 IDE 查询工作区外的应用状态，不在项目中放置状态文件
-- 🛡️ **安全恢复机制** —— 网络、模型或守护进程异常时原提交保持不变，并提供重试或配置入口
-- 🚀 **延迟推送** —— AI 工作时推送自动排队，完成后静默推送
-- 📝 **4 种消息格式** —— `plain`、`conventional`、`gitmoji`、`subject+body`
-- 🤖 **原生多厂商接入** —— 深度支持 OpenAI、Anthropic Claude、Google Gemini、DeepSeek、Ollama 及兼容 API
-- ✂️ **智能 Diff 裁剪** —— 三级 Token 截断，处理超大 Diff 不溢出
-- 📐 **安全的 Commitlint 集成** —— 只读取静态 JSON 规则，不执行仓库脚本，也不会安装依赖
-- 🎩 **高级 Prompt 模板** —— 支持 Go `text/template` (如 `{{.Diff}}`, `{{.Hint}}`) 随心所欲定制提示词机制
-- 🧐 **深入解释模式** —— 开启后，自动在提交信息尾部补充一段关于“为什么要这么改”的解释（`git-ai config set explain true`）
-- 🔔 **系统通知** —— 润色/推送完成时发送操作系统原生通知
-- ⏪ **撤销与重试** —— 随时恢复原始消息或重新生成
+[JetBrains 插件](idea-plugin/README.md)支持 IntelliJ Platform 2024.1+，包括 IntelliJ IDEA、WebStorm、PyCharm、GoLand、PhpStorm、CLion、DataGrip 和 RubyMine，提供原生工具窗口、状态组件、设置、VCS 操作、历史、统计和受限日志查看。
 
-## 📦 CLI 手动安装 (如果你只用终端)
+[从 JetBrains Marketplace 安装 Git AI →](https://plugins.jetbrains.com/plugin/31221-git-ai)
 
-> **注意**: 如果你已经安装了 VS Code 或 JetBrains 插件，**请跳过本节，无需任何手动安装**。插件会在后台自动为你下载并管理跨平台的 CLI 核心引擎。
+## 常见问题
 
-### GitHub Releases (推荐，无需任何依赖)
-从 [Releases 页面](https://github.com/daidi/git-ai/releases) 直接下载适用于 macOS、Linux 或 Windows 的最新单文件二进制程序。
-由于发布产物较多，首次下载请参考以下对照表：
+<details>
+<summary><strong>Git AI 会修改源文件、Index 或已暂存内容吗？</strong></summary>
+<br />
+不会。替代 Commit 只使用精确记录的文件树与父提交；暂存、未暂存和之后产生的改动都不会被捕获。
+</details>
 
-| 操作系统 | 架构 / 芯片 | 下载文件 |
-| :--- | :--- | :--- |
-| **Windows** | 64位 (绝大多数) | `git-ai_windows_amd64.zip` |
-| **Windows** | ARM (部分轻薄本) | `git-ai_windows_arm64.zip` |
-| **macOS** | Apple Silicon (M1/M2/M3) | `git-ai_darwin_arm64.tar.gz` |
-| **macOS** | Intel 芯片 | `git-ai_darwin_amd64.tar.gz` |
-| **Linux** | 64位 / ARM | 提供 `.deb`, `.rpm` 或直接下载 `.tar.gz` |
+<details>
+<summary><strong>AI 工作期间又创建了一个 Commit，会发生什么？</strong></summary>
+<br />
+分支已经不再指向 Git AI 记录的 SHA，因此原子更新会安全退出。Git AI 绝不会改写新的 Commit。
+</details>
 
-> *提示：Windows 用户下载压缩包后，将其中的 `git-ai.exe` 解压并配置到系统的 `Path` 环境变量中即可。*
+<details>
+<summary><strong>提交后立即 Push 会怎样？</strong></summary>
+<br />
+默认 <code>queue</code> 策略会记录精确引用更新，并在安全润色完成后重放。如果后台身份验证不可用，初始化会选择 <code>block</code>，让你之后手动推送。
+</details>
 
+<details>
+<summary><strong>可以审阅、重试或撤销生成的消息吗？</strong></summary>
+<br />
+可以。使用 <code>git-ai log</code>、<code>git-ai retry</code> 和 <code>git-ai undo</code>，或在任一 IDE 插件中执行相应操作。
+</details>
 
+<details>
+<summary><strong>Git AI 会把整个仓库发给模型吗？</strong></summary>
+<br />
+不会。它只把已记录 Commit 的受限 Diff 和草稿发送到你配置的端点。不允许代码离开本机时请使用 Ollama。
+</details>
 
-### 终端一键安装脚本 (macOS/Linux)
+<details>
+<summary><strong>在 IDE 外提交也能工作吗？</strong></summary>
+<br />
+可以。Git AI 基于 Git Hook；仓库初始化后，终端、IDE 或其他 Git 客户端创建的 Commit 都使用同一套流程。
+</details>
 
-最快且跨平台的安装方式是通过我们的终端脚本：
+<details>
+<summary><strong>Git AI 免费吗？</strong></summary>
+<br />
+Git AI 使用 MIT 协议，完全免费。你需要提供自己的云端 API Key 或本地 Ollama 模型；云服务商可能收取自己的使用费用。
+</details>
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
-```
+## 开发
 
-### Windows (PowerShell)
+Monorepo 把持久化和 Git 操作统一交给一个引擎：
 
-Windows 用户请打开 PowerShell 并运行：
-
-```powershell
-iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
-```
-
-### 包管理器
-
-```bash
-# Homebrew (macOS/Linux)
-brew install daidi/tap/git-ai
-
-# Scoop (Windows)
-scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
-scoop install daidi/git-ai
-
-# Go Install (针对 Go 开发者)
-go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
-```
-
-## 🚀 快速开始
-
-```bash
-# 1. 在你的仓库中初始化（注入后台 Git 钩子）
-cd your-project
-git-ai init
-
-# 2. 配置 API 密钥（全局生效，仅需一次）
-git-ai config set api_key sk-your-key --global
-
-# 3. 像往常一样提交 —— AI 在后台静默干活！
-git commit -m "修个bug"
-# ✨ git-ai: 正在后台润色 (PID 12345)
-
-# 4. 推送 —— 润色中则排队，完成后自动推送
-git push
-# ⏳ git-ai: AI 正在润色，推送已排队 —— 完成后将自动推送。
-
-# 5. 随时查看状态
-git-ai status
-# 润色过程中 Git 始终保留原始提交信息；成功后才原子切换到新提交。
-
-# 6. 网络或模型异常时，原提交不会被修改；恢复后可安全重试
-git-ai retry
-```
-
-就这么简单！你的提交信息现在永远都是干净、精准、符合规范的，无需任何等待。
-
-## ⚙️ 模型与配置
-
-git-ai 支持分层配置系统：**环境变量 → 仓库级（`.git/config` 中的 `git-ai.*`）→ 操作系统应用配置目录中的用户级配置 → 默认值**。API Key 只能保存在用户级配置中。旧版 `.git-ai.json` 工作区文件会被彻底忽略，因为信任仓库分发的模型地址可能泄露用户级凭据。请用 `git-ai config set ... --local` 重新录入旧的项目覆盖项，然后自行删除旧文件。
-
-运行状态、日志和 AI 提交历史元数据都保存在操作系统的用户缓存目录。除用户明确安装的 Git Hook 与 `.git/config` 覆盖项外，Git AI 不会在项目或工作区写入应用文件；新版本也不会创建 Git Notes。
-
-> 💡 **强烈建议**：使用 **快速模型**（flash/mini/turbo 系列）。它们成本降低 10 倍、响应时间约 500ms，对于提交信息润色完全够用。绝大多数情况下你不会感到任何延迟。
-
-### 常见模型配置
-
-```bash
-# DeepSeek (推荐 — 快速且便宜)
-git-ai config set api_key sk-xxx --global
-git-ai config set model deepseek-chat --global
-
-# OpenAI (推荐使用 mini 快速模型)
-git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set api_key sk-xxx --global
-git-ai config set model gpt-4o-mini --global
-
-# 通义千问 (极快，中文友好)
-git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
-git-ai config set api_key sk-xxx --global
-git-ai config set model qwen-turbo --global
-
-# Anthropic Claude
-git-ai config set provider anthropic --global
-git-ai config set api_key sk-ant-xxx --global
-git-ai config set model claude-3-5-sonnet-20240620 --global
-
-# Google Gemini
-git-ai config set provider gemini --global
-git-ai config set api_key AIzaSy-xxx --global
-git-ai config set model gemini-1.5-flash --global
-
-# Ollama (本地、免费、隐私)
-git-ai config set provider ollama --global
-git-ai config set model llama3 --global
-git-ai config set base_url http://localhost:11434 --global
-```
-
-### 更多常用配置
-
-| 命令 | 默认值 | 说明 |
-|:---|:---|:---|
-| `git-ai config set language zh-CN --global` | `en` | 输出语言（`en`、`zh-CN`、`ja` 等） |
-| `git-ai config set push_policy queue --global` | `queue` | `queue`=自动推送, `block`=阻止未完成的推送 |
-| `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
-| `git-ai config set explain true --global` | `false` | 开启后，在提交末尾追加关于代码变更动机的详细解释 |
-
-> **以上所有配置选项均可直接在 VS Code 和 JetBrains IDEA 的原生插件设置界面中通过下拉菜单可视化完成配置。**
-
----
-
-# 👨‍💻 献给开发者 (For Developers)
-
-## 🏗️ 架构与工作原理
-
-我们采用 **Monorepo** 架构，将 CLI 后台引擎与不同 IDE 平台的前端插件解耦。CLI 是唯一的持久化写入方；插件通过 `git-ai status --json` 查询状态，并将操作与配置写入委托给 CLI。
-
-```
-git commit -m "修个bug"
-        │
-        ▼
-   [post-commit 钩子]
-        │
-        ├── 记录精确 SHA/ref 并派生后台守护进程
-        │    │
-        │    ├── LLM 运行期间不修改 Git、暂存区或工作区
-        │    ├── 对瞬时网络/供应商错误执行有界重试
-        │    ├── 使用原提交的 tree/parents 创建替代提交
-        │    ├── 仅当 ref 仍指向原 SHA 时才原子更新
-        │    ├── 失败或 ref 已移动：安全退出并记录可操作错误
-        │    ├── 若检测到排队推送中 → 自动 push
-        │    └── 更新外部应用状态 / 通知 IDE 与系统
-        │
-        └── 同步退出终端拦截 → 你继续写代码
-```
-
-- **`cli/` (Go 1.26.6+)**：处理 Hook、守护进程、LLM 调用及基于 CAS 的安全提交替换。
-- **`idea-plugin/` (Kotlin)**：在后台线程轮询 CLI，并将所有写操作委托给 CLI。
-- **`vscode-extension/` (TS)**：仅在受信任工作区运行 CLI，通过 CLI 状态接口驱动原生 UI。
-
-## 🖥️ 源码编译与测试
-
-针对有定制需要的二次开发者或维护者：
-
-### 编译 CLI 后台引擎
+- [`cli/`](cli/) — Go CLI、Hook、后台进程、Provider、状态与安全引用更新
+- [`vscode-extension/`](vscode-extension/) — 把所有操作委托给 CLI 的 TypeScript 集成
+- [`idea-plugin/`](idea-plugin/) — 把所有操作委托给 CLI 的 Kotlin IntelliJ Platform 集成
 
 ```bash
 cd cli
 make build
-make install
+make test
+make lint
+make eval
+
+cd ../vscode-extension
+npm ci
+npm test
+
+cd ../idea-plugin
+./gradlew test buildPlugin
 ```
 
-### 本地运行与调试 IDE 插件
+修改本地化 UI 文本前，请阅读仓库说明，并在项目根目录运行 `bash scripts/check-i18n-coverage.sh`。
 
-1. **IntelliJ 插件**：进入 `idea-plugin` 目录执行 `./gradlew runIde`，即可打开包含插件调试沙盒的 IDEA 实例。如果仅需编译打包，可执行 `./gradlew buildPlugin`。
-2. **VS Code 扩展**：进入 `vscode-extension` 目录执行 `npm install` 后，按 `F5` 即可在扩展开发宿主环境中启动调试。
+## 帮助 Git AI 成长
 
-## 🚀 项目维护与发版
+如果 Git AI 让你保持了心流，请为[这个仓库点一个 Star](https://github.com/daidi/git-ai)，它能帮助更多开发者发现项目。欢迎通过 [GitHub Issues](https://github.com/daidi/git-ai/issues)提交 Bug、明确的功能建议、文档修复或 Pull Request。
 
-项目中提供了一个统一的版本跨生态管理脚本，用于在此项目发版时，自动同步修改 CLI、VS Code 和 IntelliJ 的版本号。
+## 开源协议
 
-1. 请确保当前工作区干净没有未提交的改动。运行跨生态升版脚本：
-   ```bash
-   ./scripts/bump-version.sh 1.2.0
-   ```
-2. 脚本会更新两个插件的版本清单/锁文件以及多语言官网版本标记，但不会自动提交或推送。
-3. 完整验证通过后提交并推送 `main`，再创建产品 Tag 与 Go 子模块 Tag：
-   ```bash
-   git add -A
-   GIT_AI_INTERNAL=true git commit -m "chore: bump version to 1.2.0"
-   git push origin HEAD:main
-   git tag v1.2.0
-   git tag cli/v1.2.0
-   git push origin v1.2.0 cli/v1.2.0
-   ```
-
-接下来，触发的 Tag 流水线会自动化完成 GoReleaser 对 Homebrew、Scoop 以及 GitHub Releases 的分发工作。
-
-## 📝 开源协议
-
-[MIT](LICENSE)
+Git AI 使用 [MIT License](LICENSE)。
 
 ---
 
 <p align="center">
-  <sub>本项目自身的 Git 提交历史由 <code>git-ai</code> 自动润色与维护 🤖</sub>
+  <strong>更好的提交历史，零等待。</strong>
+  <br />
+  <a href="#安装">安装 Git AI</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai">在 GitHub 点 Star</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai/issues">报告问题</a>
 </p>

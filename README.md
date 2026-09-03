@@ -1,336 +1,399 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" alt="git-ai logo" />
+  <img src="assets/icon.png" width="112" alt="Git AI logo — asynchronous AI Git commit message generator" />
 </p>
 
-<h1 align="center">Git AI: The Zero-Friction Commit Polisher</h1>
+<h1 align="center">Git AI — Asynchronous AI Commit Message Generator</h1>
 
 <p align="center">
-  <strong>Don't wait for AI. Keep coding while Git AI writes your commit messages in the background.</strong>
+  <strong>Commit now. Keep coding. Let AI polish the message in the background.</strong>
+  <br />
+  Turn rough Git commit messages into clear Conventional Commits—after Git has safely recorded your work.
 </p>
 
 <p align="center">
-  <a href="http://codegg.org/git-ai/"><img src="https://img.shields.io/badge/Website-codegg.org-10b981?style=flat&logo=googlechrome&logoColor=white" alt="Official Website" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8.svg?logo=go&logoColor=white" alt="Go" /></a>
-  <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?label=Release&color=8B5CF6" alt="Release" /></a>
-  <a href="https://goreportcard.com/report/github.com/daidi/git-ai/cli"><img src="https://goreportcard.com/badge/github.com/daidi/git-ai/cli" alt="Go Report Card" /></a>
-  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&logo=github&label=Build" alt="Build Status" /></a>
-  <br/>
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat&color=007ACC&label=VS%20Code&logo=visualstudiocode" alt="VS Code Installs" /></a>
-  <a href="https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai"><img src="https://img.shields.io/open-vsx/dt/git-ai-async-commit-polisher/git-ai?style=flat&color=1C1C1C&label=Open%20VSX&logo=vscodium&logoColor=white" alt="Open VSX Installs" /></a>
-  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/badge/JetBrains-Plugin-blue?logo=intellijidea&logoColor=white&color=000000" alt="JetBrains Plugin" /></a>
-  <br/>
-  <h4>
-    English |
-    <a href="README_zh-CN.md">简体中文</a> |
-    <a href="README_zh-TW.md">繁體中文</a> |
-    <a href="README_fr.md">Français</a> |
-    <a href="README_it.md">Italiano</a> |
-    <a href="README_de.md">Deutsch</a> |
-    <a href="README_es.md">Español</a> |
-    <a href="README_ja.md">日本語</a> |
-    <a href="README_ko.md">한국어</a> |
-    <a href="README_pt.md">Português</a> |
-    <a href="README_ru.md">Русский</a> |
-    <a href="README_ar.md">العربية</a> |
-    <a href="README_vi.md">Tiếng Việt</a> |
-    <a href="README_th.md">ไทย</a> |
-    <a href="README_id.md">Bahasa Indonesia</a>
-  </h4>
+  <a href="https://github.com/daidi/git-ai/releases"><img src="https://img.shields.io/github/v/release/daidi/git-ai?style=flat-square&color=7C3AED" alt="Latest Git AI release" /></a>
+  <a href="https://github.com/daidi/git-ai/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/daidi/git-ai/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="Git AI build status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/daidi/git-ai?style=flat-square&color=64748B" alt="Git AI MIT license" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai"><img src="https://vsmarketplacebadges.dev/installs-short/git-ai-async-commit-polisher.git-ai.svg?style=flat-square&color=007ACC&label=VS%20Code" alt="Git AI installs from the Visual Studio Marketplace" /></a>
+  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai"><img src="https://img.shields.io/jetbrains/plugin/d/31221-git-ai?style=flat-square&logo=jetbrains&label=JetBrains&color=000000" alt="Git AI downloads from the JetBrains Marketplace" /></a>
 </p>
-
----
-
-## ⚡️ The Problem: AI Tools Break Your Flow
-
-Most AI Git tools force you into a synchronous waiting game: stage your files, click "Generate", watch a loading spinner, review, and *finally* commit. This friction kills your momentum.
-
-## 🚀 The Solution: "Commit First, Think Later"
-
-Git AI flips the script with pure, asynchronous background processing.
-
-You simply type:
-`git commit -m "fix bug"`
-
-And **you are done**. You instantly return to writing code.
-
-Meanwhile, a detached background daemon securely sends your diff to an LLM, builds a replacement from the exact recorded commit, and atomically advances the branch only if it has not moved:
-`fix(auth): resolve session timeout on mobile devices`
-
-If you habitually push immediately, Git AI elegantly queues the push, waits for the polish to finish, and auto-pushes when ready. **Zero broken habits.**
-
-## 💡 Why It's Better
-
-| Feature | Traditional AI Tools (aicommits, Copilot) | Git AI |
-|:---|:---|:---|
-| **Best For** | Those who want to manually review/edit AI messages | Developers prioritizing "Flow State" and zero waiting |
-| **Workflow** | Generate → wait → review → commit | Commit → code → polish in background |
-| **Latency** | 2–5s blocking wait | **Zero. You keep coding.** |
-| **If AI fails?** | No commit happens | Your commit is safe regardless |
-| **Habit change?** | New buttons/commands to learn | Standard `git commit` |
-
-1. **Safety First:** Your code enters Git's history *immediately*. Even if the AI service goes down, your work is safely snapshotted.
-2. **Agent-Friendly:** Git history and workspace files stay unchanged while polishing; CLI and IDE status surfaces report progress without temporary commits.
-3. **Completely Invisible:** Use the terminal, JetBrains, VS Code, or any Git client. Git AI just works in the background.
-
----
-
-# 👩‍💻 For Users
-
-## 🖥️ Seamless IDE Experience
-
-Don't change a single habit. Use Git AI directly inside your favorite IDE! Both plugins provide native integration — status display, one-click actions, and built-in cross-platform settings panels.
-
-### JetBrains IDEA Plugin
-
-Native UI with support for undo, retry, and settings.
 
 <p align="center">
-  <a href="https://plugins.jetbrains.com/plugin/31221-git-ai">
-    <img src="https://img.shields.io/badge/JetBrains_Marketplace-Install_Plugin-black?style=for-the-badge&logo=intellijidea&logoColor=white" alt="Install JetBrains Plugin" />
-  </a>
+  <a href="https://codegg.org/git-ai/"><strong>Website</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#install">Install</a>
+  &nbsp;·&nbsp;
+  <a href="#quick-start">Quick start</a>
+  &nbsp;·&nbsp;
+  <a href="#how-it-works">How it works</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai/issues">Support</a>
 </p>
-
-### VS Code Extension
-
-Real-time state monitoring via sidebar and status bar.
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai">
-    <img src="https://img.shields.io/badge/VS_Code_Marketplace-Install_Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Install VS Code Extension" />
-  </a>
-  <a href="https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai">
-    <img src="https://img.shields.io/badge/Open_VSX-Install_Extension-1C1C1C?style=for-the-badge&logo=vscodium&logoColor=white" alt="Install Open VSX Extension" />
-  </a>
+  <sub>
+    English ·
+    <a href="README_zh-CN.md">简体中文</a> ·
+    <a href="README_zh-TW.md">繁體中文</a> ·
+    <a href="README_fr.md">Français</a> ·
+    <a href="README_de.md">Deutsch</a> ·
+    <a href="README_es.md">Español</a> ·
+    <a href="README_it.md">Italiano</a> ·
+    <a href="README_ja.md">日本語</a> ·
+    <a href="README_ko.md">한국어</a> ·
+    <a href="README_pt.md">Português</a> ·
+    <a href="README_ru.md">Русский</a> ·
+    <a href="README_ar.md">العربية</a> ·
+    <a href="README_vi.md">Tiếng Việt</a> ·
+    <a href="README_th.md">ไทย</a> ·
+    <a href="README_id.md">Bahasa Indonesia</a> ·
+    <a href="README_ms.md">Bahasa Melayu</a>
+  </sub>
 </p>
 
-Open VS Code, press `Cmd+Shift+X` and search for **git-ai**, or run the following command:
+<p align="center">
+  <img src="assets/readme-hero.png" width="100%" alt="Git AI asynchronous commit message generator workflow: commit immediately, keep coding, and polish safely in the background" />
+</p>
 
-```bash
-code --install-extension git-ai-async-commit-polisher.git-ai
+<!-- Editable vector source: assets/readme-hero.svg -->
+
+Git AI is a free, open-source **AI commit message generator** for the terminal, VS Code, and JetBrains IDEs. It turns quick drafts such as `fix auth` into useful commit history without putting an LLM response between you and your next line of code.
+
+Unlike pre-commit generators, Git AI runs from a `post-commit` hook. Your original commit exists first; a detached daemon then reads that exact commit, asks the model you configured, creates a replacement with the same tree and parents, and updates the branch only when it is still safe.
+
+> Git AI dogfoods its own workflow. [Browse this repository's commit history](https://github.com/daidi/git-ai/commits/main) to see the result.
+
+## See the difference
+
+```console
+$ git commit -m "fix auth"
+[main 1a2b3c4] fix auth
+✨ Git AI: polishing in background (PID 2418)
+
+# Your terminal is free immediately. When polishing finishes:
+$ git log -1 --pretty=%s
+fix(auth): prevent expired sessions on mobile
 ```
 
-## ✨ Core Features
+Git returns immediately. While the model works, you can edit, test, switch tools, or even run `git push`; Git AI coordinates the result in the background.
 
-- 🔄 **Async AI polishing** — commit messages are enhanced in the background via `post-commit` hook
-- ⏳ **Real-time status** — CLI and IDE integrations query external application state without placing files in the project
-- 🛡️ **Safe recovery** — network/model crashes leave the original commit untouched and expose retry/configuration actions
-- 🚀 **Deferred push** — pushes are queued if AI is still working, and auto-execute when ready
-- 📝 **4 message formats** — `plain`, `conventional`, `gitmoji`, `subject+body`
-- 🤖 **Multi-provider native support** — Deep integration with OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Ollama, and compatible APIs
-- ✂️ **Smart diff trimming** — handles large diffs with three-tier token truncation
-- 📐 **Safe commitlint integration** — Reads static JSON rules without executing repository scripts or installing dependencies
-- 🎩 **Prompt templates** — Go `text/template` support (`{{.Diff}}`, `{{.Hint}}`) for ultimate control
-- 🧐 **Explain mode** — Optionally generate a short paragraph explaining the *why* of the commit (`git-ai config set explain true`)
-- 🔔 **System notifications** — OS-native toast when polish/push finishes
-- ⏪ **Undo & retry** — restore original message or re-generate at any time
+## Why Git AI
 
-## 📦 Manual CLI Installation (For Terminal-Only Users)
+Most AI commit tools make generation part of the critical path. Git AI deliberately moves it after the commit.
 
-> **Note**: If you are using the VS Code or JetBrains plugin, **do not manually install the CLI**. The plugins handle downloading and managing the CLI for you completely behind the scenes.
+| | Typical AI commit generator | Git AI |
+|:--|:--|:--|
+| **Workflow** | Generate → wait → review → commit | Commit → keep coding → polish in background |
+| **Command** | A special command, button, or dialog | Your normal `git commit` |
+| **If AI fails** | The commit may never happen | The original commit remains intact |
+| **Newer work** | A blind amend can capture the wrong state | Replacement uses the recorded tree and parents |
+| **Branch safety** | Tool-dependent | Atomic compare-and-swap; a moved ref becomes a safe no-op |
+| **Immediate push** | Wait or coordinate it yourself | Queue the exact push, or choose strict blocking |
+| **Where it works** | Usually one CLI or editor | Terminal, VS Code, JetBrains, and other Git clients |
 
-### GitHub Releases (Recommended)
-Download the latest pre-compiled binary for macOS, Linux, or Windows directly from the [GitHub Releases](https://github.com/daidi/git-ai/releases) page.
-Since there are many files published, please refer to the table below if downloading manually:
+**Commit first, think later** means your code is snapshotted before AI enters the workflow.
 
-| OS | Architecture / Chip | File to Download |
-| :--- | :--- | :--- |
-| **Windows** | 64-bit (Most common) | `git-ai_windows_amd64.zip` |
-| **Windows** | ARM | `git-ai_windows_arm64.zip` |
-| **macOS** | Apple Silicon (M1/M2/M3) | `git-ai_darwin_arm64.tar.gz` |
-| **macOS** | Intel | `git-ai_darwin_amd64.tar.gz` |
-| **Linux** | 64-bit / ARM | We provide `.deb`, `.rpm`, or `.tar.gz` |
+## Install
 
-> *Tip: For Windows users, extract `git-ai.exe` from the zip file and add it to your system's `Path` environment variable.*
+Choose the experience you already use. The IDE integrations provision and update the matching Git AI CLI automatically, with published SHA-256 verification.
 
+| Use Git AI in | Install | Included experience |
+|:--|:--|:--|
+| **VS Code / compatible editors** | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=git-ai-async-commit-polisher.git-ai) · [Open VSX](https://open-vsx.org/extension/git-ai-async-commit-polisher/git-ai) | Activity Bar, status, history, settings, stats, logs, and recovery actions |
+| **JetBrains IDEs** | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31221-git-ai) | Native Tool Window, status widget, settings, history, stats, logs, and VCS actions |
+| **Terminal / any Git client** | [GitHub Releases](https://github.com/daidi/git-ai/releases) · package managers below | Standalone Go binary and composable Git hooks |
 
+### Standalone CLI
 
-### Universal Installer Script (macOS/Linux)
+**Homebrew — macOS or Linux**
 
-The quickest way to install is via our terminal script:
+```bash
+brew install daidi/tap/git-ai
+```
+
+**Scoop — Windows**
+
+```powershell
+scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
+scoop install daidi/git-ai
+```
+
+**Verified installer — macOS or Linux**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
 ```
 
-### Windows (PowerShell)
-
-For Windows users, open PowerShell and run:
+**Verified installer — Windows PowerShell**
 
 ```powershell
 iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 ```
 
-### Package Managers
+**Go install**
 
 ```bash
-# Homebrew (macOS/Linux)
-brew install daidi/tap/git-ai
-
-# Scoop (Windows)
-scoop bucket add daidi https://github.com/daidi/scoop-bucket.git
-scoop install daidi/git-ai
-
-# Go Install (For Go developers)
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-## 🚀 Quick Start
+Installing from source requires Go 1.26.6 or later.
+
+Prebuilt binaries are available for macOS, Linux, and Windows on AMD64 and ARM64. See [GitHub Releases](https://github.com/daidi/git-ai/releases) for archives, checksums, `.deb`, and `.rpm` packages.
+
+## Quick start
+
+IDE users can open Git AI settings, connect a model, and accept the one-time repository initialization prompt. For the standalone CLI:
 
 ```bash
-# 1. Initialize in your repo (installs Git hooks)
+# Run once in each repository to install the composable hooks
 cd your-project
 git-ai init
 
-# 2. Configure your API key (one-time global setup)
-git-ai config set api_key sk-your-key --global
+# The default endpoint is DeepSeek; replace the placeholder with your key
+git-ai config set api_key "sk-..." --global
+git-ai config test
 
-# 3. Commit as usual — AI polishes in background!
-git commit -m "fix bug"
-# ✨ git-ai: polishing in background (PID 12345)
-
-# 4. Push — queued if polishing, auto-pushed when ready
-git push
-# ⏳ git-ai: AI is polishing. Push queued — will auto-push when ready.
-
-# 5. Check status anytime
-git-ai status
-# While polishing, Git still shows the original commit message.
-# On success, the recorded ref is atomically advanced to the polished commit.
-
-# 6. If the network/model is unavailable, the original commit is untouched
-git-ai retry
-# Retries safely in the background when you are ready.
+# Keep using Git exactly as before
+git commit -m "fix login"
 ```
 
-That's it. Your commit message is now a clean, descriptive, spec-compliant message — and you didn't have to think about it.
+That is the complete daily workflow. Use `git-ai status` when you want visibility; otherwise Git AI stays out of the way.
 
-## ⚙️ Models & Configuration
-
-git-ai uses a layered config system. Values are resolved in order: **environment variables → repository (`git-ai.*` entries in `.git/config`) → user config in the OS application-config directory → defaults**. API keys are user-level only. Legacy `.git-ai.json` worktree files are ignored: trusting repository-distributed model endpoints could expose a user-level credential. Re-enter any old project overrides with `git-ai config set ... --local`, then delete the legacy file yourself.
-
-Runtime state, logs, and AI commit-history metadata are kept outside repositories in the OS user-cache directory. Apart from the explicitly installed Git hooks and `.git/config` overrides, Git AI leaves the project and working tree untouched; new releases never create Git notes.
-
-> 💡 **Tip**: Use **fast models** (flash/mini/turbo variants) for commit messages. They're 10x cheaper, respond in ~500ms, and work perfectly for this task. Most users won't experience any noticeable delay.
-
-### Popular Provider Configurations
+Prefer a local model? No API key is required for Ollama:
 
 ```bash
-# DeepSeek (Recommended — fast & cheap)
-git-ai config set api_key sk-xxx --global
-git-ai config set model deepseek-chat --global
-
-# OpenAI (Fast mini model recommended)
-git-ai config set base_url https://api.openai.com/v1 --global
-git-ai config set api_key sk-xxx --global
-git-ai config set model gpt-4o-mini --global
-
-# Qwen (Extremely fast, Chinese-friendly)
-git-ai config set base_url https://dashscope.aliyuncs.com/compatible-mode/v1 --global
-git-ai config set api_key sk-xxx --global
-git-ai config set model qwen-turbo --global
-
-# Anthropic Claude
-git-ai config set provider anthropic --global
-git-ai config set api_key sk-ant-xxx --global
-git-ai config set model claude-3-5-sonnet-20240620 --global
-
-# Google Gemini
-git-ai config set provider gemini --global
-git-ai config set api_key AIzaSy-xxx --global
-git-ai config set model gemini-1.5-flash --global
-
-# Ollama (Local, free, private)
 git-ai config set provider ollama --global
 git-ai config set model llama3 --global
 git-ai config set base_url http://localhost:11434 --global
+git-ai config test
 ```
 
-### More Options
+## What you get
 
-| Command | Default | Description |
-|:---|:---|:---|
-| `git-ai config set language zh-CN --global` | `en` | Output language (`en`, `zh-CN`, `ja`, etc.) |
-| `git-ai config set push_policy queue --global` | `queue` | `queue`=auto-push, `block`=prevent push until polished |
-| `git-ai config set message_format gitmoji --global`| `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body`|
-| `git-ai config set smart_skip false --global` | `true` | Keep a valid new message when it differs from the previous commit |
-| `git-ai config set explain true --global` | `false` | Append a paragraph explaining the *why* of the commit |
+- **Truly asynchronous polishing** — the `post-commit` hook records the target and returns while a detached daemon handles the model request.
+- **Git-safe replacement** — Git AI builds from the recorded commit, never from whatever happens to be staged later.
+- **Push-aware workflow** — the default `queue` policy can replay exact ref updates after polishing; `block` keeps push manual.
+- **Four message styles** — [Conventional Commits](https://www.conventionalcommits.org/), [Gitmoji](https://gitmoji.dev/), plain subjects, and structured subject plus body.
+- **Bring your own model** — OpenAI-compatible APIs, Anthropic Claude, Google Gemini, DeepSeek, Qwen, and local Ollama.
+- **Repository-aware output** — bounded smart diff trimming, static Commitlint JSON rules, output language, custom prompts, and optional explanations.
+- **Validated built-in contracts** — empty, oversized, invalid, or wrong-format model responses are rejected; original Git trailers are preserved exactly.
+- **Smart skip** — valid new messages can remain untouched while rough or repeated drafts are polished.
+- **Recovery controls** — inspect status, retry, undo, cancel, skip the next commit, or recover from an interrupted operation.
+- **Local observability** — AI history, generation latency, productivity estimates, bounded logs, and native system notifications.
+- **Native IDE integrations** — managed installation and visual controls for [VS Code](vscode-extension/README.md) and [JetBrains IDEs](idea-plugin/README.md).
+- **16 interface languages** — English plus Arabic, Simplified Chinese, Traditional Chinese, French, German, Indonesian, Italian, Japanese, Korean, Malay, Portuguese, Russian, Spanish, Thai, and Vietnamese localizations.
+- **Reproducible quality checks** — a [public-commit evaluation harness](cli/eval/README.md) scores format, semantics, trailer preservation, diff context, and latency.
 
-> **All of these configurations (and more) are fully accessible and editable via the native settings UI in both the VS Code and JetBrains IDEA plugins.**
+## How it works
 
----
-
-# 👨‍💻 For Developers & Maintainers
-
-## 🏗️ Architecture & How It Works
-
-We use a **Monorepo** architecture that decouples the headless CLI agent from the IDE plugins. The CLI is the sole persistence owner; plugins query `git-ai status --json` and delegate actions/configuration back to the CLI.
-
-```
-git commit -m "fix bug"
-        │
-        ▼
-   [post-commit hook]
-        │
-        ├── Record exact SHA/ref + fork daemon (non-blocking)
-        │    │
-        │    ├── Keep Git/index/worktree unchanged while the LLM runs
-        │    ├── Retry bounded transient network/provider failures
-        │    ├── Create replacement from recorded tree + parents
-        │    ├── Atomically update ref only if it still equals the recorded SHA
-        │    ├── On failure/moved ref: safe no-op + actionable error
-        │    ├── If pending_push → auto push
-        │    └── Persist external app state / notify IDE and OS 🔔
-        │
-        └── Exit immediately → you keep coding
+```mermaid
+flowchart LR
+    A["git commit -m 'fix'"] --> B["Original commit exists"]
+    B --> C["Record exact SHA + ref<br/>and return"]
+    C --> D["You keep coding"]
+    B -. detached daemon .-> E["Read recorded commit diff"]
+    E --> F["Ask configured LLM"]
+    F --> G["Create replacement<br/>from recorded tree + parents"]
+    G --> H{"Ref still points to<br/>the original SHA?"}
+    H -- Yes --> I["Atomic git update-ref"]
+    H -- No --> J["Safe no-op"]
+    I --> K{"Push queued?"}
+    K -- Yes --> L["Push exact ref updates"]
+    K -- No --> M["Done"]
 ```
 
-- **`cli/` (Go 1.26.6+)**: The core engine daemonizing processes, invoking LLMs, and safely replacing recorded commit refs.
-- **`idea-plugin/` (Kotlin)**: JetBrains native integration polling the CLI off the UI thread.
-- **`vscode-extension/` (TS)**: Trusted-workspace UI integration polling the CLI and delegating all writes.
+### Safe by design
 
-## 🖥️ Local Build & Testing
+Git AI does **not** run a blind background `git commit --amend`.
 
-For contributors looking to modify and customize:
+1. Git creates the original commit before Git AI starts model work.
+2. The hook records the exact commit SHA and branch ref, then exits.
+3. The daemon reads the recorded commit—not the current index or worktree.
+4. The replacement reuses the recorded tree and parents.
+5. The branch advances with `git update-ref <ref> <new> <expected>` only if the expected SHA still matches.
+6. A newer commit, moved branch, network error, invalid credentials, rate limit, malformed response, or model failure leaves the original commit and workspace unchanged.
 
-### Compiling the CLI
+Because a Git commit message is part of the commit object, a successful polish creates a new commit SHA. The safety check ensures Git AI changes only the commit it originally recorded.
+
+### Privacy and local ownership
+
+- **No Git AI relay server.** The bounded commit diff and draft message go directly to the model endpoint you configure.
+- **Local inference is supported.** Use Ollama when code must stay on your machine.
+- **Credentials stay out of repositories.** Persisted API keys are user-level only; environment variables are also supported.
+- **Runtime state stays out of the worktree.** State, logs, and AI history live in the user cache; repository overrides use `.git/config`.
+- **No uploaded analytics.** Productivity statistics and commit metadata remain local.
+- **Sensitive diagnostics are excluded.** Logs do not contain API keys, prompts, diffs, response bodies, or credential-bearing remote URLs.
+- **Downloads are verified.** The installers and IDE integrations validate released binaries against published SHA-256 checksums before replacement.
+
+Release checks and managed downloads may contact GitHub or the Git AI release service.
+
+## Providers and configuration
+
+| Provider mode | Works with | API key |
+|:--|:--|:--|
+| `openai` | OpenAI-compatible endpoints including DeepSeek, OpenAI, Qwen, and compatible gateways | Required |
+| `anthropic` | Native Anthropic Claude API | Required |
+| `gemini` | Native Google Gemini API | Required |
+| `ollama` | Local Ollama server | Not required |
+
+Example for an OpenAI-compatible endpoint:
+
 ```bash
+git-ai config set provider openai --global
+git-ai config set base_url https://api.example.com/v1 --global
+git-ai config set model your-model --global
+git-ai config set api_key "sk-..." --global
+git-ai config test
+```
+
+Useful behavior and output options:
+
+| Setting | Default | Purpose |
+|:--|:--|:--|
+| `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, or `subject-body` |
+| `language` | `en` | Language used for generated commit messages |
+| `smart_skip` | `true` | Keep a valid new message instead of calling the model |
+| `push_policy` | `queue` | Queue a safe background push, or set `block` for manual control |
+| `max_diff_tokens` | `8000` | Bound the diff context sent to the model |
+| `explain` | `false` | Add a short body explaining why the change was made |
+| `prompt_template` | empty | Customize generation with `{{.Diff}}`, `{{.Hint}}`, and `{{.Language}}` |
+
+Configuration resolves in this order:
+
+```text
+GIT_AI_* environment variables
+        ↓
+repository overrides in .git/config
+        ↓
+user configuration in the OS application-config directory
+        ↓
+defaults
+```
+
+API keys are user-level only. Legacy `.git-ai.json` files in a worktree are ignored so a cloned repository cannot redirect your credential to an untrusted endpoint.
+
+## Everyday commands
+
+| Command | What it does |
+|:--|:--|
+| `git-ai status` | Show `idle`, `polishing`, `pushing`, or `failed` state |
+| `git-ai retry` | Retry the current commit safely in the background |
+| `git-ai undo` | Restore the original draft message |
+| `git-ai cancel` | Stop active polishing without changing Git |
+| `git-ai skip-next` | Leave the next commit untouched |
+| `git-ai push` | Resume a deferred push or push the current branch |
+| `git-ai log` | Show Git history with local AI metadata |
+| `git-ai stats` | Show local productivity statistics |
+| `git-ai config list` | Inspect effective configuration with secrets masked |
+| `git-ai update` | Install the latest verified CLI release |
+| `git-ai uninstall` | Remove Git AI hooks and restore preserved hooks |
+
+Run `git-ai --help` or `git-ai <command> --help` for the complete CLI reference.
+
+## IDE integrations
+
+### VS Code
+
+The [VS Code extension](vscode-extension/README.md) supports VS Code 1.85+ and compatible Open VSX editors. It adds an Activity Bar control center, live status, AI history, visual global/project settings, local productivity stats, logs, and one-click recovery actions. Restricted workspaces never execute binaries, download updates, or install hooks.
+
+```bash
+code --install-extension git-ai-async-commit-polisher.git-ai
+```
+
+### JetBrains IDEs
+
+The [JetBrains plugin](idea-plugin/README.md) supports IntelliJ Platform IDEs 2024.1+, including IntelliJ IDEA, WebStorm, PyCharm, GoLand, PhpStorm, CLion, DataGrip, and RubyMine. It provides a native Tool Window, status widget, settings page, VCS actions, history, stats, and bounded log viewing.
+
+[Install Git AI from the JetBrains Marketplace →](https://plugins.jetbrains.com/plugin/31221-git-ai)
+
+## Frequently asked questions
+
+<details>
+<summary><strong>Does Git AI change my source files, index, or staged work?</strong></summary>
+<br />
+No. The replacement commit is built from the exact recorded commit tree and parents. Staged, unstaged, and newer changes are never captured.
+</details>
+
+<details>
+<summary><strong>What happens if I make another commit while AI is still working?</strong></summary>
+<br />
+The branch no longer points to the SHA Git AI recorded, so the atomic update becomes a safe no-op. Git AI never rewrites the newer commit.
+</details>
+
+<details>
+<summary><strong>What happens if I push immediately?</strong></summary>
+<br />
+With the default <code>queue</code> policy, the pre-push hook records the exact ref updates and replays them after a safe polish. If background authentication is unavailable, initialization selects <code>block</code> so you can push manually instead.
+</details>
+
+<details>
+<summary><strong>Can I review, retry, or reverse the generated message?</strong></summary>
+<br />
+Yes. Use <code>git-ai log</code>, <code>git-ai retry</code>, and <code>git-ai undo</code>, or the corresponding controls in either IDE integration.
+</details>
+
+<details>
+<summary><strong>Does Git AI send my whole repository to a model?</strong></summary>
+<br />
+No. It sends a bounded representation of the recorded commit diff plus the draft message to your configured endpoint. Choose Ollama for local inference when no code should leave your machine.
+</details>
+
+<details>
+<summary><strong>Does it work when I commit outside the IDE?</strong></summary>
+<br />
+Yes. Git AI is hook-based. Once a repository is initialized, commits from the terminal, an IDE, or another Git client use the same workflow.
+</details>
+
+<details>
+<summary><strong>Is Git AI free?</strong></summary>
+<br />
+Git AI is MIT-licensed and free to use. You bring your own cloud API key or local Ollama model; a cloud provider may charge for its own usage.
+</details>
+
+## Development
+
+The monorepo keeps persistence and Git operations in one engine:
+
+- [`cli/`](cli/) — Go CLI, hooks, detached daemon, providers, state, and safe ref updates
+- [`vscode-extension/`](vscode-extension/) — TypeScript integration that delegates operations to the CLI
+- [`idea-plugin/`](idea-plugin/) — Kotlin IntelliJ Platform integration that delegates operations to the CLI
+
+```bash
+# CLI
 cd cli
 make build
-make install
+make test
+make lint
+make eval
+
+# VS Code extension
+cd ../vscode-extension
+npm ci
+npm test
+
+# JetBrains plugin
+cd ../idea-plugin
+./gradlew test buildPlugin
 ```
 
-### Developing the IDE plugins
-1. **IntelliJ Plugin**: Under `/idea-plugin`, run `./gradlew runIde` to launch a sandboxed IDE instance containing the plugin. Run `./gradlew buildPlugin` to package it.
-2. **VS Code Extension**: Under `/vscode-extension`, run `npm install`, then press `F5` to open the Extension Development Host.
+Before changing localized UI text, read the repository instructions and run `bash scripts/check-i18n-coverage.sh` from the project root.
 
-## 🚀 Releasing
+## Help Git AI grow
 
-A unified script is provided to automate version bumping across all ecosystem components (CLI, VS Code, IntelliJ) and prepare for the automated GitHub distribution pipeline.
+If Git AI keeps you in flow, [star the repository](https://github.com/daidi/git-ai)—it helps other developers discover the project. Bug reports, focused feature requests, documentation fixes, and pull requests are welcome in [GitHub Issues](https://github.com/daidi/git-ai/issues).
 
-1. Ensure your working tree is clean. Run the cross-ecosystem bump script:
-   ```bash
-   ./scripts/bump-version.sh 1.2.0
-   ```
-2. The script updates both extension manifests/lockfiles and the localized landing-page version badges. It does not commit or push.
-3. After all release checks pass, commit and push `main`, then create both the product tag and the Go submodule tag:
-   ```bash
-   git add -A
-   GIT_AI_INTERNAL=true git commit -m "chore: bump version to 1.2.0"
-   git push origin HEAD:main
-   git tag v1.2.0
-   git tag cli/v1.2.0
-   git push origin v1.2.0 cli/v1.2.0
-   ```
+## License
 
-GoReleaser will automatically trigger via GitHub Actions to package and distribute to Homebrew, Scoop, and GitHub Releases seamlessly.
-
-## 📝 License
-
-[MIT](LICENSE)
+Git AI is available under the [MIT License](LICENSE).
 
 ---
 
 <p align="center">
-  <sub>This project's own commit history is polished and maintained by <code>git-ai</code> 🤖</sub>
+  <strong>Better commit history. Zero waiting.</strong>
+  <br />
+  <a href="#install">Install Git AI</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai">Star on GitHub</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/daidi/git-ai/issues">Report an issue</a>
 </p>

@@ -382,7 +382,7 @@ export class SettingsPanel {
 
                 ${this.renderSection('edit', t('settings.section.format'), `
                     ${this.renderSelect('g', 'message_format', t('settings.field.messageFormat'), ['conventional', 'plain', 'gitmoji', 'subject-body'], DEFAULTS.message_format, global.message_format, '')}
-                    ${this.renderSelect('g', 'language', t('settings.field.language'), ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], DEFAULTS.language, global.language, '')}
+                    ${this.renderSelect('g', 'language', t('settings.field.language'), ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], DEFAULTS.language, global.language, '')}
                     ${this.renderToggle('g', 'smart_skip', t('settings.field.smartSkip'), global.smart_skip ?? DEFAULTS.smart_skip, t('settings.hint.smartSkip'))}
                     ${this.renderToggle('g', 'explain', t('settings.field.explain'), global.explain ?? DEFAULTS.explain, t('settings.hint.explain'))}
                     ${this.renderField('g', 'prompt_template', t('settings.field.promptTemplate'), 'text', '', global.prompt_template, '', t('settings.hint.promptTemplate'), { span: 2, multiline: true })}
@@ -434,7 +434,7 @@ export class SettingsPanel {
 
                 ${this.renderSection('edit', t('settings.section.format'), `
                     ${this.renderSelect('p', 'message_format', t('settings.field.messageFormat'), ['', 'conventional', 'plain', 'gitmoji', 'subject-body'], '', project.message_format, merged.message_format)}
-                    ${this.renderSelect('p', 'language', t('settings.field.language'), ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de'], '', project.language, merged.language)}
+                    ${this.renderSelect('p', 'language', t('settings.field.language'), ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], '', project.language, merged.language)}
                     ${this.renderSelect('p', 'smart_skip', t('settings.field.smartSkip'), ['', 'true', 'false'], '', project.smart_skip?.toString(), String(merged.smart_skip), t('settings.hint.smartSkip'))}
                     ${this.renderSelect('p', 'explain', t('settings.field.explain'), ['', 'true', 'false'], '', project.explain?.toString(), String(merged.explain), t('settings.hint.explain'))}
                     ${this.renderField('p', 'prompt_template', t('settings.field.promptTemplate'), 'text', '', project.prompt_template, merged.prompt_template, t('settings.hint.promptTemplate'), { span: 2, multiline: true })}

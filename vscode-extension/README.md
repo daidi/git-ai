@@ -65,7 +65,7 @@ Most AI commit tools make generation part of the critical path. Git AI moves it 
 | **Visual configuration** | Manage global defaults and per-repository overrides without editing JSON |
 | **One-click recovery** | Retry, undo, cancel, push, skip the next commit, or clean a stale marker |
 | **Managed engine** | Installs and updates the matching Git AI CLI with published SHA-256 verification |
-| **Localized UI** | Native interface translations across 15 languages |
+| **Localized UI** | Native interface translations across 16 languages, including Malay |
 
 You can also access Git AI actions directly from the **Source Control title menu** and the **Command Palette**.
 

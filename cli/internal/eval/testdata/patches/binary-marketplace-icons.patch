@@ -1,0 +1,7 @@
+diff --git a/AppIcon256.png b/AppIcon256.png
+new file mode 100644
+index 0000000..2959f6e
+Binary files /dev/null and b/AppIcon256.png differ
+diff --git a/vscode-extension/resources/icon.png b/vscode-extension/resources/icon.png
+index 2e7dae2..2959f6e 100644
+Binary files a/vscode-extension/resources/icon.png and b/vscode-extension/resources/icon.png differ

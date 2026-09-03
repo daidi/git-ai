@@ -56,7 +56,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gModel = JBTextField().apply { columns = 36 }
     private val gMessageFormat = ComboBox(arrayOf("conventional", "plain", "gitmoji", "subject-body"))
     private val gSmartSkip = JBCheckBox(GitAiBundle.message("settings.field.smartSkip"))
-    private val gLanguage = ComboBox(arrayOf("en", "zh-CN", "ja", "ko", "es", "fr", "de"))
+    private val gLanguage = ComboBox(arrayOf("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms"))
     private val gPushPolicy = ComboBox(arrayOf("queue", "block"))
     private val gPromptTemplate = promptArea()
     private val gMaxDiffTokens = JBTextField().apply { columns = 12 }
@@ -71,7 +71,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pModel = JBTextField().apply { columns = 36 }
     private val pMessageFormat = inheritedCombo("conventional", "plain", "gitmoji", "subject-body")
     private val pSmartSkip = inheritedCombo("true", "false")
-    private val pLanguage = inheritedCombo("en", "zh-CN", "ja", "ko", "es", "fr", "de")
+    private val pLanguage = inheritedCombo("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms")
     private val pPushPolicy = inheritedCombo("queue", "block")
     private val pPromptTemplate = promptArea()
     private val pMaxDiffTokens = JBTextField().apply { columns = 12 }

@@ -1,0 +1,26 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 592090c..f3b8df1 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,5 +1,8 @@
+ name: CI
+ 
++env:
++  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
++
+ on:
+   push:
+     branches: [main]
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index b3ee174..96d5251 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -1,5 +1,8 @@
+ name: Release
+ 
++env:
++  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
++
+ on:
+   push:
+     tags:

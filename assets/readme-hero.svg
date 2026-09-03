@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Git AI asynchronous commit message workflow</title>
+  <desc id="desc">A terminal shows an ordinary rough Git commit returning immediately while Git AI safely rewrites its message into a Conventional Commit in the background.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#080910"/>
+      <stop offset="0.52" stop-color="#10101D"/>
+      <stop offset="1" stop-color="#080A12"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="80" y1="78" x2="420" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A78BFA"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="result" x1="552" y1="405" x2="1192" y2="503" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.08"/>
+    </linearGradient>
+    <radialGradient id="violetGlow" cx="0" cy="0" r="1" gradientTransform="translate(202 150) rotate(34) scale(440 360)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED" stop-opacity="0.27"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="0" cy="0" r="1" gradientTransform="translate(1170 570) rotate(-140) scale(390 300)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#FFFFFF" stroke-opacity="0.032"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="22" stdDeviation="28" flood-color="#000000" flood-opacity="0.48"/>
+    </filter>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" rx="30" fill="url(#background)"/>
+  <rect width="1280" height="640" rx="30" fill="url(#grid)"/>
+  <rect width="1280" height="640" rx="30" fill="url(#violetGlow)"/>
+  <rect width="1280" height="640" rx="30" fill="url(#cyanGlow)"/>
+  <rect x="1" y="1" width="1278" height="638" rx="29" fill="none" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="2"/>
+
+  <g font-family="Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <g transform="translate(68 54)">
+      <rect width="44" height="44" rx="13" fill="url(#brand)"/>
+      <path d="M14 31.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0-4.5h6.5a5 5 0 0 0 5-5v-8.5M30 17.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="m34 29 1.3 2.7L38 33l-2.7 1.3L34 37l-1.3-2.7L30 33l2.7-1.3L34 29Z" fill="#FFFFFF"/>
+      <text x="58" y="20" fill="#F8FAFC" font-size="18" font-weight="700" letter-spacing="0.02em">GIT AI</text>
+      <text x="58" y="39" fill="#8B93A7" font-size="12" font-weight="600" letter-spacing="0.13em">ASYNC COMMIT POLISHER</text>
+    </g>
+
+    <text x="68" y="172" fill="#F8FAFC" font-size="58" font-weight="750" letter-spacing="-0.045em">Commit now.</text>
+    <text x="68" y="236" fill="url(#brand)" font-size="58" font-weight="750" letter-spacing="-0.045em">Keep coding.</text>
+    <text x="70" y="287" fill="#A9B0C3" font-size="19" font-weight="450">AI polishes the message after Git safely</text>
+    <text x="70" y="316" fill="#A9B0C3" font-size="19" font-weight="450">records your work — never in your way.</text>
+
+    <g transform="translate(68 356)" font-size="13" font-weight="650">
+      <rect width="91" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.1"/>
+      <text x="45.5" y="22" fill="#D8DCE8" text-anchor="middle">Terminal</text>
+      <rect x="101" width="91" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.1"/>
+      <text x="146.5" y="22" fill="#D8DCE8" text-anchor="middle">VS Code</text>
+      <rect x="202" width="103" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.1"/>
+      <text x="253.5" y="22" fill="#D8DCE8" text-anchor="middle">JetBrains</text>
+    </g>
+
+    <g transform="translate(75 442)" font-size="13" font-weight="650">
+      <line x1="9" y1="9" x2="317" y2="9" stroke="#6D7284" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cx="9" cy="9" r="7" fill="#8B5CF6"/>
+      <circle cx="113" cy="9" r="7" fill="#8B5CF6"/>
+      <circle cx="216" cy="9" r="7" fill="#8B5CF6"/>
+      <circle cx="317" cy="9" r="7" fill="#34D399"/>
+      <text x="9" y="39" fill="#D7DAE5" text-anchor="middle">commit</text>
+      <text x="113" y="39" fill="#D7DAE5" text-anchor="middle">detach</text>
+      <text x="216" y="39" fill="#D7DAE5" text-anchor="middle">polish</text>
+      <text x="317" y="39" fill="#D7DAE5" text-anchor="middle">update</text>
+      <text x="9" y="63" fill="#747B90" text-anchor="middle" font-size="11">no AI wait</text>
+      <text x="317" y="63" fill="#34D399" text-anchor="middle" font-size="11">atomic</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="518" y="55" width="702" height="520" rx="20" fill="#0D0F18" stroke="#FFFFFF" stroke-opacity="0.12"/>
+      <rect x="519" y="56" width="700" height="54" rx="19" fill="#151824"/>
+      <path d="M519 91h700v19H519z" fill="#151824"/>
+      <circle cx="550" cy="83" r="6" fill="#FF6B6B"/>
+      <circle cx="571" cy="83" r="6" fill="#F7C948"/>
+      <circle cx="592" cy="83" r="6" fill="#34D399"/>
+      <text x="869" y="88" fill="#71798E" font-size="12" font-weight="600" text-anchor="middle">~/checkout  ·  git</text>
+    </g>
+
+    <g font-family="SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="16">
+      <text x="553" y="153" fill="#34D399">$</text>
+      <text x="575" y="153" fill="#F3F4F6">git commit -m </text>
+      <text x="719" y="153" fill="#A78BFA">&quot;fix auth&quot;</text>
+      <text x="553" y="185" fill="#7F879B">[main 1a2b3c4] fix auth</text>
+
+      <rect x="546" y="207" width="646" height="58" rx="12" fill="#7C3AED" fill-opacity="0.1" stroke="#8B5CF6" stroke-opacity="0.28"/>
+      <circle cx="570" cy="236" r="15" fill="#8B5CF6" fill-opacity="0.2"/>
+      <path d="m566 236 3 3 6-7" fill="none" stroke="#A78BFA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="596" y="231" fill="#DAD6FE" font-size="15">Git AI: polishing in background</text>
+      <text x="596" y="251" fill="#777F94" font-size="12">the terminal is already yours again</text>
+
+      <text x="553" y="307" fill="#34D399">$</text>
+      <text x="575" y="307" fill="#F3F4F6">git status --short</text>
+      <rect x="553" y="327" width="8" height="19" rx="2" fill="#8B5CF6"/>
+
+      <line x1="546" y1="371" x2="1192" y2="371" stroke="#FFFFFF" stroke-opacity="0.08"/>
+      <circle cx="560" cy="402" r="9" fill="#34D399" fill-opacity="0.18"/>
+      <path d="m556 402 3 3 6-7" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="580" y="408" fill="#A7F3D0" font-size="13" font-weight="700">POLISHED SAFELY</text>
+
+      <rect x="546" y="426" width="646" height="82" rx="13" fill="url(#result)" stroke="#8B5CF6" stroke-opacity="0.45"/>
+      <text x="570" y="459" fill="#F5F3FF" font-size="16" font-weight="700">fix(auth): prevent expired sessions</text>
+      <text x="570" y="484" fill="#C4B5FD" font-size="16" font-weight="700">on mobile</text>
+
+      <g font-family="Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="650">
+        <rect x="546" y="528" width="142" height="27" rx="13.5" fill="#34D399" fill-opacity="0.09"/>
+        <circle cx="564" cy="541.5" r="4" fill="#34D399"/>
+        <text x="576" y="546" fill="#A7F3D0">tree untouched</text>
+        <rect x="700" y="528" width="174" height="27" rx="13.5" fill="#8B5CF6" fill-opacity="0.12"/>
+        <circle cx="718" cy="541.5" r="4" fill="#A78BFA"/>
+        <text x="730" y="546" fill="#DDD6FE">atomic ref update</text>
+        <rect x="886" y="528" width="142" height="27" rx="13.5" fill="#22D3EE" fill-opacity="0.08"/>
+        <circle cx="904" cy="541.5" r="4" fill="#22D3EE"/>
+        <text x="916" y="546" fill="#A5F3FC">push aware</text>
+      </g>
+    </g>
+
+    <text x="68" y="587" fill="#686F82" font-size="12" font-weight="650" letter-spacing="0.09em">OPEN SOURCE · BRING YOUR OWN MODEL · LOCAL OLLAMA SUPPORT</text>
+  </g>
+</svg>

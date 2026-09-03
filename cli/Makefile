@@ -1,4 +1,4 @@
-.PHONY: build test install clean lint release-snapshot test-integration
+.PHONY: build test install clean lint eval release-snapshot test-integration
 
 # Build variables
 BINARY := git-ai
@@ -21,6 +21,9 @@ clean:
 
 lint:
 	golangci-lint run ./...
+
+eval:
+	$(GO) run ./cmd/git-ai-eval --mode reference --fail-under 100
 
 release-snapshot:
 	cd .. && goreleaser release --snapshot --clean

@@ -58,7 +58,7 @@ print(f"  Base (en): {len(en_keys)} keys")
 print()
 
 # Expected locales (matching the actual JS key names)
-expected_locales = {'en', 'fr', 'it', 'de', 'es', 'ja', 'ko', 'pt', 'ru', 'ar', 'vi', 'th', 'id', 'zh-cn', 'zh-tw'}
+expected_locales = {'en', 'fr', 'it', 'de', 'es', 'ja', 'ko', 'ms', 'pt', 'ru', 'ar', 'vi', 'th', 'id', 'zh-cn', 'zh-tw'}
 found_locales = set(locale_keys.keys())
 missing_locales = expected_locales - found_locales
 if missing_locales:

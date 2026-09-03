@@ -80,6 +80,8 @@ Rules:
 		base = SystemPrompt(FormatConventional, language, false, "")
 	}
 
+	base += "\n\nDo not output Git trailers or authorship/sign-off metadata. Existing trailers are preserved separately."
+
 	if explain {
 		base += "\n\nIMPORTANT: You MUST append a short paragraph at the end of the message explaining 'WHY' these changes were made and what problem they solve."
 	}
