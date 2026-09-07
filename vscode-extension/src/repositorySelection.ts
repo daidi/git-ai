@@ -1,0 +1,68 @@
+import * as cp from 'child_process';
+import * as path from 'path';
+import * as vscode from 'vscode';
+
+const SELECTED_REPOSITORY_KEY = 'git-ai.selectedRepository';
+
+function gitRoot(folder: vscode.WorkspaceFolder): Promise<string | undefined> {
+    return new Promise(resolve => {
+        cp.execFile(
+            'git',
+            ['rev-parse', '--show-toplevel'],
+            { cwd: folder.uri.fsPath, timeout: 5_000, windowsHide: true },
+            (error, stdout) => resolve(error ? undefined : stdout.trim() || undefined),
+        );
+    });
+}
+
+export async function discoverRepositoryRoots(): Promise<string[]> {
+    if (!vscode.workspace.isTrusted) return [];
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    const roots = await Promise.all(folders.map(gitRoot));
+    return [...new Set(roots.filter((root): root is string => Boolean(root)))];
+}
+
+export function preferredRepositoryRoot(
+    roots: string[],
+    persisted: string | undefined,
+    activeFile: string | undefined,
+): string | undefined {
+    if (persisted && roots.includes(persisted)) return persisted;
+    if (activeFile) {
+        const match = roots
+            .filter(root => activeFile === root || activeFile.startsWith(root + path.sep))
+            .sort((left, right) => right.length - left.length)[0];
+        if (match) return match;
+    }
+    return roots[0];
+}
+
+export async function resolveRepositoryRoot(context: vscode.ExtensionContext): Promise<string | undefined> {
+    const roots = await discoverRepositoryRoots();
+    const activeFile = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
+        ? vscode.window.activeTextEditor.document.uri.fsPath
+        : undefined;
+    const selected = preferredRepositoryRoot(
+        roots,
+        context.workspaceState.get<string>(SELECTED_REPOSITORY_KEY),
+        activeFile,
+    );
+    if (selected) await context.workspaceState.update(SELECTED_REPOSITORY_KEY, selected);
+    return selected;
+}
+
+export async function selectRepository(context: vscode.ExtensionContext): Promise<void> {
+    const roots = await discoverRepositoryRoots();
+    if (roots.length === 0) return;
+    const current = context.workspaceState.get<string>(SELECTED_REPOSITORY_KEY);
+    const items = roots.map(root => ({
+        label: path.basename(root),
+        description: root,
+        root,
+        picked: root === current,
+    }));
+    const selected = roots.length === 1 ? items[0] : await vscode.window.showQuickPick(items);
+    if (!selected || selected.root === current) return;
+    await context.workspaceState.update(SELECTED_REPOSITORY_KEY, selected.root);
+    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+}

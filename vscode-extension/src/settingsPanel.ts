@@ -37,6 +37,27 @@ interface FieldOptions {
     max?: number;
     configured?: boolean;
     multiline?: boolean;
+    suggestions?: boolean;
+}
+
+interface ConfigFieldSchema {
+    key: string;
+    type: 'string' | 'boolean' | 'integer';
+    default?: string | number | boolean;
+    enum?: string[];
+    minimum?: number;
+    maximum?: number;
+}
+
+interface ConfigSchema {
+    version: number;
+    fields: ConfigFieldSchema[];
+    providers: Array<{ id: string; default_base_url: string; default_model: string }>;
+}
+
+interface ModelCatalog {
+    provider: string;
+    models: Array<{ id: string; display_name?: string }>;
 }
 
 const DEFAULTS: Required<GitAiConfig> = {
@@ -70,6 +91,7 @@ export class SettingsPanel {
     private readonly workspaceRoot: string;
     private readonly extensionUri: vscode.Uri;
     private readonly disposables: vscode.Disposable[] = [];
+    private schema: ConfigSchema | undefined;
 
     private constructor(panel: vscode.WebviewPanel, workspaceRoot: string, extensionUri: vscode.Uri) {
         this.panel = panel;
@@ -128,6 +150,10 @@ export class SettingsPanel {
     private async readConfig(scope: 'global' | 'local' | 'merged'): Promise<GitAiConfig> {
         const output = await this.runGitAi(['config', 'list', '--scope', scope, '--json']);
         return JSON.parse(output) as GitAiConfig;
+    }
+
+    private async readSchema(): Promise<ConfigSchema> {
+        return JSON.parse(await this.runGitAi(['config', 'schema'])) as ConfigSchema;
     }
 
     private async writeConfig(scope: 'global' | 'local', config: GitAiConfig): Promise<void> {
@@ -211,14 +237,44 @@ export class SettingsPanel {
     }
 
     private async refresh(): Promise<void> {
-        const [global, project, mergedConfig, hookState] = await Promise.all([
+        const [global, project, mergedConfig, hookState, schema] = await Promise.all([
             this.readConfig('global'),
             this.readConfig('local'),
             this.readConfig('merged'),
             this.isHookInstalled(),
+            this.readSchema(),
         ]);
-        const merged = { ...DEFAULTS, ...mergedConfig };
+        this.schema = schema;
+        const merged = { ...this.schemaDefaults(), ...mergedConfig };
         this.panel.webview.html = this.getHtml(global, project, merged, hookState);
+        void this.refreshModels();
+    }
+
+    private async refreshModels(): Promise<void> {
+        try {
+            const catalog = JSON.parse(await this.runGitAi(['config', 'models', '--json'])) as ModelCatalog;
+            await this.panel.webview.postMessage({ command: 'modelCatalog', catalog });
+        } catch {
+            // Discovery is optional: users can always type a custom model ID.
+        }
+    }
+
+    private fieldSchema(key: string): ConfigFieldSchema | undefined {
+        return this.schema?.fields.find(field => field.key === key);
+    }
+
+    private enumValues(key: string, fallback: string[]): string[] {
+        return this.fieldSchema(key)?.enum ?? fallback;
+    }
+
+    private schemaDefaults(): Required<GitAiConfig> {
+        const defaults = { ...DEFAULTS };
+        for (const field of this.schema?.fields ?? []) {
+            if (field.default !== undefined && field.key in defaults) {
+                (defaults as unknown as Record<string, unknown>)[field.key] = field.default;
+            }
+        }
+        return defaults;
     }
 
     private async isHookInstalled(): Promise<boolean> {
@@ -361,9 +417,10 @@ export class SettingsPanel {
     }
 
     private renderGlobalPane(global: GitAiConfig): string {
-        const provider = global.provider || DEFAULTS.provider;
-        const model = global.model || DEFAULTS.model;
-        const format = global.message_format || DEFAULTS.message_format;
+        const defaults = this.schemaDefaults();
+        const provider = global.provider || defaults.provider;
+        const model = global.model || defaults.model;
+        const format = global.message_format || defaults.message_format;
         const keyConfigured = global.api_key_configured === true;
 
         return `<main
@@ -374,24 +431,24 @@ export class SettingsPanel {
             ${this.renderOverview(provider, model, format, keyConfigured)}
             <form novalidate>
                 ${this.renderSection('key', t('settings.section.auth'), `
-                    ${this.renderSelect('g', 'provider', t('settings.field.provider'), ['openai', 'ollama', 'anthropic', 'gemini'], DEFAULTS.provider, global.provider, '')}
-                    ${this.renderField('g', 'model', t('settings.field.model'), 'text', DEFAULTS.model, global.model, '')}
-                    ${this.renderField('g', 'base_url', t('settings.field.baseUrl'), 'url', DEFAULTS.base_url, global.base_url, '', '', { span: 2 })}
+                    ${this.renderSelect('g', 'provider', t('settings.field.provider'), this.enumValues('provider', ['openai', 'ollama', 'anthropic', 'gemini']), defaults.provider, global.provider, '')}
+                    ${this.renderField('g', 'model', t('settings.field.model'), 'text', defaults.model, global.model, '', '', { suggestions: true })}
+                    ${this.renderField('g', 'base_url', t('settings.field.baseUrl'), 'url', defaults.base_url, global.base_url, '', '', { span: 2 })}
                     ${this.renderField('g', 'api_key', t('settings.field.apiKey'), 'password', '', global.api_key, '', t('settings.hint.apiKey'), { span: 2, configured: keyConfigured })}
                 `)}
 
                 ${this.renderSection('edit', t('settings.section.format'), `
-                    ${this.renderSelect('g', 'message_format', t('settings.field.messageFormat'), ['conventional', 'plain', 'gitmoji', 'subject-body'], DEFAULTS.message_format, global.message_format, '')}
+                    ${this.renderSelect('g', 'message_format', t('settings.field.messageFormat'), this.enumValues('message_format', ['conventional', 'plain', 'gitmoji', 'subject-body']), defaults.message_format, global.message_format, '')}
                     ${this.renderSelect('g', 'language', t('settings.field.language'), ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], DEFAULTS.language, global.language, '')}
-                    ${this.renderToggle('g', 'smart_skip', t('settings.field.smartSkip'), global.smart_skip ?? DEFAULTS.smart_skip, t('settings.hint.smartSkip'))}
-                    ${this.renderToggle('g', 'explain', t('settings.field.explain'), global.explain ?? DEFAULTS.explain, t('settings.hint.explain'))}
+                    ${this.renderToggle('g', 'smart_skip', t('settings.field.smartSkip'), global.smart_skip ?? defaults.smart_skip, t('settings.hint.smartSkip'))}
+                    ${this.renderToggle('g', 'explain', t('settings.field.explain'), global.explain ?? defaults.explain, t('settings.hint.explain'))}
                     ${this.renderField('g', 'prompt_template', t('settings.field.promptTemplate'), 'text', '', global.prompt_template, '', t('settings.hint.promptTemplate'), { span: 2, multiline: true })}
                 `)}
 
                 ${this.renderSection('git-pull-request', t('settings.section.behavior'), `
-                    ${this.renderSelect('g', 'push_policy', t('settings.field.pushPolicy'), ['queue', 'block'], DEFAULTS.push_policy, global.push_policy, '', t('settings.hint.pushPolicy'))}
-                    ${this.renderSelect('g', 'log_level', t('settings.field.logLevel'), ['error', 'info', 'debug'], DEFAULTS.log_level, global.log_level, '')}
-                    ${this.renderField('g', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', String(DEFAULTS.max_diff_tokens), global.max_diff_tokens?.toString(), '', t('settings.hint.maxDiffTokens'), { min: 1, max: 100000 })}
+                    ${this.renderSelect('g', 'push_policy', t('settings.field.pushPolicy'), this.enumValues('push_policy', ['queue', 'block']), defaults.push_policy, global.push_policy, '', t('settings.hint.pushPolicy'))}
+                    ${this.renderSelect('g', 'log_level', t('settings.field.logLevel'), this.enumValues('log_level', ['error', 'info', 'debug']), defaults.log_level, global.log_level, '')}
+                    ${this.renderField('g', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', String(defaults.max_diff_tokens), global.max_diff_tokens?.toString(), '', t('settings.hint.maxDiffTokens'), { min: this.fieldSchema('max_diff_tokens')?.minimum ?? 1, max: this.fieldSchema('max_diff_tokens')?.maximum ?? 100000 })}
                     ${this.renderSelect('g', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', global.ui_language, '', t('settings.hint.uiLanguage'))}
                 `)}
 
@@ -427,13 +484,13 @@ export class SettingsPanel {
                 `)}
 
                 ${this.renderSection('key', t('settings.section.auth'), `
-                    ${this.renderSelect('p', 'provider', t('settings.field.provider'), ['', 'openai', 'ollama', 'anthropic', 'gemini'], '', project.provider, merged.provider)}
-                    ${this.renderField('p', 'model', t('settings.field.model'), 'text', '', project.model, merged.model)}
+                    ${this.renderSelect('p', 'provider', t('settings.field.provider'), ['', ...this.enumValues('provider', ['openai', 'ollama', 'anthropic', 'gemini'])], '', project.provider, merged.provider)}
+                    ${this.renderField('p', 'model', t('settings.field.model'), 'text', '', project.model, merged.model, '', { suggestions: true })}
                     ${this.renderField('p', 'base_url', t('settings.field.baseUrl'), 'url', '', project.base_url, merged.base_url, '', { span: 2 })}
                 `)}
 
                 ${this.renderSection('edit', t('settings.section.format'), `
-                    ${this.renderSelect('p', 'message_format', t('settings.field.messageFormat'), ['', 'conventional', 'plain', 'gitmoji', 'subject-body'], '', project.message_format, merged.message_format)}
+                    ${this.renderSelect('p', 'message_format', t('settings.field.messageFormat'), ['', ...this.enumValues('message_format', ['conventional', 'plain', 'gitmoji', 'subject-body'])], '', project.message_format, merged.message_format)}
                     ${this.renderSelect('p', 'language', t('settings.field.language'), ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], '', project.language, merged.language)}
                     ${this.renderSelect('p', 'smart_skip', t('settings.field.smartSkip'), ['', 'true', 'false'], '', project.smart_skip?.toString(), String(merged.smart_skip), t('settings.hint.smartSkip'))}
                     ${this.renderSelect('p', 'explain', t('settings.field.explain'), ['', 'true', 'false'], '', project.explain?.toString(), String(merged.explain), t('settings.hint.explain'))}
@@ -441,9 +498,9 @@ export class SettingsPanel {
                 `)}
 
                 ${this.renderSection('git-pull-request', t('settings.section.behavior'), `
-                    ${this.renderSelect('p', 'push_policy', t('settings.field.pushPolicy'), ['', 'queue', 'block'], '', project.push_policy, merged.push_policy, t('settings.hint.pushPolicy'))}
-                    ${this.renderSelect('p', 'log_level', t('settings.field.logLevel'), ['', 'error', 'info', 'debug'], '', project.log_level, merged.log_level)}
-                    ${this.renderField('p', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', '', project.max_diff_tokens?.toString(), String(merged.max_diff_tokens), t('settings.hint.maxDiffTokens'), { min: 1, max: 100000 })}
+                    ${this.renderSelect('p', 'push_policy', t('settings.field.pushPolicy'), ['', ...this.enumValues('push_policy', ['queue', 'block'])], '', project.push_policy, merged.push_policy, t('settings.hint.pushPolicy'))}
+                    ${this.renderSelect('p', 'log_level', t('settings.field.logLevel'), ['', ...this.enumValues('log_level', ['error', 'info', 'debug'])], '', project.log_level, merged.log_level)}
+                    ${this.renderField('p', 'max_diff_tokens', t('settings.field.maxDiffTokens'), 'number', '', project.max_diff_tokens?.toString(), String(merged.max_diff_tokens), t('settings.hint.maxDiffTokens'), { min: this.fieldSchema('max_diff_tokens')?.minimum ?? 1, max: this.fieldSchema('max_diff_tokens')?.maximum ?? 100000 })}
                     ${this.renderSelect('p', 'ui_language', t('settings.field.uiLanguage'), ['', 'en', 'zh'], '', project.ui_language, merged.ui_language, t('settings.hint.uiLanguage'))}
                 `)}
 
@@ -542,7 +599,8 @@ export class SettingsPanel {
             control = `<textarea ${common} placeholder="${this.escapeAttr(placeholder)}" spellcheck="false">${this.escapeHtml(value)}</textarea>`;
         } else {
             const secretClass = type === 'password' ? ' class="secret-input"' : '';
-            control = `<input type="${type}" ${common}${secretClass}${bounds}
+            const listId = options.suggestions ? `model-options-${prefix}` : '';
+            control = `<input type="${type}" ${common}${secretClass}${bounds}${listId ? ` list="${listId}"` : ''}
                 value="${this.escapeAttr(value)}"
                 placeholder="${this.escapeAttr(placeholder)}"
                 autocomplete="off"
@@ -553,6 +611,9 @@ export class SettingsPanel {
                         <i class="codicon codicon-eye" aria-hidden="true"></i>
                     </button>
                 </div>`;
+            }
+            if (listId) {
+                control += `<datalist id="${listId}" data-model-options></datalist>`;
             }
         }
 

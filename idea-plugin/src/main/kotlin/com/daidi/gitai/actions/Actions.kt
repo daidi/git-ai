@@ -3,6 +3,7 @@ package com.daidi.gitai.actions
 import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiCli
 import com.daidi.gitai.state.GitAiStateService
+import com.daidi.gitai.state.GitAiRepositoryService
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -158,6 +159,33 @@ class OpenConfigAction : AnAction() {
         val project = e.project ?: return
         com.intellij.openapi.options.ShowSettingsUtil.getInstance()
             .showSettingsDialog(project, "com.daidi.gitai.settings")
+    }
+}
+
+class SelectRepositoryAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.project
+            ?.let { GitAiRepositoryService.getInstance(it).repositories().size > 1 } == true
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val service = GitAiRepositoryService.getInstance(project)
+        val roots = service.repositories()
+        if (roots.size < 2) return
+        val selected = Messages.showEditableChooseDialog(
+            GitAiBundle.message("action.GitAi.SelectRepository.description"),
+            GitAiBundle.message("action.GitAi.SelectRepository.text"),
+            Messages.getQuestionIcon(),
+            roots.toTypedArray(),
+            service.workingDirectory(),
+            null,
+        ) ?: return
+        if (selected !in roots) return
+        service.select(selected)
+        project.service<GitAiStateService>().refreshNow()
     }
 }
 

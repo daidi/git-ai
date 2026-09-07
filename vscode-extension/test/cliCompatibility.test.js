@@ -11,6 +11,8 @@ test('detects settings commands and smart skip missing from an old CLI', () => {
     assert.equal(isSettingsProtocolMismatch(new Error('unknown command "replace" for "git-ai config"')), true);
     assert.equal(isSettingsProtocolMismatch(new Error("unknown command 'reset' for 'git-ai config'")), true);
     assert.equal(isSettingsProtocolMismatch(new Error('unknown config key: smart_skip')), true);
+    assert.equal(isSettingsProtocolMismatch(new Error('unknown command "schema" for "git-ai config"')), true);
+    assert.equal(isSettingsProtocolMismatch(new Error('unknown command "models" for "git-ai config"')), true);
 });
 
 test('does not classify unrelated failures as protocol mismatches', () => {

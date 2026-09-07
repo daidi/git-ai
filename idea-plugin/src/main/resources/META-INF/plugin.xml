@@ -78,6 +78,10 @@
             <add-to-group group-id="VcsGlobalGroup" anchor="last"/>
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
 
+            <action id="GitAi.SelectRepository"
+                    class="com.daidi.gitai.actions.SelectRepositoryAction"
+                    icon="AllIcons.Nodes.Repository"/>
+
             <action id="GitAi.SkipNextCommit"
                     class="com.daidi.gitai.actions.SkipNextCommitAction"
                     icon="AllIcons.Actions.Suspend"/>

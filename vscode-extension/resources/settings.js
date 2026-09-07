@@ -256,6 +256,23 @@
         });
     }
 
+    window.addEventListener('message', function (event) {
+        var message = event.data || {};
+        if (message.command !== 'modelCatalog' || !message.catalog || !Array.isArray(message.catalog.models)) {
+            return;
+        }
+        Array.prototype.slice.call(document.querySelectorAll('[data-model-options]')).forEach(function (list) {
+            while (list.firstChild) list.removeChild(list.firstChild);
+            message.catalog.models.forEach(function (model) {
+                if (!model || !model.id) return;
+                var option = document.createElement('option');
+                option.value = String(model.id);
+                if (model.display_name) option.label = String(model.display_name);
+                list.appendChild(option);
+            });
+        });
+    });
+
     function submitAction(action, scope) {
         var pane = document.getElementById('pane-' + scope);
         var form = pane ? pane.querySelector('form') : null;

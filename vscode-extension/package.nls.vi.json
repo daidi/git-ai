@@ -6,6 +6,7 @@
   "command.forcePush": "Ép đẩy ngay",
   "command.showLogs": "Hiện Nhật ký",
   "command.openConfig": "Mở cấu hình",
+  "command.selectRepository": "Chọn kho mã nguồn",
   "command.uninstall": "Gỡ bỏ Hooks",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

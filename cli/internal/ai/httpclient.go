@@ -37,25 +37,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 	}
 
 	// Create HTTP client with proper timeouts
-	client := &http.Client{
-		Timeout: 60 * time.Second,
-		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-			// Provider redirects can forward prompts or credentials to an origin
-			// the user did not configure. Require the final endpoint explicitly.
-			return &ProviderError{Kind: ErrorModel, Message: "provider redirects are not accepted; configure the final endpoint URL"}
-		},
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 30 * time.Second,
-			IdleConnTimeout:       90 * time.Second,
-			MaxIdleConns:          10,
-			MaxIdleConnsPerHost:   5,
-		},
-	}
+	client := newProviderHTTPClient()
 
 	switch cfg.Provider {
 	case "anthropic":
@@ -94,6 +76,28 @@ func NewClient(cfg *config.Config, logger *log.Logger) Client {
 			logger:  logger,
 			debug:   cfg.IsDebug(),
 		}
+	}
+}
+
+func newProviderHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: 60 * time.Second,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			// Provider redirects can forward prompts or credentials to an origin
+			// the user did not configure. Require the final endpoint explicitly.
+			return &ProviderError{Kind: ErrorModel, Message: "provider redirects are not accepted; configure the final endpoint URL"}
+		},
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			IdleConnTimeout:       90 * time.Second,
+			MaxIdleConns:          10,
+			MaxIdleConnsPerHost:   5,
+		},
 	}
 }
 

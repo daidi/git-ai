@@ -45,7 +45,8 @@ object GitAiCli {
         runCommand(project, args, input = input, timeoutSeconds = 45, notifyIfMissing = true)
 
     fun runGitInternal(project: Project, vararg args: String): Result {
-        val basePath = project.basePath ?: return Result(false, "", "No project base path")
+        val basePath = GitAiRepositoryService.getInstance(project).workingDirectory()
+            ?: return Result(false, "", "No Git repository selected")
         return execute(
             workingDir = basePath,
             command = "git",
@@ -79,7 +80,8 @@ object GitAiCli {
         timeoutSeconds: Long,
         notifyIfMissing: Boolean,
     ): Result {
-        val basePath = project.basePath ?: return Result(false, "", "No project base path")
+        val basePath = GitAiRepositoryService.getInstance(project).workingDirectory()
+            ?: return Result(false, "", "No Git repository selected")
         val executable = getExecutablePath()
         if (executable == null) {
             if (notifyIfMissing && missingNotificationShown.compareAndSet(false, true)) {

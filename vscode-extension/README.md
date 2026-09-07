@@ -62,7 +62,8 @@ Most AI commit tools make generation part of the critical path. Git AI moves it 
 | **Activity Bar control center** | Live status, common actions, local productivity stats, and repository health at a glance |
 | **Status Bar** | See `polishing`, `pushing`, `failed`, and `idle` states without leaving your editor |
 | **AI History** | Review polished commits, original drafts, model names, and generation latency |
-| **Visual configuration** | Manage global defaults and per-repository overrides without editing JSON |
+| **Visual configuration** | Manage schema-driven defaults and choose from provider-discovered models without editing JSON |
+| **Multi-root workspaces** | Select which Git repository the status, history, settings, and actions target |
 | **One-click recovery** | Retry, undo, cancel, push, skip the next commit, or clean a stale marker |
 | **Managed engine** | Installs and updates the matching Git AI CLI with published SHA-256 verification |
 | **Localized UI** | Native interface translations across 16 languages, including Malay |

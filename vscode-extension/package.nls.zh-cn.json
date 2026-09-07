@@ -8,6 +8,7 @@
   "command.forcePush": "马上推送到远端",
   "command.showLogs": "查看日志",
   "command.openConfig": "前往配置页面",
+  "command.selectRepository": "选择仓库",
   "command.uninstall": "卸载 Git Hooks",
   "command.clean": "清理卡住的历史提交",
   "category.gitai": "Git AI",

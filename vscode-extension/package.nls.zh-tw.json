@@ -6,6 +6,7 @@
   "command.forcePush": "立即強制推播",
   "command.showLogs": "顯示日誌",
   "command.openConfig": "開啟設定",
+  "command.selectRepository": "選擇儲存庫",
   "command.uninstall": "解除安裝 Hooks",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

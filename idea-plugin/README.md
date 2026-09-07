@@ -111,6 +111,9 @@ See the active commit, original draft, queued remote, and daemon state. Recovery
 - **Force Push Now** — explicitly resume a deferred push
 - **Skip AI** — leave the next commit untouched
 - **Clean Stuck Commits** — recover old loading markers with a pushed-history warning
+- **Select Repository** — choose the active Git root when a project contains multiple repositories
+
+The settings page reads the CLI configuration schema and offers provider-discovered model IDs while keeping the model field editable for custom endpoints.
 
 ### AI history
 

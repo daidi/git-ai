@@ -6,6 +6,7 @@
   "command.forcePush": "지금 강제 푸시",
   "command.showLogs": "로그 표시",
   "command.openConfig": "구성 열기",
+  "command.selectRepository": "저장소 선택",
   "command.uninstall": "훅 제거",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

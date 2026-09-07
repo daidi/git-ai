@@ -6,6 +6,7 @@ import com.daidi.gitai.state.GitAiCliCompatibility
 import com.daidi.gitai.state.GitAiInstaller
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.google.gson.annotations.SerializedName
 import com.intellij.openapi.progress.EmptyProgressIndicator
@@ -30,6 +31,40 @@ data class GitAiConfig(
     @SerializedName("check_update") var checkUpdate: Boolean? = null,
     @SerializedName("explain") var explain: Boolean? = null,
     @Transient var apiKeyConfigured: Boolean = false,
+)
+
+data class GitAiConfigFieldSchema(
+    val key: String = "",
+    val type: String = "",
+    val default: JsonElement? = null,
+    @SerializedName("enum") val values: List<String> = emptyList(),
+    val minimum: Int? = null,
+    val maximum: Int? = null,
+)
+
+data class GitAiProviderSchema(
+    val id: String = "",
+    val label: String = "",
+    @SerializedName("requires_api_key") val requiresApiKey: Boolean = true,
+    @SerializedName("default_base_url") val defaultBaseUrl: String = "",
+    @SerializedName("default_model") val defaultModel: String = "",
+)
+
+data class GitAiConfigSchema(
+    val version: Int = 0,
+    val fields: List<GitAiConfigFieldSchema> = emptyList(),
+    val providers: List<GitAiProviderSchema> = emptyList(),
+)
+
+data class GitAiModelInfo(
+    val id: String = "",
+    @SerializedName("display_name") val displayName: String? = null,
+)
+
+data class GitAiModelCatalog(
+    val provider: String = "",
+    @SerializedName("current_model") val currentModel: String? = null,
+    val models: List<GitAiModelInfo> = emptyList(),
 )
 
 /**
@@ -66,6 +101,48 @@ object GitAiConfigManager {
         return (gson.fromJson(json, GitAiConfig::class.java) ?: GitAiConfig()).apply {
             apiKeyConfigured = keyConfigured
         }
+    }
+
+    fun loadSchema(project: Project, indicator: ProgressIndicator? = null): GitAiConfigSchema {
+        val result = runWithCompatibilityRepair(indicator) {
+            GitAiCli.run(project, "config", "schema")
+        }
+        if (!result.success) throw IllegalStateException(result.errorText)
+        return gson.fromJson(result.stdout, GitAiConfigSchema::class.java)
+            ?: throw IllegalStateException("git-ai returned an empty configuration schema")
+    }
+
+    fun loadModels(project: Project, indicator: ProgressIndicator? = null): GitAiModelCatalog? {
+        val result = runWithCompatibilityRepair(indicator) {
+            GitAiCli.run(project, "config", "models", "--json")
+        }
+        if (!result.success) return null
+        return gson.fromJson(result.stdout, GitAiModelCatalog::class.java)
+    }
+
+    fun defaultsFrom(schema: GitAiConfigSchema): GitAiConfig {
+        val fields = schema.fields.associateBy { it.key }
+        fun string(key: String, fallback: String?): String? =
+            fields[key]?.default?.takeUnless { it.isJsonNull }?.asString ?: fallback
+        fun boolean(key: String, fallback: Boolean?): Boolean? =
+            fields[key]?.default?.takeUnless { it.isJsonNull }?.asBoolean ?: fallback
+        fun integer(key: String, fallback: Int?): Int? =
+            fields[key]?.default?.takeUnless { it.isJsonNull }?.asInt ?: fallback
+        return DEFAULTS.copy(
+            model = string("model", DEFAULTS.model),
+            baseUrl = string("base_url", DEFAULTS.baseUrl),
+            provider = string("provider", DEFAULTS.provider),
+            language = string("language", DEFAULTS.language),
+            uiLanguage = string("ui_language", DEFAULTS.uiLanguage),
+            pushPolicy = string("push_policy", DEFAULTS.pushPolicy),
+            messageFormat = string("message_format", DEFAULTS.messageFormat),
+            promptTemplate = string("prompt_template", DEFAULTS.promptTemplate),
+            smartSkip = boolean("smart_skip", DEFAULTS.smartSkip),
+            maxDiffTokens = integer("max_diff_tokens", DEFAULTS.maxDiffTokens),
+            logLevel = string("log_level", DEFAULTS.logLevel),
+            checkUpdate = boolean("check_update", DEFAULTS.checkUpdate),
+            explain = boolean("explain", DEFAULTS.explain),
+        )
     }
 
     fun replace(

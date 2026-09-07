@@ -9,12 +9,13 @@ import { HistoryTreeProvider } from './historyTree';
 import { SettingsPanel } from './settingsPanel';
 import { checkAndPromptInstall, autoInitialize } from './installer';
 import { checkForCliUpdate } from './updateChecker';
+import { resolveRepositoryRoot, selectRepository } from './repositorySelection';
 
 let stateWatcher: StateWatcher | undefined;
 let statusBar: StatusBarManager | undefined;
 let logViewer: LogViewer | undefined;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
     if (vscode.workspace.isTrusted) {
         // Executable discovery, downloads, and Git hook changes are disabled in
         // Restricted Mode. The user must explicitly trust the workspace first.
@@ -22,12 +23,12 @@ export function activate(context: vscode.ExtensionContext) {
         void checkForCliUpdate(context);
     }
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
+    context.subscriptions.push(vscode.commands.registerCommand('git-ai.selectRepository', () => selectRepository(context)));
+
+    const workspaceRoot = await resolveRepositoryRoot(context);
+    if (!workspaceRoot) {
         return;
     }
-
-    const workspaceRoot = workspaceFolders[0].uri.fsPath;
     if (vscode.workspace.isTrusted) { void autoInitialize(workspaceRoot); }
     context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(() => {
         void checkAndPromptInstall();
@@ -71,6 +72,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('git-ai.skipNextCommit', () => commands.skipNextCommit()),
         vscode.commands.registerCommand('git-ai.clean', () => commands.clean()),
     );
+
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        void resolveRepositoryRoot(context).then(root => {
+            if (root !== workspaceRoot) void vscode.commands.executeCommand('workbench.action.reloadWindow');
+        });
+    }));
 
     let isPolishing = false;
     const stateSubscription = stateWatcher.onStateChange((state) => {

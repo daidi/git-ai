@@ -6,6 +6,7 @@
   "command.forcePush": "فرض الدفع الآن",
   "command.showLogs": "إظهار السجلات",
   "command.openConfig": "فتح الإعدادات",
+  "command.selectRepository": "تحديد المستودع",
   "command.uninstall": "إلغاء تثبيت الخطافات",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

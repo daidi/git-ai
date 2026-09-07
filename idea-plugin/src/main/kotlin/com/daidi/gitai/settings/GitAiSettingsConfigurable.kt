@@ -22,6 +22,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable, Co
     private var savedGlobal = GitAiConfigManager.DEFAULTS.copy()
     private var savedProject = GitAiConfig()
     private var savedInitialized = false
+    private var schemaDefaults = GitAiConfigManager.DEFAULTS.copy()
     private var loading = false
     private val loadGeneration = AtomicInteger()
 
@@ -118,15 +119,19 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable, Co
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("settings.loading"), true) {
             override fun run(indicator: ProgressIndicator) {
                 try {
+                    val schema = GitAiConfigManager.loadSchema(project, indicator)
+                    val defaults = GitAiConfigManager.defaultsFrom(schema)
                     val rawGlobal = GitAiConfigManager.load(project, "global", indicator)
                     val rawProject = GitAiConfigManager.load(project, "local", indicator)
-                    val effectiveGlobal = withDefaults(rawGlobal)
+                    val effectiveGlobal = withDefaults(rawGlobal, defaults)
                     val initialized = queryInitialized()
                     ApplicationManager.getApplication().invokeLater({
                         if (project.isDisposed || generation != loadGeneration.get()) return@invokeLater
+                        schemaDefaults = defaults
                         savedGlobal = effectiveGlobal
                         savedProject = rawProject
                         savedInitialized = initialized
+                        settings.applySchema(schema)
                         settings.setGlobalConfig(effectiveGlobal)
                         settings.setProjectConfig(rawProject, effectiveGlobal)
                         settings.pEnabled.isSelected = initialized
@@ -134,6 +139,16 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable, Co
                         settings.setLoading(false)
                         settings.markBaseline()
                         updateTestActions()
+                    }, project.disposed)
+
+                    // Model discovery may require a network request. Let the
+                    // editable settings form become usable before it finishes.
+                    val models = runCatching {
+                        GitAiConfigManager.loadModels(project, indicator)?.models.orEmpty()
+                    }.getOrDefault(emptyList())
+                    ApplicationManager.getApplication().invokeLater({
+                        if (project.isDisposed || generation != loadGeneration.get()) return@invokeLater
+                        settings.setModelSuggestions(models)
                     }, project.disposed)
                 } catch (e: ProcessCanceledException) {
                     throw e
@@ -205,8 +220,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable, Co
         settings.pTestConfigBtn.toolTipText = tooltip
     }
 
-    private fun withDefaults(raw: GitAiConfig): GitAiConfig {
-        val defaults = GitAiConfigManager.DEFAULTS
+    private fun withDefaults(raw: GitAiConfig, defaults: GitAiConfig = schemaDefaults): GitAiConfig {
         return GitAiConfig(
             model = raw.model ?: defaults.model,
             baseUrl = raw.baseUrl ?: defaults.baseUrl,

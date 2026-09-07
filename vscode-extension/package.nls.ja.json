@@ -6,6 +6,7 @@
   "command.forcePush": "今すぐ強制プッシュ",
   "command.showLogs": "ログを表示",
   "command.openConfig": "設定を開く",
+  "command.selectRepository": "リポジトリを選択",
   "command.uninstall": "フックをアンインストール",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

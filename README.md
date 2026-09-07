@@ -285,6 +285,8 @@ API keys are user-level only. Legacy `.git-ai.json` files in a worktree are igno
 | `git-ai log` | Show Git history with local AI metadata |
 | `git-ai stats` | Show local productivity statistics |
 | `git-ai config list` | Inspect effective configuration with secrets masked |
+| `git-ai config schema` | Print the versioned configuration contract for IDEs and automation |
+| `git-ai config models` | Discover models exposed by the configured provider |
 | `git-ai update` | Install the latest verified CLI release |
 | `git-ai uninstall` | Remove Git AI hooks and restore preserved hooks |
 

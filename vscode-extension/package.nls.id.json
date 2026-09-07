@@ -6,6 +6,7 @@
   "command.forcePush": "Paksa push sekarang",
   "command.showLogs": "Tampilkan Log",
   "command.openConfig": "Buka Konfigurasi",
+  "command.selectRepository": "Pilih Repositori",
   "command.uninstall": "Hapus Instalan Hooks",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

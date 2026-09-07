@@ -15,6 +15,8 @@ class GitAiCliCompatibilityTest {
     fun `detects settings commands and smart skip missing from an old CLI`() {
         assertTrue(mismatch(stderr = "Error: unknown command \"replace\" for \"git-ai config\""))
         assertTrue(mismatch(stderr = "unknown command 'reset' for 'git-ai config'"))
+        assertTrue(mismatch(stderr = "unknown command 'schema' for 'git-ai config'"))
+        assertTrue(mismatch(stderr = "unknown command 'models' for 'git-ai config'"))
         assertTrue(mismatch(stderr = "unknown config key: smart_skip"))
     }
 

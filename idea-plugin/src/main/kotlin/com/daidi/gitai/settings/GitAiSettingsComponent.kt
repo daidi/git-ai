@@ -28,6 +28,7 @@ import javax.swing.Box
 import javax.swing.BoxLayout
 import javax.swing.ButtonGroup
 import javax.swing.DefaultListCellRenderer
+import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JList
@@ -53,7 +54,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gApiKey = JBPasswordField().apply { columns = 36 }
     private val gProvider = ComboBox(arrayOf("openai", "ollama", "anthropic", "gemini"))
     private val gBaseUrl = JBTextField().apply { columns = 36 }
-    private val gModel = JBTextField().apply { columns = 36 }
+    private val gModel = editableCombo()
     private val gMessageFormat = ComboBox(arrayOf("conventional", "plain", "gitmoji", "subject-body"))
     private val gSmartSkip = JBCheckBox(GitAiBundle.message("settings.field.smartSkip"))
     private val gLanguage = ComboBox(arrayOf("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms"))
@@ -68,7 +69,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     // Project fields. Blank values intentionally represent inheritance.
     private val pProvider = inheritedCombo("openai", "ollama", "anthropic", "gemini")
     private val pBaseUrl = JBTextField().apply { columns = 36 }
-    private val pModel = JBTextField().apply { columns = 36 }
+    private val pModel = editableCombo(inherited = true)
     private val pMessageFormat = inheritedCombo("conventional", "plain", "gitmoji", "subject-body")
     private val pSmartSkip = inheritedCombo("true", "false")
     private val pLanguage = inheritedCombo("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms")
@@ -167,6 +168,31 @@ class GitAiSettingsComponent(private val basePath: String?) {
         globalTestAllowed = globalEnabled
         projectTestAllowed = projectEnabled
         updateTestActions()
+    }
+
+    fun applySchema(schema: GitAiConfigSchema) = withoutEvents {
+        val fields = schema.fields.associateBy { it.key }
+        replaceValues(gProvider, schema.providers.map { it.id }.ifEmpty { fields["provider"]?.values.orEmpty() })
+        replaceValues(pProvider, schema.providers.map { it.id }.ifEmpty { fields["provider"]?.values.orEmpty() }, inherited = true)
+        replaceValues(gMessageFormat, fields["message_format"]?.values.orEmpty())
+        replaceValues(pMessageFormat, fields["message_format"]?.values.orEmpty(), inherited = true)
+        replaceValues(gPushPolicy, fields["push_policy"]?.values.orEmpty())
+        replaceValues(pPushPolicy, fields["push_policy"]?.values.orEmpty(), inherited = true)
+        replaceValues(gLogLevel, fields["log_level"]?.values.orEmpty())
+        replaceValues(pLogLevel, fields["log_level"]?.values.orEmpty(), inherited = true)
+        fields["max_diff_tokens"]?.let { field ->
+            val range = listOfNotNull(field.minimum, field.maximum).joinToString("–")
+            if (range.isNotEmpty()) {
+                gMaxDiffTokens.toolTipText = range
+                pMaxDiffTokens.toolTipText = range
+            }
+        }
+    }
+
+    fun setModelSuggestions(models: List<GitAiModelInfo>) = withoutEvents {
+        val ids = models.map { it.id }.filter { it.isNotBlank() }.distinct()
+        replaceEditableValues(gModel, ids)
+        replaceEditableValues(pModel, ids)
     }
 
     private fun buildHeader(): JPanel {
@@ -376,14 +402,15 @@ class GitAiSettingsComponent(private val basePath: String?) {
         listOf(
             gApiKey,
             gBaseUrl,
-            gModel,
             gPromptTemplate,
             gMaxDiffTokens,
             pBaseUrl,
-            pModel,
             pPromptTemplate,
             pMaxDiffTokens,
         ).forEach(::watch)
+
+        watch(gModel.editor.editorComponent as JTextComponent)
+        watch(pModel.editor.editorComponent as JTextComponent)
 
         listOf(
             gProvider,
@@ -479,7 +506,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     private fun updateOverview() {
         globalProviderMetric.value = providerName(gProvider.selectedItem as? String)
-        globalModelMetric.value = displayValue(gModel.text)
+        globalModelMetric.value = displayValue(comboText(gModel))
         globalFormatMetric.value = displayValue(gMessageFormat.selectedItem as? String)
         globalKeyMetric.value = if (gProvider.selectedItem == "ollama") {
             EM_DASH
@@ -491,7 +518,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
         val global = getGlobalConfig()
         projectProviderMetric.value = providerName(resolve(pProvider, global.provider))
-        projectModelMetric.value = displayValue(pModel.text.takeIf { it.isNotBlank() } ?: global.model)
+        projectModelMetric.value = displayValue(comboText(pModel).takeIf { it.isNotBlank() } ?: global.model)
         projectFormatMetric.value = displayValue(resolve(pMessageFormat, global.messageFormat))
         projectPushMetric.value = displayValue(resolve(pPushPolicy, global.pushPolicy))
 
@@ -500,7 +527,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
 
     private fun updateInheritancePlaceholders(global: GitAiConfig) {
         pBaseUrl.emptyText.text = inheritedVal(global.baseUrl.orEmpty())
-        pModel.emptyText.text = inheritedVal(global.model.orEmpty())
+        pModel.toolTipText = inheritedVal(global.model.orEmpty())
         pPromptTemplate.emptyText.text = inheritedVal(global.promptTemplate.orEmpty())
         pMaxDiffTokens.emptyText.text = inheritedVal((global.maxDiffTokens ?: 8000).toString())
     }
@@ -551,7 +578,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             apiKey = typedApiKey,
             provider = gProvider.selectedItem as? String,
             baseUrl = gBaseUrl.text.takeIf { it.isNotBlank() },
-            model = gModel.text.takeIf { it.isNotBlank() },
+            model = comboText(gModel).takeIf { it.isNotBlank() },
             messageFormat = gMessageFormat.selectedItem as? String,
             smartSkip = gSmartSkip.isSelected,
             language = gLanguage.selectedItem as? String,
@@ -570,7 +597,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gApiKey.emptyText.text = if (cfg.apiKeyConfigured) STORED_SECRET else ""
         gProvider.selectedItem = cfg.provider ?: "openai"
         gBaseUrl.text = cfg.baseUrl.orEmpty()
-        gModel.text = cfg.model.orEmpty()
+        gModel.editor.item = cfg.model.orEmpty()
         gMessageFormat.selectedItem = cfg.messageFormat ?: "conventional"
         gSmartSkip.isSelected = cfg.smartSkip ?: true
         gLanguage.selectedItem = cfg.language ?: "en"
@@ -585,7 +612,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     fun getProjectConfig(): GitAiConfig = GitAiConfig(
         provider = selectedOverride(pProvider),
         baseUrl = pBaseUrl.text.takeIf { it.isNotBlank() },
-        model = pModel.text.takeIf { it.isNotBlank() },
+        model = comboText(pModel).takeIf { it.isNotBlank() },
         messageFormat = selectedOverride(pMessageFormat),
         smartSkip = selectedOverride(pSmartSkip)?.toBooleanStrictOrNull(),
         language = selectedOverride(pLanguage),
@@ -600,7 +627,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     fun setProjectConfig(cfg: GitAiConfig, inherited: GitAiConfig) = withoutEvents {
         pProvider.selectedItem = cfg.provider ?: ""
         pBaseUrl.text = cfg.baseUrl.orEmpty()
-        pModel.text = cfg.model.orEmpty()
+        pModel.editor.item = cfg.model.orEmpty()
         pMessageFormat.selectedItem = cfg.messageFormat ?: ""
         pSmartSkip.selectedItem = cfg.smartSkip?.toString() ?: ""
         pLanguage.selectedItem = cfg.language ?: ""
@@ -673,6 +700,28 @@ class GitAiSettingsComponent(private val basePath: String?) {
         ComboBox(arrayOf("", *values)).apply {
             renderer = InheritedValueRenderer()
         }
+
+    private fun editableCombo(inherited: Boolean = false): ComboBox<String> = ComboBox<String>().apply {
+        isEditable = true
+        if (inherited) renderer = InheritedValueRenderer()
+    }
+
+    private fun comboText(comboBox: ComboBox<String>): String =
+        comboBox.editor.item?.toString()?.trim().orEmpty()
+
+    private fun replaceEditableValues(comboBox: ComboBox<String>, values: List<String>) {
+        val current = comboText(comboBox)
+        comboBox.model = DefaultComboBoxModel(values.toTypedArray())
+        comboBox.editor.item = current
+    }
+
+    private fun replaceValues(comboBox: ComboBox<String>, values: List<String>, inherited: Boolean = false) {
+        if (values.isEmpty()) return
+        val current = comboBox.selectedItem as? String
+        val next = if (inherited) listOf("") + values else values
+        comboBox.model = DefaultComboBoxModel(next.distinct().toTypedArray())
+        comboBox.selectedItem = current?.takeIf { it in next } ?: next.firstOrNull()
+    }
 
     private class InheritedValueRenderer : DefaultListCellRenderer() {
         override fun getListCellRendererComponent(

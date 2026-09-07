@@ -2,7 +2,7 @@ package com.daidi.gitai.state
 
 /** Detects failures that mean the IDE settings protocol is newer than the CLI. */
 internal object GitAiCliCompatibility {
-    private val missingSettingsCommand = Regex("""unknown command\s+[\"']?(replace|reset)[\"']?""")
+    private val missingSettingsCommand = Regex("""unknown command\s+[\"']?(replace|reset|schema|models)[\"']?""")
 
     fun isSettingsProtocolMismatch(result: GitAiCli.Result): Boolean {
         if (result.success) return false

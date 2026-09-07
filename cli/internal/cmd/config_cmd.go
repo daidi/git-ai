@@ -114,6 +114,17 @@ var configListCmd = &cobra.Command{
 	},
 }
 
+var configSchemaCmd = &cobra.Command{
+	Use:   "schema",
+	Short: "Show the machine-readable configuration schema",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		encoder := json.NewEncoder(cmd.OutOrStdout())
+		encoder.SetEscapeHTML(false)
+		return encoder.Encode(config.Schema())
+	},
+}
+
 // config replace is used by IDE integrations so they never write config files
 // themselves. Input is one JSON object on stdin.
 var configReplaceCmd = &cobra.Command{
@@ -189,14 +200,51 @@ var configTestCmd = &cobra.Command{
 	},
 }
 
+var configModelsCmd = &cobra.Command{
+	Use:   "models",
+	Short: "List models available from the configured provider",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load(GetGitRoot())
+		if err != nil {
+			return err
+		}
+		if cfg.Provider != "ollama" && strings.TrimSpace(cfg.APIKey) == "" {
+			return errors.New("API key is not configured in the user-level Git AI settings")
+		}
+		ctx, cancel := context.WithTimeout(cmd.Context(), 35*time.Second)
+		defer cancel()
+		catalog, err := ai.ListModels(ctx, cfg)
+		if err != nil {
+			return fmt.Errorf("list provider models: %w", err)
+		}
+		if configJSON {
+			encoder := json.NewEncoder(cmd.OutOrStdout())
+			encoder.SetEscapeHTML(false)
+			return encoder.Encode(catalog)
+		}
+		for _, model := range catalog.Models {
+			marker := " "
+			if model.ID == catalog.CurrentModel {
+				marker = "*"
+			}
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n", marker, model.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+}
+
 func init() {
 	configSetCmd.Flags().BoolVar(&configGlobal, "global", false, "Set user configuration")
 	configUnsetCmd.Flags().BoolVar(&configGlobal, "global", false, "Unset user configuration")
 	configListCmd.Flags().StringVar(&configScope, "scope", "merged", "Scope: merged, global, or local")
 	configListCmd.Flags().BoolVar(&configJSON, "json", false, "Print JSON")
+	configModelsCmd.Flags().BoolVar(&configJSON, "json", false, "Print JSON")
 	configReplaceCmd.Flags().StringVar(&configScope, "scope", "", "Scope: global or local")
 	configResetCmd.Flags().StringVar(&configScope, "scope", "", "Scope: global or local")
-	configCmd.AddCommand(configSetCmd, configUnsetCmd, configGetCmd, configListCmd, configReplaceCmd, configResetCmd, configTestCmd)
+	configCmd.AddCommand(configSetCmd, configUnsetCmd, configGetCmd, configListCmd, configSchemaCmd, configModelsCmd, configReplaceCmd, configResetCmd, configTestCmd)
 	rootCmd.AddCommand(configCmd)
 }
 

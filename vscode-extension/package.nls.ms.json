@@ -8,6 +8,7 @@
   "command.forcePush": "Paksa push sekarang",
   "command.showLogs": "Tunjukkan Log",
   "command.openConfig": "Buka Konfigurasi",
+  "command.selectRepository": "Pilih Repositori",
   "command.uninstall": "Nyahpasang Hook",
   "command.clean": "Bersihkan Commit Tersekat",
   "category.gitai": "Git AI",

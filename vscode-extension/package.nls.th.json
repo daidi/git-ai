@@ -6,6 +6,7 @@
   "command.forcePush": "บังคับพุชเดี๋ยวนี้",
   "command.showLogs": "ดูบันทึก",
   "command.openConfig": "เปิดหน้าตั้งค่า",
+  "command.selectRepository": "เลือกที่เก็บโค้ด",
   "command.uninstall": "ถอนการติดตั้ง Hooks",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

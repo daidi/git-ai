@@ -6,6 +6,7 @@
   "command.forcePush": "Forcer le push maintenant",
   "command.showLogs": "Afficher les logs",
   "command.openConfig": "Ouvrir la configuration",
+  "command.selectRepository": "Sélectionner le dépôt",
   "command.uninstall": "Désinstaller les Hooks",
   "category.gitai": "Git AI",
   "submenu.gitai": "Git AI",

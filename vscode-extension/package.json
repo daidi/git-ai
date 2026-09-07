@@ -45,6 +45,11 @@
   "contributes": {
     "commands": [
       {
+        "command": "git-ai.selectRepository",
+        "title": "%command.selectRepository%",
+        "category": "%category.gitai%"
+      },
+      {
         "command": "git-ai.init",
         "title": "%command.init%",
         "category": "%category.gitai%"
@@ -176,6 +181,10 @@
         }
       ],
       "git-ai.scmMenu": [
+        {
+          "command": "git-ai.selectRepository",
+          "group": "0_repository"
+        },
         {
           "command": "git-ai.retry",
           "group": "1_actions"
