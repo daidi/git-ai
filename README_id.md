@@ -243,6 +243,7 @@ git-ai config test
 | Pengaturan | Default | Tujuan |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, atau `subject-body` |
+| `commit_attribution` | `off` | Trailer `Polished-by` opsional: `off` atau `compact` |
 | `language` | `en` | Bahasa pesan commit yang dibuat |
 | `smart_skip` | `true` | Mempertahankan pesan valid tanpa memanggil model |
 | `push_policy` | `queue` | Mengantrekan push aman atau memakai `block` untuk kontrol manual |

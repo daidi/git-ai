@@ -32,20 +32,21 @@ const (
 
 // Config holds all git-ai configuration values.
 type Config struct {
-	APIKey         string `json:"api_key,omitempty"`
-	Model          string `json:"model,omitempty"`
-	BaseURL        string `json:"base_url,omitempty"`
-	Provider       string `json:"provider,omitempty"`
-	Language       string `json:"language,omitempty"`
-	UILanguage     string `json:"ui_language,omitempty"`
-	PushPolicy     string `json:"push_policy,omitempty"`
-	MessageFormat  string `json:"message_format,omitempty"`
-	PromptTemplate string `json:"prompt_template,omitempty"`
-	SmartSkip      *bool  `json:"smart_skip,omitempty"`
-	MaxDiffTokens  int    `json:"max_diff_tokens,omitempty"`
-	LogLevel       string `json:"log_level,omitempty"`
-	CheckUpdate    *bool  `json:"check_update,omitempty"`
-	Explain        *bool  `json:"explain,omitempty"`
+	APIKey            string `json:"api_key,omitempty"`
+	Model             string `json:"model,omitempty"`
+	BaseURL           string `json:"base_url,omitempty"`
+	Provider          string `json:"provider,omitempty"`
+	Language          string `json:"language,omitempty"`
+	UILanguage        string `json:"ui_language,omitempty"`
+	PushPolicy        string `json:"push_policy,omitempty"`
+	MessageFormat     string `json:"message_format,omitempty"`
+	CommitAttribution string `json:"commit_attribution,omitempty"`
+	PromptTemplate    string `json:"prompt_template,omitempty"`
+	SmartSkip         *bool  `json:"smart_skip,omitempty"`
+	MaxDiffTokens     int    `json:"max_diff_tokens,omitempty"`
+	LogLevel          string `json:"log_level,omitempty"`
+	CheckUpdate       *bool  `json:"check_update,omitempty"`
+	Explain           *bool  `json:"explain,omitempty"`
 }
 
 func boolPtr(value bool) *bool { return &value }
@@ -64,17 +65,18 @@ func (c *Config) SmartSkipEnabled() bool { return c.SmartSkip != nil && *c.Smart
 // Defaults returns a Config with default values.
 func Defaults() *Config {
 	return &Config{
-		Model:         "deepseek-chat",
-		BaseURL:       "https://api.deepseek.com/v1",
-		Provider:      "openai",
-		Language:      "en",
-		PushPolicy:    "queue",
-		MessageFormat: "conventional",
-		SmartSkip:     boolPtr(true),
-		MaxDiffTokens: 8000,
-		LogLevel:      "info",
-		CheckUpdate:   boolPtr(true),
-		Explain:       boolPtr(false),
+		Model:             "deepseek-chat",
+		BaseURL:           "https://api.deepseek.com/v1",
+		Provider:          "openai",
+		Language:          "en",
+		PushPolicy:        "queue",
+		MessageFormat:     "conventional",
+		CommitAttribution: "off",
+		SmartSkip:         boolPtr(true),
+		MaxDiffTokens:     8000,
+		LogLevel:          "info",
+		CheckUpdate:       boolPtr(true),
+		Explain:           boolPtr(false),
 	}
 }
 
@@ -364,6 +366,11 @@ func SetValue(cfg *Config, key, value string) error {
 			return fmt.Errorf("invalid message_format: %s", value)
 		}
 		cfg.MessageFormat = value
+	case "commit_attribution":
+		if !oneOf(value, "off", "compact") {
+			return fmt.Errorf("invalid commit_attribution: %s", value)
+		}
+		cfg.CommitAttribution = value
 	case "prompt_template":
 		if err := checkValueLength(key, value, 64<<10); err != nil {
 			return err
@@ -441,6 +448,8 @@ func UnsetValue(cfg *Config, key string) error {
 		cfg.PushPolicy = ""
 	case "message_format":
 		cfg.MessageFormat = ""
+	case "commit_attribution":
+		cfg.CommitAttribution = ""
 	case "prompt_template":
 		cfg.PromptTemplate = ""
 	case "smart_skip":
@@ -500,6 +509,9 @@ func Values(cfg *Config) map[string]string {
 	if cfg.MessageFormat != "" {
 		values["message_format"] = cfg.MessageFormat
 	}
+	if cfg.CommitAttribution != "" {
+		values["commit_attribution"] = cfg.CommitAttribution
+	}
 	if cfg.PromptTemplate != "" {
 		values["prompt_template"] = cfg.PromptTemplate
 	}
@@ -524,7 +536,7 @@ func Values(cfg *Config) map[string]string {
 func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider", "language", "ui_language",
-		"push_policy", "message_format", "prompt_template", "smart_skip", "max_diff_tokens",
+		"push_policy", "message_format", "commit_attribution", "prompt_template", "smart_skip", "max_diff_tokens",
 		"log_level", "check_update", "explain",
 	}
 }
@@ -561,6 +573,9 @@ func mergeConfig(dst, src *Config) {
 	if src.MessageFormat != "" {
 		dst.MessageFormat = src.MessageFormat
 	}
+	if src.CommitAttribution != "" {
+		dst.CommitAttribution = src.CommitAttribution
+	}
 	if src.PromptTemplate != "" {
 		dst.PromptTemplate = src.PromptTemplate
 	}
@@ -588,8 +603,9 @@ func applyEnvOverrides(cfg *Config) {
 		"language": "GIT_AI_LANGUAGE", "ui_language": "GIT_AI_UI_LANGUAGE",
 		"push_policy": "GIT_AI_PUSH_POLICY", "message_format": "GIT_AI_MESSAGE_FORMAT",
 		"prompt_template": "GIT_AI_PROMPT_TEMPLATE", "log_level": "GIT_AI_LOG_LEVEL",
-		"smart_skip":      "GIT_AI_SMART_SKIP",
-		"max_diff_tokens": "GIT_AI_MAX_DIFF_TOKENS", "check_update": "GIT_AI_CHECK_UPDATE",
+		"smart_skip":         "GIT_AI_SMART_SKIP",
+		"commit_attribution": "GIT_AI_COMMIT_ATTRIBUTION",
+		"max_diff_tokens":    "GIT_AI_MAX_DIFF_TOKENS", "check_update": "GIT_AI_CHECK_UPDATE",
 		"explain": "GIT_AI_EXPLAIN",
 	}
 	for key, name := range env {
@@ -604,8 +620,9 @@ var gitConfigNames = map[string]string{
 	"provider": "provider", "language": "language", "ui_language": "ui-language",
 	"push_policy": "push-policy", "message_format": "message-format",
 	"prompt_template": "prompt-template", "max_diff_tokens": "max-diff-tokens",
-	"smart_skip": "smart-skip",
-	"log_level":  "log-level", "check_update": "check-update", "explain": "explain",
+	"smart_skip":         "smart-skip",
+	"commit_attribution": "commit-attribution",
+	"log_level":          "log-level", "check_update": "check-update", "explain": "explain",
 }
 
 var configKeysByGitName = func() map[string]string {
@@ -656,6 +673,9 @@ func (e *gitConfigError) Unwrap() error { return e.err }
 func runGitConfig(repoRoot string, args ...string) error {
 	base := []string{"-C", repoRoot, "config", "--local"}
 	cmd := exec.Command("git", append(base, args...)...)
+	// Keep the missing-section diagnostic stable across user locales. Git
+	// reports this case as fatal (128), unlike a missing key (1 or 5).
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return &gitConfigError{output: string(out), err: err}
@@ -668,7 +688,15 @@ func isGitConfigMissing(err error) bool {
 		return false
 	}
 	var exitErr *exec.ExitError
-	return errors.As(err, &exitErr) && (exitErr.ExitCode() == 1 || exitErr.ExitCode() == 5)
+	if !errors.As(err, &exitErr) {
+		return false
+	}
+	if exitErr.ExitCode() == 1 || exitErr.ExitCode() == 5 {
+		return true
+	}
+	var configErr *gitConfigError
+	return exitErr.ExitCode() == 128 && errors.As(err, &configErr) &&
+		strings.TrimSpace(configErr.output) == "fatal: no such section: git-ai"
 }
 
 func writeAtomic(path string, data []byte) error {

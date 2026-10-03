@@ -187,6 +187,71 @@ func configTestRepo(t *testing.T) string {
 	return repo
 }
 
+func TestCommitAttributionDefaultsAndLayering(t *testing.T) {
+	repo := configTestRepo(t)
+	t.Setenv(configDirEnv, t.TempDir())
+	t.Setenv("GIT_AI_COMMIT_ATTRIBUTION", "")
+	assertMode := func(want string) {
+		t.Helper()
+		cfg, err := Load(repo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.CommitAttribution != want {
+			t.Fatalf("attribution = %q, want %q", cfg.CommitAttribution, want)
+		}
+	}
+	assertMode("off")
+	if err := SetGlobal("commit_attribution", "compact"); err != nil {
+		t.Fatal(err)
+	}
+	assertMode("compact")
+	if err := SetLocal(repo, "commit_attribution", "off"); err != nil {
+		t.Fatal(err)
+	}
+	assertMode("off")
+	t.Setenv("GIT_AI_COMMIT_ATTRIBUTION", "compact")
+	assertMode("compact")
+	t.Setenv("GIT_AI_COMMIT_ATTRIBUTION", "")
+	if err := UnsetLocal(repo, "commit_attribution"); err != nil {
+		t.Fatal(err)
+	}
+	assertMode("compact")
+	if err := UnsetGlobal("commit_attribution"); err != nil {
+		t.Fatal(err)
+	}
+	assertMode("off")
+	for _, value := range []string{"custom", "true", "", "Compact"} {
+		if err := SetValue(&Config{}, "commit_attribution", value); err == nil {
+			t.Errorf("invalid attribution %q accepted", value)
+		}
+	}
+	if err := ReplaceLocal(repo, &Config{CommitAttribution: "compact"}); err != nil {
+		t.Fatal(err)
+	}
+	assertMode("compact")
+}
+
+func TestReplaceAndResetEmptyLocalConfigDoNotHideWriteFailures(t *testing.T) {
+	repo := configTestRepo(t)
+	if err := ResetScope(repo, ScopeLocal); err != nil {
+		t.Fatalf("reset absent section: %v", err)
+	}
+	if err := ReplaceLocal(repo, &Config{CommitAttribution: "compact"}); err != nil {
+		t.Fatalf("first project save: %v", err)
+	}
+	lock := filepath.Join(repo, ".git", "config.lock")
+	if err := os.WriteFile(lock, []byte("owned by another process"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := ReplaceLocal(repo, &Config{CommitAttribution: "off"}); err == nil {
+		t.Fatal("config lock failure was ignored")
+	}
+	if got := strings.TrimSpace(configGit(t, repo, "config", "--get", "git-ai.commit-attribution")); got != "compact" {
+		t.Fatal("failed replacement changed attribution")
+	}
+}
+
 func configGit(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command("git", args...)

@@ -243,6 +243,7 @@ git-ai config test
 | Параметр | По умолчанию | Назначение |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` или `subject-body` |
+| `commit_attribution` | `off` | Необязательный трейлер `Polished-by`: `off` или `compact` |
 | `language` | `en` | Язык создаваемых сообщений |
 | `smart_skip` | `true` | Сохранить корректное сообщение без вызова модели |
 | `push_policy` | `queue` | Поставить безопасный push в очередь или использовать `block` |

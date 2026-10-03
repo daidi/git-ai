@@ -10,6 +10,7 @@ internal object GitAiCliCompatibility {
         return output.contains("unknown flag: --scope") ||
             output.contains("unknown flag: --json") ||
             output.contains("unknown config key: smart_skip") ||
+            output.contains("unknown config key: commit_attribution") ||
             missingSettingsCommand.containsMatchIn(output)
     }
 }

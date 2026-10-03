@@ -234,6 +234,7 @@ git-ai config test
 | 設定項目 | 預設值 | 用途 |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`、`conventional`、`gitmoji` 或 `subject-body` |
+| `commit_attribution` | `off` | 可選 `Polished-by` 尾註：`off` 關閉，`compact` 簡潔署名 |
 | `language` | `en` | 產生 Commit Message 使用的語言 |
 | `smart_skip` | `true` | 合規新訊息直接保留，不呼叫模型 |
 | `push_policy` | `queue` | 安全排入背景推送；設為 `block` 可完全手動控制 |

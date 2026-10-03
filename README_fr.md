@@ -245,6 +245,7 @@ git-ai config test
 | Réglage | Valeur initiale | Rôle |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` ou `subject-body` |
+| `commit_attribution` | `off` | Mention `Polished-by` facultative : `off` ou `compact` |
 | `language` | `en` | Langue des messages générés |
 | `smart_skip` | `true` | Conserver un bon nouveau message sans appeler le modèle |
 | `push_policy` | `queue` | Mettre en file un push sûr, ou choisir `block` pour le contrôle manuel |

@@ -125,8 +125,8 @@ PromptsReady:
 
 		if lastErr == nil {
 			result = cleanResponse(result)
-			result = restoreCommitTrailers(result, originalMsg)
-			lastErr = ValidatePolishedMessage(result, originalMsg, format, cfg.ExplainEnabled(), !usesCustomPrompt)
+			result = finalizeCommitMessage(result, originalMsg, cfg.CommitAttribution)
+			lastErr = ValidatePolishedMessageWithAttribution(result, originalMsg, format, cfg.ExplainEnabled(), !usesCustomPrompt, cfg.CommitAttribution)
 			if lastErr == nil {
 				break
 			}

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -19,6 +20,84 @@ func TestSplitCommitTrailers(t *testing.T) {
 	content, trailers = splitCommitTrailers("subject\n\n indented body\nSigned-off-by: Alice <alice@example.com>")
 	if content != "subject\n\n indented body" || trailers != "Signed-off-by: Alice <alice@example.com>" {
 		t.Fatalf("indented body split = (%q, %q)", content, trailers)
+	}
+}
+
+func TestFinalizeCommitAttributionPreservesOriginalTrailers(t *testing.T) {
+	userTrailers := "Signed-off-by: Alice <alice@example.com>\nCo-authored-by: Bob <bob@example.com>\n continuation\nFixes: #42"
+	for _, test := range []struct {
+		name, original, mode, want string
+	}{
+		{"default", "wip", "", "fix: handle timeout"},
+		{"off", "wip", "off", "fix: handle timeout"},
+		{"compact", "wip", "compact", "fix: handle timeout\n\n" + compactAttributionTrailer},
+		{"user trailers", "wip\n\n" + userTrailers, "compact", "fix: handle timeout\n\n" + userTrailers + "\n" + compactAttributionTrailer},
+		{"already attributed", "wip\n\n" + compactAttributionTrailer + "\n" + userTrailers, "compact", "fix: handle timeout\n\n" + compactAttributionTrailer + "\n" + userTrailers},
+		{"off preserves metadata", "wip\n\n" + compactAttributionTrailer, "off", "fix: handle timeout\n\n" + compactAttributionTrailer},
+		{"other tool", "wip\n\nPolished-by: Other", "compact", "fix: handle timeout\n\nPolished-by: Other\n" + compactAttributionTrailer},
+		{"CRLF", "wip\r\n\r\nSigned-off-by: Alice\r\n", "compact", "fix: handle timeout\n\nSigned-off-by: Alice\n" + compactAttributionTrailer},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Model-generated attribution and authorship are never authoritative.
+			generated := "fix: handle timeout\n\nPolished-by: Forged\nCo-authored-by: Mallory"
+			got := finalizeCommitMessage(generated, test.original, test.mode)
+			if got != test.want {
+				t.Fatalf("got %q, want %q", got, test.want)
+			}
+			if again := finalizeCommitMessage(got, got, test.mode); again != got {
+				t.Fatalf("repeat polishing changed trailers: %q", again)
+			}
+			if err := ValidatePolishedMessageWithAttribution(got, test.original, FormatConventional, false, true, test.mode); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestAttributedMessagesKeepEveryFormatContract(t *testing.T) {
+	for _, test := range []struct {
+		name, message   string
+		format          Format
+		explain, custom bool
+	}{
+		{"plain", "Handle timeout", FormatPlain, false, false},
+		{"conventional", "fix: handle timeout", FormatConventional, false, false},
+		{"gitmoji", "🐛 fix: handle timeout", FormatGitmoji, false, false},
+		{"subject-body", "Handle timeout\n\nAvoid waiting forever for a response.", FormatSubjectBody, false, false},
+		{"explain", "fix: handle timeout\n\nAvoid waiting forever for a response.", FormatConventional, true, false},
+		{"custom", "TEAM-123 | Handle timeout", FormatConventional, false, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got := finalizeCommitMessage(test.message, "wip", "compact")
+			if err := ValidatePolishedMessageWithAttribution(got, "wip", test.format, test.explain, !test.custom, "compact"); err != nil {
+				t.Fatal(err)
+			}
+			if CommitMessageContent(got) != test.message {
+				t.Fatalf("message body changed: %q", got)
+			}
+		})
+	}
+}
+
+func TestAttributionValidationRejectsTamperingAndUnsafeMessages(t *testing.T) {
+	original := "wip\n\nSigned-off-by: Alice"
+	valid := finalizeCommitMessage("fix: handle timeout", original, "compact")
+	for _, message := range []string{
+		strings.ReplaceAll(valid, "Signed-off-by: Alice\n", ""),
+		valid + "\nCo-authored-by: Mallory",
+		valid + "\n" + compactAttributionTrailer,
+		strings.ReplaceAll(valid, "codegg.org", "attacker.invalid"),
+		strings.ReplaceAll(valid, "\n"+compactAttributionTrailer, ""),
+		strings.Repeat("x", maxGeneratedMessageBytes) + "\n\nSigned-off-by: Alice\n" + compactAttributionTrailer,
+		"fix: bad\x00message\n\nSigned-off-by: Alice\n" + compactAttributionTrailer,
+		finalizeCommitMessage("", original, "compact"),
+	} {
+		if err := ValidatePolishedMessageWithAttribution(message, original, FormatConventional, false, false, "compact"); err == nil {
+			t.Fatal("unsafe attributed message was accepted")
+		}
+	}
+	if err := ValidatePolishedMessage(valid, original, FormatConventional, false, true); err == nil {
+		t.Fatal("off mode accepted a newly added attribution")
 	}
 }
 

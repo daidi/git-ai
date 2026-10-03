@@ -245,6 +245,7 @@ git-ai config test
 | Einstellung | Standard | Zweck |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` oder `subject-body` |
+| `commit_attribution` | `off` | Optionaler `Polished-by`-Trailer: `off` oder `compact` |
 | `language` | `en` | Sprache der generierten Commit-Nachricht |
 | `smart_skip` | `true` | Eine gültige neue Nachricht ohne Modellaufruf behalten |
 | `push_policy` | `queue` | Sicheres Push vormerken oder mit `block` manuell steuern |

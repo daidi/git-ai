@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- Added optional commit attribution, disabled by default: append a single `Polished-by` trailer with the Git AI download link after successful polishing, while preserving original metadata and undo behavior.
+- Added CLI-owned configuration schemas, model discovery, and multi-repository selection in both IDE integrations.
+- Improved diff prioritization, generated-message validation, trailer preservation, and static commitlint-rule handling, with an offline evaluation harness.
+- Fixed first-time project settings saves when no Git AI configuration section exists.
+- Expanded localized settings and documentation to all 15 supported translations.
+
 ## 1.3.1
 
 - Fixed the JetBrains settings page appearing blank when Swing had not initialized a card's accessibility context.

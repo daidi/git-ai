@@ -251,6 +251,7 @@ Useful behavior and output options:
 | Setting | Default | Purpose |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, or `subject-body` |
+| `commit_attribution` | `off` | Opt-in `Polished-by` trailer: `off` or `compact` |
 | `language` | `en` | Language used for generated commit messages |
 | `smart_skip` | `true` | Keep a valid new message instead of calling the model |
 | `push_policy` | `queue` | Queue a safe background push, or set `block` for manual control |
@@ -258,7 +259,15 @@ Useful behavior and output options:
 | `explain` | `false` | Add a short body explaining why the change was made |
 | `prompt_template` | empty | Customize generation with `{{.Diff}}`, `{{.Hint}}`, and `{{.Language}}` |
 
-Configuration resolves in this order:
+Attribution is optional and disabled by default. Enable it for just this repository with `git-ai config set commit_attribution compact` (add `--global` for all repositories). Successful AI polishing appends this trailer after existing metadata:
+
+```text
+Polished-by: Git AI <https://codegg.org/git-ai/>
+```
+
+Original trailers are preserved, and an existing identical attribution is not added again. Smart-skipped, failed, and signed commits are not changed. `git-ai config set commit_attribution off` stops new attribution without removing existing trailers; `git-ai undo` restores the original message, including its original metadata. `GIT_AI_COMMIT_ATTRIBUTION` can override the setting.
+
+Configuration precedence:
 
 ```text
 GIT_AI_* environment variables

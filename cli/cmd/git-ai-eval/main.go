@@ -76,6 +76,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 		modelName = cfg.Model
 		generator = func(ctx context.Context, item evaluation.Case) (string, error) {
 			caseConfig := *cfg
+			// Evaluate generated content and original metadata, independent of
+			// the user's optional branding preference for actual commits.
+			caseConfig.CommitAttribution = "off"
 			caseConfig.MessageFormat = item.Format
 			caseConfig.MaxDiffTokens = item.MaxDiffTokens
 			if item.Language != "" {

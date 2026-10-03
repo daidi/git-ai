@@ -49,6 +49,32 @@ func TestRewriteCommitMessageCASPreservesWorkspaceAndIndex(t *testing.T) {
 	}
 }
 
+func TestRewriteWithAttributionRefusesSignedCommit(t *testing.T) {
+	repo := initTestRepo(t)
+	t.Chdir(repo)
+	gitTestRun(t, repo, "commit", "--allow-empty", "-m", "draft")
+	originalSHA := strings.TrimSpace(gitTestRun(t, repo, "rev-parse", "HEAD"))
+	raw := gitTestRun(t, repo, "cat-file", "-p", originalSHA)
+	// Any signature header must be preserved, without requiring GPG or a key
+	// on test machines. Signature validity is intentionally not our concern.
+	raw = strings.Replace(raw, "\n\n", "\ngpgsig -----BEGIN PGP SIGNATURE-----\n fixture\n -----END PGP SIGNATURE-----\n\n", 1)
+	command := exec.Command("git", "hash-object", "-t", "commit", "-w", "--stdin")
+	command.Stdin = strings.NewReader(raw)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("create signed fixture: %v\n%s", err, output)
+	}
+	signedSHA := strings.TrimSpace(string(output))
+	gitTestRun(t, repo, "update-ref", "refs/heads/main", signedSHA, originalSHA)
+	_, err = RewriteCommitMessageCAS("refs/heads/main", signedSHA, "fix: polished\n\nPolished-by: Git AI <https://codegg.org/git-ai/>")
+	if !errors.Is(err, ErrSignedCommit) {
+		t.Fatalf("rewrite error = %v, want ErrSignedCommit", err)
+	}
+	if got := strings.TrimSpace(gitTestRun(t, repo, "rev-parse", "HEAD")); got != signedSHA {
+		t.Fatal("signed commit was changed")
+	}
+}
+
 func TestRewriteCommitMessageCASRefMovedIsSafeNoOp(t *testing.T) {
 	repo := initTestRepo(t)
 	t.Chdir(repo)

@@ -243,6 +243,7 @@ git-ai config test
 | Impostazione | Predefinita | Scopo |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` o `subject-body` |
+| `commit_attribution` | `off` | Trailer `Polished-by` facoltativo: `off` o `compact` |
 | `language` | `en` | Lingua dei messaggi generati |
 | `smart_skip` | `true` | Mantiene un nuovo messaggio valido senza invocare il modello |
 | `push_policy` | `queue` | Accoda un push sicuro o usa `block` per controllo manuale |

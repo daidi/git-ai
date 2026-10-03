@@ -4,5 +4,6 @@ export function isSettingsProtocolMismatch(error: unknown): boolean {
     return output.includes('unknown flag: --scope')
         || output.includes('unknown flag: --json')
         || output.includes('unknown config key: smart_skip')
+        || output.includes('unknown config key: commit_attribution')
         || /unknown command\s+["']?(replace|reset|schema|models)["']?/.test(output);
 }

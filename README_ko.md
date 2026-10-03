@@ -243,6 +243,7 @@ git-ai config test
 | 설정 | 기본값 | 용도 |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji`, `subject-body` |
+| `commit_attribution` | `off` | 선택적 `Polished-by` 트레일러: `off` 또는 `compact` |
 | `language` | `en` | 생성되는 커밋 메시지 언어 |
 | `smart_skip` | `true` | 유효한 새 메시지는 모델 호출 없이 유지 |
 | `push_policy` | `queue` | 안전한 push를 대기열에 넣거나 `block`으로 수동 제어 |

@@ -4,6 +4,8 @@ import * as vscode from 'vscode';
 
 const TRANSLATIONS: Record<string, Record<string, string>> = {
     en: {
+        'settings.field.commitAttribution': "Commit attribution",
+        'settings.hint.commitAttribution': "off (default): no new trailer. compact: append Polished-by with the Git AI download link only after successful AI polishing. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Skip AI for valid messages',
         'settings.hint.smartSkip': 'Keep a new commit message when it matches Message Format and differs from its parent; otherwise polish it with AI. Custom Prompt always uses AI.',
         'settings.cli.incompatible': 'The installed Git AI CLI is incompatible with this extension. Update the CLI and reopen Settings.',
@@ -175,6 +177,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits AI-Polished',
     },
     'zh-cn': {
+        'settings.field.commitAttribution': "提交润色署名",
+        'settings.hint.commitAttribution': "off（默认）：不新增署名。compact：仅在 AI 润色成功后追加 Polished-by 和 Git AI 下载链接。 https://codegg.org/git-ai/",
         'settings.field.smartSkip': '智能跳过润色',
         'settings.hint.smartSkip': '若本次 Commit 信息符合所选格式且与前一次不同，则直接保留；否则交给 AI 润色。自定义提示词始终使用 AI。',
         'settings.cli.incompatible': '已安装的 Git AI CLI 与此扩展不兼容。请更新 CLI 后重新打开设置。',
@@ -346,6 +350,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 次 AI 自动润色',
     },
     'zh-tw': {
+        'settings.field.commitAttribution': "提交潤飾署名",
+        'settings.hint.commitAttribution': "off（預設）：不新增署名。compact：僅在 AI 潤飾成功後附加 Polished-by 和 Git AI 下載連結。 https://codegg.org/git-ai/",
         'settings.field.smartSkip': '智慧跳過潤飾',
         'settings.hint.smartSkip': '若本次 Commit 訊息符合所選格式且與前一次不同，則直接保留；否則交給 AI 潤飾。自訂提示詞一律使用 AI。',
         'settings.cli.incompatible': '已安裝的 Git AI CLI 與此擴充功能不相容。請更新 CLI 後重新開啟設定。',
@@ -369,6 +375,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 次 AI 自動潤飾',
     },
     'fr': {
+        'settings.field.commitAttribution': "Attribution du commit",
+        'settings.hint.commitAttribution': "off (par défaut) : aucun ajout. compact : ajoute Polished-by et le lien de téléchargement de Git AI uniquement après une amélioration réussie par IA. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Ignorer l\'IA pour les messages valides',
         'settings.hint.smartSkip': 'Conserver le nouveau message s\'il respecte le format et diffère du précédent ; sinon, le polir avec l\'IA. Un prompt personnalisé utilise toujours l\'IA.',
         'settings.cli.incompatible': 'La version installée de Git AI CLI est incompatible avec cette extension. Mettez à jour la CLI puis rouvrez les paramètres.',
@@ -392,6 +400,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits polis par l\'IA',
     },
     'it': {
+        'settings.field.commitAttribution': "Attribuzione del commit",
+        'settings.hint.commitAttribution': "off (predefinito): nessuna aggiunta. compact: aggiunge Polished-by e il link per scaricare Git AI solo dopo il perfezionamento riuscito con IA. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Salta IA per messaggi validi',
         'settings.hint.smartSkip': 'Mantieni il nuovo messaggio se rispetta il formato ed è diverso dal precedente; altrimenti perfezionalo con l\'IA. Un prompt personalizzato usa sempre l\'IA.',
         'settings.cli.incompatible': 'La versione installata di Git AI CLI non è compatibile con questa estensione. Aggiorna la CLI e riapri le Impostazioni.',
@@ -415,6 +425,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commit migliorati dall\'IA',
     },
     'de': {
+        'settings.field.commitAttribution': "Commit-Kennzeichnung",
+        'settings.hint.commitAttribution': "off (Standard): kein neuer Trailer. compact: Polished-by und den Git-AI-Downloadlink nur nach erfolgreicher KI-Überarbeitung anhängen. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'KI bei gültigen Nachrichten überspringen',
         'settings.hint.smartSkip': 'Eine neue Commit-Nachricht beibehalten, wenn sie dem Format entspricht und sich von der vorherigen unterscheidet; andernfalls mit KI polieren. Ein benutzerdefinierter Prompt verwendet immer KI.',
         'settings.cli.incompatible': 'Die installierte Git AI CLI ist mit dieser Erweiterung nicht kompatibel. Aktualisieren Sie die CLI und öffnen Sie die Einstellungen erneut.',
@@ -438,6 +450,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} KI-polierte Commits',
     },
     'es': {
+        'settings.field.commitAttribution': "Atribución del commit",
+        'settings.hint.commitAttribution': "off (predeterminado): no añade nada. compact: añade Polished-by y el enlace de descarga de Git AI solo tras un refinamiento correcto con IA. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Omitir IA para mensajes válidos',
         'settings.hint.smartSkip': 'Conserva el mensaje nuevo si coincide con el formato y difiere del anterior; de lo contrario, lo pule con IA. Un prompt personalizado siempre usa IA.',
         'settings.cli.incompatible': 'La versión instalada de Git AI CLI no es compatible con esta extensión. Actualiza la CLI y vuelve a abrir Configuración.',
@@ -461,6 +475,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits pulidos por IA',
     },
     'ja': {
+        'settings.field.commitAttribution': "コミットの帰属表示",
+        'settings.hint.commitAttribution': "off（既定）：追記しません。compact：AIによる推敲に成功した場合のみ、Polished-by と Git AI のダウンロードリンクを追記します。 https://codegg.org/git-ai/",
         'settings.field.smartSkip': '有効なメッセージではAIをスキップ',
         'settings.hint.smartSkip': '新しいコミットメッセージが指定形式に一致し、直前と異なる場合はそのまま使用します。それ以外はAIで推敲します。カスタムプロンプトは常にAIを使用します。',
         'settings.cli.incompatible': 'インストール済みの Git AI CLI はこの拡張機能と互換性がありません。CLI を更新して設定を開き直してください。',
@@ -484,6 +500,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} 件のAI推敲済みコミット',
     },
     'ko': {
+        'settings.field.commitAttribution': "커밋 도구 표시",
+        'settings.hint.commitAttribution': "off(기본값): 추가하지 않습니다. compact: AI 다듬기가 성공한 경우에만 Polished-by와 Git AI 다운로드 링크를 추가합니다. https://codegg.org/git-ai/",
         'settings.field.smartSkip': '유효한 메시지는 AI 건너뛰기',
         'settings.hint.smartSkip': '새 커밋 메시지가 지정 형식에 맞고 이전 메시지와 다르면 그대로 사용합니다. 그렇지 않으면 AI로 다듬습니다. 사용자 지정 프롬프트는 항상 AI를 사용합니다.',
         'settings.cli.incompatible': '설치된 Git AI CLI가 이 확장과 호환되지 않습니다. CLI를 업데이트한 뒤 설정을 다시 여세요.',
@@ -507,6 +525,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0}개의 AI 윤색 커밋',
     },
     'pt': {
+        'settings.field.commitAttribution': "Atribuição do commit",
+        'settings.hint.commitAttribution': "off (padrão): sem novo trailer. compact: adiciona Polished-by e o link para baixar o Git AI somente após o refinamento bem-sucedido por IA. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Ignorar IA em mensagens válidas',
         'settings.hint.smartSkip': 'Mantenha a nova mensagem quando ela seguir o formato e for diferente da anterior; caso contrário, refine com IA. Um prompt personalizado sempre usa IA.',
         'settings.cli.incompatible': 'A versão instalada do Git AI CLI não é compatível com esta extensão. Atualize a CLI e reabra as Configurações.',
@@ -530,6 +550,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commits polidos por IA',
     },
     'ru': {
+        'settings.field.commitAttribution': "Отметка инструмента в коммите",
+        'settings.hint.commitAttribution': "off (по умолчанию): ничего не добавлять. compact: добавлять Polished-by и ссылку для скачивания Git AI только после успешного улучшения сообщения ИИ. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Пропускать ИИ для корректных сообщений',
         'settings.hint.smartSkip': 'Сохранять новое сообщение, если оно соответствует формату и отличается от предыдущего; иначе улучшать его с помощью ИИ. Пользовательский промпт всегда использует ИИ.',
         'settings.cli.incompatible': 'Установленная версия Git AI CLI несовместима с этим расширением. Обновите CLI и снова откройте настройки.',
@@ -553,6 +575,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} коммитов отшлифовано ИИ',
     },
     'ar': {
+        'settings.field.commitAttribution': "نسبة تحسين الالتزام",
+        'settings.hint.commitAttribution': "off (افتراضي): دون إضافة. compact: إضافة Polished-by ورابط تنزيل Git AI فقط بعد نجاح تحسين الرسالة بالذكاء الاصطناعي. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'تخطي الذكاء الاصطناعي للرسائل الصالحة',
         'settings.hint.smartSkip': 'احتفظ برسالة الالتزام الجديدة عندما تطابق التنسيق وتختلف عن السابقة؛ وإلا فقم بتحسينها بالذكاء الاصطناعي. يستخدم القالب المخصص الذكاء الاصطناعي دائمًا.',
         'settings.cli.incompatible': 'إصدار Git AI CLI المثبت غير متوافق مع هذه الإضافة. حدّث CLI ثم أعد فتح الإعدادات.',
@@ -576,6 +600,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} إيداعات تم تحسينها',
     },
     'vi': {
+        'settings.field.commitAttribution': "Ghi nhận công cụ trong commit",
+        'settings.hint.commitAttribution': "off (mặc định): không thêm. compact: chỉ thêm Polished-by và liên kết tải Git AI sau khi AI trau chuốt thành công. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Bỏ qua AI khi thông điệp hợp lệ',
         'settings.hint.smartSkip': 'Giữ thông điệp commit mới khi đúng định dạng và khác thông điệp trước; nếu không, dùng AI trau chuốt. Prompt tùy chỉnh luôn dùng AI.',
         'settings.cli.incompatible': 'Git AI CLI đã cài đặt không tương thích với tiện ích này. Hãy cập nhật CLI rồi mở lại Cài đặt.',
@@ -599,6 +625,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commit đã được AI trau chuốt',
     },
     'th': {
+        'settings.field.commitAttribution': "ระบุเครื่องมือปรับแต่งคอมมิต",
+        'settings.hint.commitAttribution': "off (ค่าเริ่มต้น): ไม่เพิ่มข้อความ compact: เพิ่ม Polished-by และลิงก์ดาวน์โหลด Git AI เฉพาะเมื่อ AI ปรับแต่งสำเร็จ https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'ข้าม AI เมื่อข้อความถูกต้อง',
         'settings.hint.smartSkip': 'ใช้ข้อความคอมมิตใหม่ทันทีเมื่อรูปแบบถูกต้องและต่างจากข้อความก่อนหน้า มิฉะนั้นให้ AI ปรับแต่ง พรอมต์แบบกำหนดเองจะใช้ AI เสมอ',
         'settings.cli.incompatible': 'Git AI CLI ที่ติดตั้งอยู่ไม่เข้ากันกับส่วนขยายนี้ โปรดอัปเดต CLI แล้วเปิดการตั้งค่าอีกครั้ง',
@@ -622,6 +650,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} คอมมิตที่ขัดเกลาโดย AI',
     },
     'ms': {
+        'settings.field.commitAttribution': "Atribusi commit",
+        'settings.hint.commitAttribution': "off (lalai): tiada tambahan. compact: tambah Polished-by dan pautan muat turun Git AI hanya selepas penggilapan AI berjaya. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Langkau AI untuk mesej yang sah',
         'settings.hint.smartSkip': 'Kekalkan mesej commit baharu apabila sepadan dengan Format Mesej dan berbeza daripada induknya; jika tidak, gilap dengan AI. Prompt Tersuai sentiasa menggunakan AI.',
         'settings.cli.incompatible': 'Git AI CLI yang dipasang tidak serasi dengan sambungan ini. Kemas kini CLI dan buka semula Tetapan.',
@@ -793,6 +823,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
         'stats.commitsPolished': '{0} Commit Digilap oleh AI',
     },
     'id': {
+        'settings.field.commitAttribution': "Atribusi commit",
+        'settings.hint.commitAttribution': "off (bawaan): tanpa tambahan. compact: tambahkan Polished-by dan tautan unduh Git AI hanya setelah pemolesan AI berhasil. https://codegg.org/git-ai/",
         'settings.field.smartSkip': 'Lewati AI untuk pesan valid',
         'settings.hint.smartSkip': 'Pakai pesan commit baru jika formatnya sesuai dan berbeda dari sebelumnya; kalau tidak, poles dengan AI. Prompt khusus selalu memakai AI.',
         'settings.cli.incompatible': 'Git AI CLI yang terpasang tidak kompatibel dengan ekstensi ini. Perbarui CLI lalu buka kembali Pengaturan.',

@@ -234,12 +234,21 @@ git-ai config test
 | 配置项 | 默认值 | 用途 |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`、`conventional`、`gitmoji` 或 `subject-body` |
+| `commit_attribution` | `off` | 可选 `Polished-by` 尾注：`off` 关闭，`compact` 简洁署名 |
 | `language` | `en` | 生成 Commit Message 使用的语言 |
 | `smart_skip` | `true` | 合规新消息直接保留，不调用模型 |
 | `push_policy` | `queue` | 安全排队后台推送；设为 `block` 可完全手动控制 |
 | `max_diff_tokens` | `8000` | 限制发送给模型的 Diff 上下文 |
 | `explain` | `false` | 增加一段简短正文说明改动原因 |
 | `prompt_template` | 空 | 使用 `{{.Diff}}`、`{{.Hint}}` 与 `{{.Language}}` 自定义生成 |
+
+署名默认关闭。运行 `git-ai config set commit_attribution compact` 仅为当前仓库开启（加 `--global` 可全局开启），AI 润色成功后会在原有 trailer 末尾追加：
+
+```text
+Polished-by: Git AI <https://codegg.org/git-ai/>
+```
+
+原有 trailer 保留，已有相同署名不会重复追加。智能跳过、润色失败和已签名的提交不会被改动。设置为 `off` 后不再新增署名，但不会删除原有 trailer；`git-ai undo` 会恢复原始消息及其元数据。也可以用 `GIT_AI_COMMIT_ATTRIBUTION` 环境变量覆盖设置。
 
 配置优先级为：`GIT_AI_*` 环境变量 → `.git/config` 仓库覆盖项 → 操作系统用户配置 → 默认值。API Key 只能存储在用户级配置中；工作区里的旧 `.git-ai.json` 会被忽略，避免克隆的仓库把用户凭据重定向到不可信端点。
 

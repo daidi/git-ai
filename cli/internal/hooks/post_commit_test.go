@@ -20,6 +20,9 @@ func TestRunPostCommitKeepsValidMessageWithoutStartingOperation(t *testing.T) {
 	t.Setenv("GIT_AI_INTERNAL", "")
 	t.Setenv("GIT_AI_SKIP", "")
 	commitPostCommitFixture(t, repo, "one.txt", "one\n", "feat: add fixture")
+	if err := config.SetLocal(repo, "commit_attribution", "compact"); err != nil {
+		t.Fatal(err)
+	}
 	wantSHA := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
 
 	if err := RunPostCommit(false, ""); err != nil {
@@ -96,6 +99,26 @@ func TestSmartSkipCanBeDisabledAndDoesNotGuessCustomPromptFormat(t *testing.T) {
 	}
 	if shouldSmartSkipPolish(sha, "feat: add fixture") {
 		t.Fatal("custom prompt format was guessed")
+	}
+}
+
+func TestSmartSkipIgnoresAttributionWhenCheckingFormatAndRepetition(t *testing.T) {
+	repo := initPostCommitTestRepo(t)
+	t.Chdir(repo)
+	t.Setenv("GIT_AI_CONFIG_DIR", t.TempDir())
+	if err := config.SetLocal(repo, "message_format", "plain"); err != nil {
+		t.Fatal(err)
+	}
+	message := "Add fixture\n\nPolished-by: Git AI <https://codegg.org/git-ai/>"
+	commitPostCommitFixture(t, repo, "one.txt", "one\n", message)
+	sha := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
+	if !shouldSmartSkipPolish(sha, message) {
+		t.Fatal("attribution invalidated a plain message")
+	}
+	commitPostCommitFixture(t, repo, "two.txt", "two\n", "Add fixture")
+	sha = strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
+	if shouldSmartSkipPolish(sha, "Add fixture") {
+		t.Fatal("removing attribution hid a repeated message")
 	}
 }
 

@@ -56,6 +56,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val gBaseUrl = JBTextField().apply { columns = 36 }
     private val gModel = editableCombo()
     private val gMessageFormat = ComboBox(arrayOf("conventional", "plain", "gitmoji", "subject-body"))
+    private val gCommitAttribution = ComboBox(arrayOf("off", "compact"))
     private val gSmartSkip = JBCheckBox(GitAiBundle.message("settings.field.smartSkip"))
     private val gLanguage = ComboBox(arrayOf("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms"))
     private val gPushPolicy = ComboBox(arrayOf("queue", "block"))
@@ -71,6 +72,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
     private val pBaseUrl = JBTextField().apply { columns = 36 }
     private val pModel = editableCombo(inherited = true)
     private val pMessageFormat = inheritedCombo("conventional", "plain", "gitmoji", "subject-body")
+    private val pCommitAttribution = inheritedCombo("off", "compact")
     private val pSmartSkip = inheritedCombo("true", "false")
     private val pLanguage = inheritedCombo("en", "zh-CN", "ja", "ko", "es", "fr", "de", "ms")
     private val pPushPolicy = inheritedCombo("queue", "block")
@@ -176,6 +178,8 @@ class GitAiSettingsComponent(private val basePath: String?) {
         replaceValues(pProvider, schema.providers.map { it.id }.ifEmpty { fields["provider"]?.values.orEmpty() }, inherited = true)
         replaceValues(gMessageFormat, fields["message_format"]?.values.orEmpty())
         replaceValues(pMessageFormat, fields["message_format"]?.values.orEmpty(), inherited = true)
+        replaceValues(gCommitAttribution, fields["commit_attribution"]?.values.orEmpty())
+        replaceValues(pCommitAttribution, fields["commit_attribution"]?.values.orEmpty(), inherited = true)
         replaceValues(gPushPolicy, fields["push_policy"]?.values.orEmpty())
         replaceValues(pPushPolicy, fields["push_policy"]?.values.orEmpty(), inherited = true)
         replaceValues(gLogLevel, fields["log_level"]?.values.orEmpty())
@@ -279,6 +283,10 @@ class GitAiSettingsComponent(private val basePath: String?) {
             row(GitAiBundle.message("settings.field.messageFormat")) {
                 cell(gMessageFormat).align(AlignX.FILL).resizableColumn()
             }
+            row(GitAiBundle.message("settings.field.commitAttribution")) {
+                cell(gCommitAttribution).align(AlignX.FILL).resizableColumn()
+                    .comment(settingsComment("settings.hint.commitAttribution"))
+            }
             row {
                 cell(gSmartSkip)
                     .comment(settingsComment("settings.hint.smartSkip"))
@@ -345,6 +353,10 @@ class GitAiSettingsComponent(private val basePath: String?) {
         group(GitAiBundle.message("settings.section.format")) {
             row(GitAiBundle.message("settings.field.messageFormat")) {
                 cell(pMessageFormat).align(AlignX.FILL).resizableColumn()
+            }
+            row(GitAiBundle.message("settings.field.commitAttribution")) {
+                cell(pCommitAttribution).align(AlignX.FILL).resizableColumn()
+                    .comment(settingsComment("settings.hint.commitAttribution"))
             }
             row(GitAiBundle.message("settings.field.smartSkip")) {
                 cell(pSmartSkip)
@@ -415,12 +427,14 @@ class GitAiSettingsComponent(private val basePath: String?) {
         listOf(
             gProvider,
             gMessageFormat,
+            gCommitAttribution,
             gLanguage,
             gPushPolicy,
             gLogLevel,
             gUiLanguage,
             pProvider,
             pMessageFormat,
+            pCommitAttribution,
             pSmartSkip,
             pLanguage,
             pPushPolicy,
@@ -464,6 +478,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gBaseUrl.isEnabled = uiEnabled
         gModel.isEnabled = uiEnabled
         gMessageFormat.isEnabled = uiEnabled && !hasCustomPrompt
+        gCommitAttribution.isEnabled = uiEnabled
         gSmartSkip.isEnabled = uiEnabled && !hasCustomPrompt
         gLanguage.isEnabled = uiEnabled
         gPushPolicy.isEnabled = uiEnabled
@@ -489,6 +504,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pBaseUrl.isEnabled = enabled
         pModel.isEnabled = enabled
         pMessageFormat.isEnabled = enabled && !hasCustomPrompt
+        pCommitAttribution.isEnabled = enabled
         pSmartSkip.isEnabled = enabled && !hasCustomPrompt
         pLanguage.isEnabled = enabled
         pPushPolicy.isEnabled = enabled
@@ -580,6 +596,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
             baseUrl = gBaseUrl.text.takeIf { it.isNotBlank() },
             model = comboText(gModel).takeIf { it.isNotBlank() },
             messageFormat = gMessageFormat.selectedItem as? String,
+            commitAttribution = gCommitAttribution.selectedItem as? String,
             smartSkip = gSmartSkip.isSelected,
             language = gLanguage.selectedItem as? String,
             uiLanguage = (gUiLanguage.selectedItem as? String)?.takeIf { it.isNotEmpty() },
@@ -599,6 +616,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         gBaseUrl.text = cfg.baseUrl.orEmpty()
         gModel.editor.item = cfg.model.orEmpty()
         gMessageFormat.selectedItem = cfg.messageFormat ?: "conventional"
+        gCommitAttribution.selectedItem = cfg.commitAttribution ?: "off"
         gSmartSkip.isSelected = cfg.smartSkip ?: true
         gLanguage.selectedItem = cfg.language ?: "en"
         gUiLanguage.selectedItem = cfg.uiLanguage ?: ""
@@ -614,6 +632,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         baseUrl = pBaseUrl.text.takeIf { it.isNotBlank() },
         model = comboText(pModel).takeIf { it.isNotBlank() },
         messageFormat = selectedOverride(pMessageFormat),
+        commitAttribution = selectedOverride(pCommitAttribution),
         smartSkip = selectedOverride(pSmartSkip)?.toBooleanStrictOrNull(),
         language = selectedOverride(pLanguage),
         uiLanguage = selectedOverride(pUiLanguage),
@@ -629,6 +648,7 @@ class GitAiSettingsComponent(private val basePath: String?) {
         pBaseUrl.text = cfg.baseUrl.orEmpty()
         pModel.editor.item = cfg.model.orEmpty()
         pMessageFormat.selectedItem = cfg.messageFormat ?: ""
+        pCommitAttribution.selectedItem = cfg.commitAttribution ?: ""
         pSmartSkip.selectedItem = cfg.smartSkip?.toString() ?: ""
         pLanguage.selectedItem = cfg.language ?: ""
         pPushPolicy.selectedItem = cfg.pushPolicy ?: ""

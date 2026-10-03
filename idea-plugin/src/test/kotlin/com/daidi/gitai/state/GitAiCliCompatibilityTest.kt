@@ -18,6 +18,7 @@ class GitAiCliCompatibilityTest {
         assertTrue(mismatch(stderr = "unknown command 'schema' for 'git-ai config'"))
         assertTrue(mismatch(stderr = "unknown command 'models' for 'git-ai config'"))
         assertTrue(mismatch(stderr = "unknown config key: smart_skip"))
+        assertTrue(mismatch(stderr = "unknown config key: commit_attribution"))
     }
 
     @Test

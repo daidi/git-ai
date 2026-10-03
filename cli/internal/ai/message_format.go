@@ -41,6 +41,12 @@ func MatchesMessageFormat(message string, format Format, explain bool) bool {
 // custom prompts retain their intentionally user-defined structure. In both
 // cases, the original trailer block must remain unchanged.
 func ValidatePolishedMessage(message, original string, format Format, explain, enforceFormat bool) error {
+	return ValidatePolishedMessageWithAttribution(message, original, format, explain, enforceFormat, "off")
+}
+
+// ValidatePolishedMessageWithAttribution permits only the exact opt-in trailer
+// added by the CLI, while preserving all original metadata and size bounds.
+func ValidatePolishedMessageWithAttribution(message, original string, format Format, explain, enforceFormat bool, attribution string) error {
 	if strings.TrimSpace(message) == "" {
 		return &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned an empty completion"}
 	}
@@ -52,8 +58,7 @@ func ValidatePolishedMessage(message, original string, format Format, explain, e
 	}
 
 	content, trailers := splitCommitTrailers(message)
-	_, originalTrailers := splitCommitTrailers(original)
-	if trailers != originalTrailers {
+	if trailers != expectedCommitTrailers(original, attribution) {
 		return &ProviderError{Kind: ErrorInvalidResponse, Message: "generated commit trailers did not match the original message"}
 	}
 	if enforceFormat && !MatchesMessageFormat(content, format, explain) {

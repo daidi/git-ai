@@ -184,10 +184,10 @@ func shouldSmartSkipPolish(sha, currentMessage string) bool {
 	if err != nil {
 		return false
 	}
-	if found && normalizedCommitMessage(currentMessage) == normalizedCommitMessage(previousMessage) {
+	if found && normalizedCommitMessage(ai.CommitMessageContent(currentMessage)) == normalizedCommitMessage(ai.CommitMessageContent(previousMessage)) {
 		return false
 	}
-	return ai.MatchesMessageFormat(currentMessage, ai.Format(cfg.MessageFormat), cfg.ExplainEnabled())
+	return ai.MatchesMessageFormat(ai.CommitMessageContent(currentMessage), ai.Format(cfg.MessageFormat), cfg.ExplainEnabled())
 }
 
 func normalizedCommitMessage(message string) string {
@@ -246,7 +246,7 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 		notify.Send("Git AI", failure.Message)
 		return err
 	}
-	if err := ai.ValidatePolishedMessage(polished, snapshot.OriginalMsg, ai.Format(cfg.MessageFormat), cfg.ExplainEnabled(), strings.TrimSpace(cfg.PromptTemplate) == ""); err != nil {
+	if err := ai.ValidatePolishedMessageWithAttribution(polished, snapshot.OriginalMsg, ai.Format(cfg.MessageFormat), cfg.ExplainEnabled(), strings.TrimSpace(cfg.PromptTemplate) == "", cfg.CommitAttribution); err != nil {
 		failure := ai.DescribeError(err)
 		markOperationFailure(mgr, operationID, state.OperationError{Code: failure.Code, Category: failure.Category, Message: failure.Message, Retryable: failure.Retryable, OccurredAt: time.Now().Unix()})
 		logger.Printf("polished message rejected before rewrite category=%s", failure.Category)

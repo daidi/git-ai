@@ -51,6 +51,7 @@ func Schema() ConfigSchema {
 			{Key: "ui_language", Type: "string", Description: "CLI and IDE interface language"},
 			{Key: "push_policy", Type: "string", Default: defaults.PushPolicy, Enum: []string{"queue", "block"}, Description: "Behavior when push starts during polishing"},
 			{Key: "message_format", Type: "string", Default: defaults.MessageFormat, Enum: []string{"plain", "conventional", "gitmoji", "subject-body"}, Description: "Generated commit message format"},
+			{Key: "commit_attribution", Type: "string", Default: defaults.CommitAttribution, Enum: []string{"off", "compact"}, Description: "Optionally append a Polished-by trailer with the Git AI download URL after successful polishing"},
 			{Key: "prompt_template", Type: "string", Multiline: true, Description: "Custom Go template for generation prompts"},
 			{Key: "smart_skip", Type: "boolean", Default: defaults.SmartSkipEnabled(), Description: "Keep valid new commit messages without calling the model"},
 			{Key: "max_diff_tokens", Type: "integer", Default: defaults.MaxDiffTokens, Minimum: intPointer(1), Maximum: intPointer(100_000), Description: "Maximum approximate diff tokens sent to the provider"},

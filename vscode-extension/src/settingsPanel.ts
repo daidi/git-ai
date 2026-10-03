@@ -16,6 +16,7 @@ interface GitAiConfig {
     ui_language?: string;
     push_policy?: string;
     message_format?: string;
+    commit_attribution?: string;
     prompt_template?: string;
     smart_skip?: boolean;
     max_diff_tokens?: number;
@@ -69,6 +70,7 @@ const DEFAULTS: Required<GitAiConfig> = {
     ui_language: '',
     push_policy: 'queue',
     message_format: 'conventional',
+    commit_attribution: 'off',
     prompt_template: '',
     smart_skip: true,
     max_diff_tokens: 8000,
@@ -439,6 +441,7 @@ export class SettingsPanel {
 
                 ${this.renderSection('edit', t('settings.section.format'), `
                     ${this.renderSelect('g', 'message_format', t('settings.field.messageFormat'), this.enumValues('message_format', ['conventional', 'plain', 'gitmoji', 'subject-body']), defaults.message_format, global.message_format, '')}
+                    ${this.renderSelect('g', 'commit_attribution', t('settings.field.commitAttribution'), this.enumValues('commit_attribution', ['off', 'compact']), defaults.commit_attribution, global.commit_attribution, '', t('settings.hint.commitAttribution'))}
                     ${this.renderSelect('g', 'language', t('settings.field.language'), ['en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], DEFAULTS.language, global.language, '')}
                     ${this.renderToggle('g', 'smart_skip', t('settings.field.smartSkip'), global.smart_skip ?? defaults.smart_skip, t('settings.hint.smartSkip'))}
                     ${this.renderToggle('g', 'explain', t('settings.field.explain'), global.explain ?? defaults.explain, t('settings.hint.explain'))}
@@ -491,6 +494,7 @@ export class SettingsPanel {
 
                 ${this.renderSection('edit', t('settings.section.format'), `
                     ${this.renderSelect('p', 'message_format', t('settings.field.messageFormat'), ['', ...this.enumValues('message_format', ['conventional', 'plain', 'gitmoji', 'subject-body'])], '', project.message_format, merged.message_format)}
+                    ${this.renderSelect('p', 'commit_attribution', t('settings.field.commitAttribution'), ['', ...this.enumValues('commit_attribution', ['off', 'compact'])], '', project.commit_attribution, merged.commit_attribution, t('settings.hint.commitAttribution'))}
                     ${this.renderSelect('p', 'language', t('settings.field.language'), ['', 'en', 'zh-CN', 'ja', 'ko', 'es', 'fr', 'de', 'ms'], '', project.language, merged.language)}
                     ${this.renderSelect('p', 'smart_skip', t('settings.field.smartSkip'), ['', 'true', 'false'], '', project.smart_skip?.toString(), String(merged.smart_skip), t('settings.hint.smartSkip'))}
                     ${this.renderSelect('p', 'explain', t('settings.field.explain'), ['', 'true', 'false'], '', project.explain?.toString(), String(merged.explain), t('settings.hint.explain'))}

@@ -229,6 +229,7 @@ class GitAiSettingsConfigurable(private val project: Project) : Configurable, Co
             uiLanguage = raw.uiLanguage ?: defaults.uiLanguage,
             pushPolicy = raw.pushPolicy ?: defaults.pushPolicy,
             messageFormat = raw.messageFormat ?: defaults.messageFormat,
+            commitAttribution = raw.commitAttribution ?: defaults.commitAttribution,
             promptTemplate = raw.promptTemplate ?: defaults.promptTemplate,
             smartSkip = raw.smartSkip ?: defaults.smartSkip,
             maxDiffTokens = raw.maxDiffTokens ?: defaults.maxDiffTokens,

@@ -243,6 +243,7 @@ git-ai config test
 | ค่า | ค่าเริ่มต้น | จุดประสงค์ |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` หรือ `subject-body` |
+| `commit_attribution` | `off` | ส่วนท้าย `Polished-by` แบบเลือกเปิด: `off` หรือ `compact` |
 | `language` | `en` | ภาษาของข้อความ commit ที่สร้าง |
 | `smart_skip` | `true` | คงข้อความใหม่ที่ถูกต้องโดยไม่เรียกโมเดล |
 | `push_policy` | `queue` | เข้าคิว push ที่ปลอดภัย หรือใช้ `block` เพื่อควบคุมเอง |

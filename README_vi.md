@@ -243,6 +243,7 @@ git-ai config test
 | Thiết lập | Mặc định | Mục đích |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` hoặc `subject-body` |
+| `commit_attribution` | `off` | Dòng cuối `Polished-by` tùy chọn: `off` hoặc `compact` |
 | `language` | `en` | Ngôn ngữ của thông điệp được tạo |
 | `smart_skip` | `true` | Giữ thông điệp mới hợp lệ mà không gọi mô hình |
 | `push_policy` | `queue` | Xếp push an toàn hoặc dùng `block` để điều khiển thủ công |

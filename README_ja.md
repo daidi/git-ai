@@ -243,6 +243,7 @@ git-ai config test
 | 設定 | 既定値 | 用途 |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`、`conventional`、`gitmoji`、`subject-body` |
+| `commit_attribution` | `off` | 任意の `Polished-by` フッター：`off` または `compact` |
 | `language` | `en` | 生成するコミットメッセージの言語 |
 | `smart_skip` | `true` | 有効な新規メッセージならモデルを呼ばず維持 |
 | `push_policy` | `queue` | 安全な push を待機、または `block` で手動制御 |

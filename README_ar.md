@@ -243,6 +243,7 @@ git-ai config test
 | الإعداد | الافتراضي | الغرض |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain` أو `conventional` أو `gitmoji` أو `subject-body` |
+| `commit_attribution` | `off` | تذييل `Polished-by` اختياري: `off` أو `compact` |
 | `language` | `en` | لغة رسائل commit المولّدة |
 | `smart_skip` | `true` | الاحتفاظ برسالة جديدة صالحة من دون استدعاء النموذج |
 | `push_policy` | `queue` | وضع push آمن في الطابور أو استخدام `block` للتحكم اليدوي |

@@ -251,6 +251,7 @@ Pilihan tingkah laku dan output yang berguna:
 | Tetapan | Lalai | Tujuan |
 |:--|:--|:--|
 | `message_format` | `conventional` | `plain`, `conventional`, `gitmoji` atau `subject-body` |
+| `commit_attribution` | `off` | Treler `Polished-by` pilihan: `off` atau `compact` |
 | `language` | `en` | Bahasa yang digunakan untuk mesej commit yang dijana |
 | `smart_skip` | `true` | Kekalkan mesej baharu yang sah tanpa memanggil model |
 | `push_policy` | `queue` | Baris-gilirkan push latar belakang yang selamat atau tetapkan `block` untuk kawalan manual |

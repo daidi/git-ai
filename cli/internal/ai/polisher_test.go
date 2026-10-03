@@ -24,14 +24,14 @@ func TestPolishRepairsInvalidFormatAndPreservesTrailers(t *testing.T) {
 			return
 		}
 		for _, message := range payload.Messages {
-			if strings.Contains(message.Content, "Signed-off-by:") {
+			if strings.Contains(message.Content, "Signed-off-by:") || strings.Contains(message.Content, compactAttributionTrailer) {
 				t.Errorf("protected trailer was sent to the model: %q", message.Content)
 			}
 		}
 
 		content := "Here is a commit message:\nfix(cache): avoid duplicate requests"
 		if attempts.Add(1) > 1 {
-			content = "fix(cache): avoid duplicate requests"
+			content = "fix(cache): avoid duplicate requests\n\nPolished-by: Forged"
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(ChatResponse{Choices: []Choice{{Message: Message{Role: "assistant", Content: content}}}})
@@ -42,18 +42,38 @@ func TestPolishRepairsInvalidFormatAndPreservesTrailers(t *testing.T) {
 	cfg.APIKey = "test-key"
 	cfg.BaseURL = server.URL
 	cfg.Model = "test-model"
+	cfg.CommitAttribution = "compact"
 	original := "wip\n\nSigned-off-by: Alice <alice@example.com>"
 
 	got, err := PolishWithLogger("diff --git a/cache.go b/cache.go\n+cache()", original, t.TempDir(), cfg, log.New(io.Discard, "", 0))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "fix(cache): avoid duplicate requests\n\nSigned-off-by: Alice <alice@example.com>"
+	want := "fix(cache): avoid duplicate requests\n\nSigned-off-by: Alice <alice@example.com>\n" + compactAttributionTrailer
 	if got != want {
 		t.Fatalf("PolishWithLogger() = %q, want %q", got, want)
 	}
 	if gotAttempts := attempts.Load(); gotAttempts != 2 {
 		t.Fatalf("attempts = %d, want 2", gotAttempts)
+	}
+	again, err := PolishWithLogger("diff --git a/cache.go b/cache.go\n+cache()", got, t.TempDir(), cfg, log.New(io.Discard, "", 0))
+	if err != nil || again != want {
+		t.Fatalf("repeat polishing = %q, error = %v", again, err)
+	}
+}
+
+func TestFailedPolishDoesNotReturnAttribution(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+	cfg := config.Defaults()
+	cfg.APIKey = "test-key"
+	cfg.BaseURL = server.URL
+	cfg.CommitAttribution = "compact"
+	got, err := PolishWithLogger("+cache()", "wip", t.TempDir(), cfg, log.New(io.Discard, "", 0))
+	if err == nil || got != "" {
+		t.Fatalf("failed polish returned %q, error = %v", got, err)
 	}
 }
 

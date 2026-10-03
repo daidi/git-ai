@@ -7,6 +7,8 @@ import (
 
 const maxGeneratedMessageBytes = 64 << 10
 
+const compactAttributionTrailer = "Polished-by: Git AI <https://codegg.org/git-ai/>"
+
 // splitCommitTrailers separates a trailing Git-style trailer block from the
 // human-written subject/body. Keeping this logic local avoids handing
 // authorship, sign-off, review, or issue metadata to the model to rewrite.
@@ -83,12 +85,38 @@ func isTrailerLine(line string) bool {
 // trailer-like footer emitted by the model is discarded, then the exact
 // original footer is restored once.
 func restoreCommitTrailers(generated, original string) string {
+	return finalizeCommitMessage(generated, original, "off")
+}
+
+// finalizeCommitMessage keeps metadata out of the model's control. Attribution
+// is opt-in, appended after the original trailers, and never duplicates an
+// existing canonical trailer. Turning it off does not erase original metadata.
+func finalizeCommitMessage(generated, original, attribution string) string {
 	generatedContent, _ := splitCommitTrailers(generated)
-	_, originalTrailers := splitCommitTrailers(original)
-	if originalTrailers == "" {
+	if generatedContent == "" {
+		return ""
+	}
+	trailers := expectedCommitTrailers(original, attribution)
+	if trailers == "" {
 		return strings.TrimSpace(generatedContent)
 	}
-	return strings.TrimSpace(generatedContent) + "\n\n" + originalTrailers
+	return strings.TrimSpace(generatedContent) + "\n\n" + trailers
+}
+
+func expectedCommitTrailers(original, attribution string) string {
+	_, trailers := splitCommitTrailers(original)
+	if attribution != "compact" {
+		return trailers
+	}
+	for _, line := range strings.Split(trailers, "\n") {
+		if line == compactAttributionTrailer {
+			return trailers
+		}
+	}
+	if trailers == "" {
+		return compactAttributionTrailer
+	}
+	return trailers + "\n" + compactAttributionTrailer
 }
 
 // CommitMessageContent returns the subject/body without its trailing metadata
