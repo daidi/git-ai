@@ -7,7 +7,9 @@ import org.jetbrains.annotations.PropertyKey
 @NonNls
 private const val BUNDLE = "messages.GitAiBundle"
 
-object GitAiBundle : DynamicBundle(BUNDLE) {
+object GitAiBundle {
+    private val bundle = DynamicBundle(GitAiBundle::class.java, BUNDLE)
+
     fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String =
-        getMessage(key, *params)
+        bundle.getMessage(key, *params)
 }

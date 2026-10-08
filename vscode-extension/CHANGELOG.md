@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1
+
+- Fixed the JetBrains plugin's deprecated `DynamicBundle` constructor usage while retaining IntelliJ IDEA 2024.1 compatibility.
+- Synchronized the release version across the CLI and IDE integrations.
+
 ## 1.4.0
 
 - Added optional commit attribution, disabled by default: append a single `Polished-by` trailer with the Git AI download link after successful polishing, while preserving original metadata and undo behavior.
