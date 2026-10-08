@@ -24,6 +24,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 import java.util.zip.ZipFile
 
@@ -32,6 +33,7 @@ object GitAiInstaller {
     private const val MAX_ARCHIVE_BYTES = 150L * 1024L * 1024L
     private const val MAX_BINARY_BYTES = 100L * 1024L * 1024L
     private const val MAX_METADATA_BYTES = 1 shl 20
+    private val installing = AtomicBoolean(false)
 
     internal data class InstallResult(
         val success: Boolean,
@@ -53,10 +55,24 @@ object GitAiInstaller {
         notification.notify(project)
     }
 
-    fun installCli(project: Project) {
+    fun installCli(project: Project, onFinished: (Boolean) -> Unit = {}) {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, GitAiBundle.message("installer.downloading"), true) {
+            private var result = InstallResult(false)
+
+            override fun onCancel() {
+                // Cancellation after the atomic replacement must not report
+                // that an already-completed installation failed.
+                if (result.success) onSuccess() else if (!project.isDisposed) onFinished(false)
+            }
+
             override fun run(indicator: ProgressIndicator) {
-                val result = installCliNow(indicator)
+                result = installCliNow(indicator)
+            }
+
+            override fun onSuccess() {
+                if (project.isDisposed) return
+                if (result.success) GitAiUpdateService.getInstance().clearNotifications()
+                onFinished(result.success)
                 if (result.success) {
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("git-ai.notifications")
@@ -77,10 +93,11 @@ object GitAiInstaller {
 
     /**
      * Installs the latest checksum-verified CLI on the current background task.
-     * This blocking form lets settings repair an incompatible CLI and retry the
-     * exact command without asking the user to close and reopen the dialog.
+     * Invoked only from explicit install/update actions, never from settings
+     * reads or background version checks.
      */
     internal fun installCliNow(indicator: ProgressIndicator): InstallResult {
+        if (!installing.compareAndSet(false, true)) return InstallResult(false, GitAiBundle.message("settings.cli.busy"))
         var tempDir: File? = null
         return try {
             val platform = resolvePlatform()
@@ -125,6 +142,7 @@ object GitAiInstaller {
                     require(staged.setExecutable(true, true)) { "Unable to stage the CLI executable" }
                 }
                 validateExecutable(staged)
+                indicator.checkCanceled()
                 try {
                     Files.move(
                         staged.toPath(),
@@ -148,10 +166,11 @@ object GitAiInstaller {
             InstallResult(success = false, errorMessage = e.message ?: "Unknown error")
         } finally {
             tempDir?.deleteRecursively()
+            installing.set(false)
         }
     }
 
-    fun fetchLatestReleaseTag(): String = fetchLatestRelease(EmptyProgressIndicator()).tagName
+    fun fetchLatestReleaseTag(indicator: ProgressIndicator = EmptyProgressIndicator()): String = fetchLatestRelease(indicator).tagName
 
     private fun fetchLatestRelease(indicator: ProgressIndicator): ReleaseInfo {
         var lastError: Exception? = null

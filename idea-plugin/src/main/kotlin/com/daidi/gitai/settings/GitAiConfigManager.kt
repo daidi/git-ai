@@ -3,15 +3,11 @@ package com.daidi.gitai.settings
 import com.daidi.gitai.GitAiBundle
 import com.daidi.gitai.state.GitAiCli
 import com.daidi.gitai.state.GitAiCliCompatibility
-import com.daidi.gitai.state.GitAiInstaller
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
-import com.google.gson.JsonParser
 import com.google.gson.annotations.SerializedName
-import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 
 /** Configuration data exchanged with the CLI. */
@@ -68,6 +64,8 @@ data class GitAiModelCatalog(
     val models: List<GitAiModelInfo> = emptyList(),
 )
 
+internal class GitAiSettingsProtocolException : IllegalStateException(GitAiBundle.message("settings.cli.incompatible"))
+
 /**
  * Configuration facade. All persistence is delegated to git-ai: global values
  * use the OS application config directory and repository overrides use
@@ -75,8 +73,6 @@ data class GitAiModelCatalog(
  */
 object GitAiConfigManager {
     private val gson: Gson = GsonBuilder().create()
-    private val compatibilityRepairLock = Any()
-    private var compatibilityRepairAttempted = false
 
     val DEFAULTS = GitAiConfig(
         model = "deepseek-chat",
@@ -94,32 +90,27 @@ object GitAiConfigManager {
     )
 
     fun load(project: Project, scope: String, indicator: ProgressIndicator? = null): GitAiConfig {
-        val result = runWithCompatibilityRepair(indicator) {
+        val result = runChecked(indicator) {
             GitAiCli.run(project, "config", "list", "--scope", scope, "--json")
         }
-        if (!result.success) throw IllegalStateException(result.errorText)
-        val json = JsonParser.parseString(result.stdout).asJsonObject
-        val keyConfigured = json.remove("api_key_configured")?.asBoolean ?: false
-        return (gson.fromJson(json, GitAiConfig::class.java) ?: GitAiConfig()).apply {
-            apiKeyConfigured = keyConfigured
-        }
+        requireSuccess(result)
+        return GitAiSettingsProtocol.config(result.stdout) ?: throw GitAiSettingsProtocolException()
     }
 
     fun loadSchema(project: Project, indicator: ProgressIndicator? = null): GitAiConfigSchema {
-        val result = runWithCompatibilityRepair(indicator) {
+        val result = runChecked(indicator) {
             GitAiCli.run(project, "config", "schema")
         }
-        if (!result.success) throw IllegalStateException(result.errorText)
-        return gson.fromJson(result.stdout, GitAiConfigSchema::class.java)
-            ?: throw IllegalStateException("git-ai returned an empty configuration schema")
+        requireSuccess(result)
+        return GitAiSettingsProtocol.schema(result.stdout) ?: throw GitAiSettingsProtocolException()
     }
 
     fun loadModels(project: Project, indicator: ProgressIndicator? = null): GitAiModelCatalog? {
-        val result = runWithCompatibilityRepair(indicator) {
+        val result = runChecked(indicator) {
             GitAiCli.run(project, "config", "models", "--json")
         }
         if (!result.success) return null
-        return gson.fromJson(result.stdout, GitAiModelCatalog::class.java)
+        return GitAiSettingsProtocol.models(result.stdout)
     }
 
     fun defaultsFrom(schema: GitAiConfigSchema): GitAiConfig {
@@ -155,54 +146,30 @@ object GitAiConfigManager {
         indicator: ProgressIndicator? = null,
     ): GitAiCli.Result {
         val payload = gson.toJson(config)
-        return runWithCompatibilityRepair(indicator) {
+        return runChecked(indicator) {
             GitAiCli.runWithInput(project, payload, "config", "replace", "--scope", scope)
         }
     }
 
     fun reset(project: Project, scope: String, indicator: ProgressIndicator? = null): GitAiCli.Result =
-        runWithCompatibilityRepair(indicator) {
+        runChecked(indicator) {
             GitAiCli.run(project, "config", "reset", "--scope", scope)
         }
 
-    private fun runWithCompatibilityRepair(
+    private fun runChecked(
         indicator: ProgressIndicator?,
         command: () -> GitAiCli.Result,
     ): GitAiCli.Result {
-        var candidateResult = command()
-        if (!GitAiCliCompatibility.isSettingsProtocolMismatch(candidateResult)) return candidateResult
-
-        while (GitAiCli.rejectIncompatibleExecutableAndSelectNext()) {
-            candidateResult = command()
-            if (!GitAiCliCompatibility.isSettingsProtocolMismatch(candidateResult)) return candidateResult
-        }
-
-        // Candidate rejection is only for this negotiation attempt. Keep the
-        // original CLI available to status/actions if download is unavailable.
-        GitAiCli.invalidateExecutableCache()
-
-        return synchronized(compatibilityRepairLock) {
-            if (compatibilityRepairAttempted) {
-                return@synchronized compatibleOrFriendly(command())
-            }
-            compatibilityRepairAttempted = true
-            val installation = try {
-                GitAiInstaller.installCliNow(indicator ?: EmptyProgressIndicator())
-            } catch (error: ProcessCanceledException) {
-                compatibilityRepairAttempted = false
-                throw error
-            }
-            if (!installation.success) return@synchronized incompatibleResult()
-            compatibleOrFriendly(command())
-        }
+        indicator?.checkCanceled()
+        val result = command()
+        indicator?.checkCanceled()
+        // Checking compatibility is read-only. Installation is an explicit UI
+        // action; a settings read must never silently replace the executable.
+        return result
     }
 
-    private fun compatibleOrFriendly(result: GitAiCli.Result): GitAiCli.Result =
-        if (GitAiCliCompatibility.isSettingsProtocolMismatch(result)) incompatibleResult() else result
-
-    private fun incompatibleResult(): GitAiCli.Result = GitAiCli.Result(
-        success = false,
-        stdout = "",
-        stderr = GitAiBundle.message("settings.cli.incompatible"),
-    )
+    private fun requireSuccess(result: GitAiCli.Result) {
+        if (GitAiCliCompatibility.isSettingsProtocolMismatch(result)) throw GitAiSettingsProtocolException()
+        if (!result.success) throw IllegalStateException(GitAiBundle.message("settings.cli.unavailable"))
+    }
 }

@@ -2,13 +2,8 @@ package com.daidi.gitai
 
 import com.daidi.gitai.state.GitAiStateService
 import com.daidi.gitai.state.GitAiCli
-import com.daidi.gitai.state.GitAiInstaller
-import com.intellij.ide.util.PropertiesComponent
-import com.intellij.notification.NotificationAction
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import com.daidi.gitai.state.GitAiUpdateService
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.application.ApplicationManager
@@ -22,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Starts the state watcher when the project opens and checks initialization.
  */
 class GitAiStartupActivity : ProjectActivity {
-    private val log = Logger.getInstance(GitAiStartupActivity::class.java)
     private val initializationPrompted = AtomicBoolean(false)
 
     override suspend fun execute(project: Project) {
@@ -37,7 +31,7 @@ class GitAiStartupActivity : ProjectActivity {
         }
 
         // IDE-side update check (works even with old CLI versions)
-        checkForCliUpdate(project)
+        GitAiUpdateService.getInstance().checkOnStartup(project)
     }
 
     private fun promptInitialization(project: Project) {
@@ -69,77 +63,4 @@ class GitAiStartupActivity : ProjectActivity {
         }, project.disposed)
     }
 
-    /**
-     * Independently checks for CLI updates by running `git-ai --version`
-     * and comparing against the latest GitHub release.
-     * This works even if the user has an old CLI without the status API.
-     */
-    private fun checkForCliUpdate(project: Project) {
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                // Respect 24h cooldown.
-                val props = PropertiesComponent.getInstance()
-                val lastCheck = props.getLong("git-ai.lastUpdateCheck", 0L)
-                val oneDayMs = 24 * 60 * 60 * 1000L
-                if (System.currentTimeMillis() - lastCheck < oneDayMs) {
-                    return@executeOnPooledThread
-                }
-
-                // 1. Get installed version.
-                val result = GitAiCli.run(project, "--version")
-                if (!result.success) return@executeOnPooledThread
-
-                val versionMatch = Regex("""v?(\d+\.\d+\.\d+)""").find(result.stdout)
-                    ?: return@executeOnPooledThread
-                val currentVersion = versionMatch.groupValues[1]
-                if (currentVersion == "dev" || currentVersion.contains("-")) {
-                    return@executeOnPooledThread
-                }
-
-                // Record the bounded attempt even if the network is unavailable,
-                // so opening several projects does not create a request storm.
-                props.setValue("git-ai.lastUpdateCheck", System.currentTimeMillis().toString())
-
-                // 2. Fetch latest release with the same retry/fallback path as
-                // the checksum-verifying installer.
-                val latestVersion = GitAiInstaller.fetchLatestReleaseTag().removePrefix("v")
-
-                // 4. Compare.
-                if (!isNewer(currentVersion, latestVersion)) return@executeOnPooledThread
-
-                // 5. Show notification on EDT.
-                ApplicationManager.getApplication().invokeLater {
-                    val notification = NotificationGroupManager.getInstance()
-                        .getNotificationGroup("git-ai.notifications")
-                        .createNotification(
-                            GitAiBundle.message("notification.title"),
-                            GitAiBundle.message("notification.updateAvailable", currentVersion, latestVersion),
-                            NotificationType.INFORMATION
-                        )
-                    notification.addAction(NotificationAction.createSimple(GitAiBundle.message("notification.updateNow")) {
-                        notification.expire()
-                        GitAiInstaller.installCli(project)
-                    })
-                    notification.addAction(NotificationAction.createSimple(GitAiBundle.message("notification.updateDismiss")) {
-                        notification.expire()
-                    })
-                    notification.notify(project)
-                }
-            } catch (e: Exception) {
-                log.debug("Update check failed: ${e.message}")
-            }
-        }
-    }
-
-    private fun isNewer(current: String, latest: String): Boolean {
-        val c = current.split(".").map { it.toIntOrNull() ?: 0 }
-        val l = latest.split(".").map { it.toIntOrNull() ?: 0 }
-        for (i in 0 until 3) {
-            val cv = c.getOrElse(i) { 0 }
-            val lv = l.getOrElse(i) { 0 }
-            if (lv > cv) return true
-            if (lv < cv) return false
-        }
-        return false
-    }
 }

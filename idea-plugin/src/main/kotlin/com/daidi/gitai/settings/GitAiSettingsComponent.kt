@@ -84,6 +84,31 @@ class GitAiSettingsComponent(private val basePath: String?) {
     val pTestConfigBtn = JButton(GitAiBundle.message("settings.btn.testConfig"))
     val pEnabled = JBCheckBox(GitAiBundle.message("settings.field.projectEnabled"))
 
+    val cliRetryBtn = JButton(GitAiBundle.message("settings.cli.retry"))
+    val cliCheckBtn = JButton(GitAiBundle.message("settings.cli.check"))
+    val cliUpdateBtn = JButton(GitAiBundle.message("notification.updateNow"))
+    private val cliDetails = JBLabel("—")
+    private val cliHealth = JBLabel(GitAiBundle.message("settings.loading"))
+    private val cliUpdateStatus = JBLabel(" ")
+
+    fun setCliDetails(version: String?, path: String?) {
+        cliDetails.text = GitAiBundle.message("settings.cli.details", version ?: "—", path ?: "—")
+        cliDetails.toolTipText = path
+    }
+
+    fun setCliHealth(message: String, busy: Boolean) {
+        cliHealth.text = message
+        cliHealth.toolTipText = message
+        cliRetryBtn.isEnabled = !busy
+        cliCheckBtn.isEnabled = !busy
+        cliUpdateBtn.isEnabled = !busy
+    }
+
+    fun setCliUpdateStatus(message: String) {
+        cliUpdateStatus.text = message
+        cliUpdateStatus.toolTipText = message
+    }
+
     private val globalTabText = GitAiBundle.message("settings.tab.global")
     private val projectTabText = GitAiBundle.message("settings.tab.project")
     private val globalTab = scopeButton(globalTabText, "first")
@@ -212,6 +237,20 @@ class GitAiSettingsComponent(private val basePath: String?) {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             add(title)
             add(subtitle)
+            add(Box.createVerticalStrut(JBUI.scale(8)))
+            add(cliDetails)
+            add(cliHealth)
+            add(cliUpdateStatus)
+            add(JPanel().apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                add(cliRetryBtn)
+                add(Box.createHorizontalStrut(JBUI.scale(8)))
+                add(cliCheckBtn)
+                add(Box.createHorizontalStrut(JBUI.scale(8)))
+                add(cliUpdateBtn)
+            })
         }
 
         val tabs = JPanel().apply {

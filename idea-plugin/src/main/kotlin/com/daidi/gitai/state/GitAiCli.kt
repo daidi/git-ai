@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -22,7 +21,6 @@ object GitAiCli {
     private val log = Logger.getInstance(GitAiCli::class.java)
     private const val MAX_OUTPUT_BYTES = 4 * 1024 * 1024
     private val missingNotificationShown = AtomicBoolean(false)
-    private val incompatibleExecutables = ConcurrentHashMap.newKeySet<String>()
 
     @Volatile
     private var cachedExecutable: String? = null
@@ -59,19 +57,20 @@ object GitAiCli {
 
     fun invalidateExecutableCache() {
         cachedExecutable = null
-        incompatibleExecutables.clear()
         missingNotificationShown.set(false)
     }
 
-    /**
-     * Temporarily rejects the executable that just failed protocol negotiation
-     * and selects another known installation, if one exists.
-     */
-    internal fun rejectIncompatibleExecutableAndSelectNext(): Boolean {
-        val current = cachedExecutable ?: return false
-        incompatibleExecutables.add(current)
-        cachedExecutable = null
-        return getExecutablePath() != null
+    internal data class RuntimeInfo(val path: String?, val version: String?, val modified: Long = 0) {
+        val identity: String get() = listOf(path, version, modified).joinToString("|")
+    }
+
+    /** Background-only diagnostic; does not require a selected Git repository. */
+    internal fun runtimeInfo(): RuntimeInfo {
+        val path = getExecutablePath() ?: return RuntimeInfo(null, null)
+        val result = execute(System.getProperty("user.home"), path, arrayOf("--version"),
+            env = mapOf("GIT_AI_CHECK_UPDATE" to "false"), timeoutSeconds = 8)
+        return RuntimeInfo(path, if (result.success) GitAiUpdatePolicy.installedVersion(result.stdout) else null,
+            File(path).lastModified())
     }
 
     private fun runCommand(
@@ -95,7 +94,7 @@ object GitAiCli {
 
     private fun getExecutablePath(): String? {
         cachedExecutable?.let { cached ->
-            if (cached !in incompatibleExecutables && (!File(cached).isAbsolute || isExecutable(File(cached)))) {
+            if (isExecutable(File(cached))) {
                 return cached
             }
             cachedExecutable = null
@@ -113,7 +112,7 @@ object GitAiCli {
             File("/usr/bin/$executableName"),
         )
         candidates.firstOrNull { candidate ->
-            candidate.absolutePath !in incompatibleExecutables && isExecutable(candidate)
+            isExecutable(candidate)
         }?.absolutePath?.let {
             cachedExecutable = it
             return it
@@ -121,27 +120,13 @@ object GitAiCli {
 
         // GUI-launched IDEs often have a reduced PATH, but retain it as a final
         // fallback for package-manager and user-specific installations.
-        if (executableName !in incompatibleExecutables && probeExecutable(executableName)) {
-            cachedExecutable = executableName
-            return executableName
-        }
-        return null
+        return System.getenv("PATH").orEmpty().split(File.pathSeparator)
+            .filter { it.isNotBlank() }.map { File(it, executableName) }
+            .firstOrNull { isExecutable(it) }?.absolutePath?.also { cachedExecutable = it }
     }
 
     private fun isExecutable(file: File): Boolean =
         file.isFile && (System.getProperty("os.name").lowercase().contains("win") || file.canExecute())
-
-    private fun probeExecutable(command: String): Boolean = try {
-        val process = ProcessBuilder(command, "--version")
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD)
-            .start()
-        val exited = process.waitFor(5, TimeUnit.SECONDS)
-        if (!exited) process.destroyForcibly()
-        exited && process.exitValue() == 0
-    } catch (_: Exception) {
-        false
-    }
 
     private fun execute(
         workingDir: String,

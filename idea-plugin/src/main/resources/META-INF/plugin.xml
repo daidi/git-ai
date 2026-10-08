@@ -70,6 +70,7 @@
                 id="git-ai.notifications"
                 displayType="BALLOON"
                 toolWindowId="Git AI"/>
+        <notificationGroup id="git-ai.cli.health" displayType="STICKY_BALLOON"/>
 
         <!-- Settings page: Settings → Tools → git-ai -->
         <projectConfigurable

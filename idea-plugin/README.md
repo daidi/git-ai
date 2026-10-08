@@ -115,6 +115,15 @@ See the active commit, original draft, queued remote, and daemon state. Recovery
 
 The settings page reads the CLI configuration schema and offers provider-discovered model IDs while keeping the model field editable for custom endpoints.
 
+### CLI compatibility and updates
+
+The settings header shows the selected CLI's version, executable path, and compatibility status, with **Retry**, **Check for updates**, and **Update now** actions.
+
+- Local settings-protocol checks run in the background at project startup and whenever settings are loaded. They do not require the network or depend on the update-check preference or cooldown.
+- An incompatible CLI produces an actionable, persistent IDE notification. Help text returned by older CLIs is rejected safely instead of becoming a JSON error. Failed settings reads keep the form disabled to prevent overwriting configuration with defaults.
+- Optional release checks run at project startup when enabled. Successful results are cached for 24 hours for the selected CLI; failed checks use a 15-minute retry backoff. Manual checks bypass both delays and show failures in the settings header.
+- Opening settings or checking compatibility never installs anything. Select **Update now** explicitly to download a checksum-verified release; settings reload after a successful update from the settings page.
+
 ### AI history
 
 Browse recent commits and inspect local AI metadata such as the original message, selected model, generation latency, and estimated time saved.
