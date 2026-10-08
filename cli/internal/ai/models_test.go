@@ -11,6 +11,7 @@ import (
 )
 
 func TestListModelsProviderFormats(t *testing.T) {
+	t.Setenv("GIT_AI_STATE_DIR", t.TempDir())
 	tests := []struct {
 		provider string
 		body     string

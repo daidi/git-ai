@@ -130,19 +130,20 @@ macOS、Linux 和 Windows 的 AMD64/ARM64 预编译文件、校验值、`.deb` �
 IDE 用户只需打开 Git AI 设置、连接模型，并接受一次性的仓库初始化提示。独立 CLI 用户可以执行：
 
 ```bash
+# 交互配置 Provider、隐藏输入的密钥、模型、格式与语言
+git-ai setup
+
 # 每个仓库执行一次，安装可组合 Hook
 cd your-project
 git-ai init
-
-# 默认端点为 DeepSeek；请替换成自己的密钥
-git-ai config set api_key "sk-..." --global
-git-ai config test
 
 # 之后继续使用原来的 Git 命令
 git commit -m "fix login"
 ```
 
 日常使用到这里就结束了。需要查看进度时运行 `git-ai status`；否则 Git AI 会安静地待在后台。
+
+向导提供模型发现和连接测试，只有确认后才保存全局配置；取消或测试失败均不改配置。它不会安装 Hook 或修改仓库覆盖项。自动化脚本请继续使用 `git-ai config set`。
 
 希望模型完全在本地运行？Ollama 不需要 API Key：
 
@@ -202,7 +203,7 @@ Commit Message 是 Git Commit 对象的一部分，因此润色成功后会产�
 
 ### 隐私与本地所有权
 
-- **没有 Git AI 中转服务器。** 受限长度的 Commit Diff 与草稿会直接发送到你配置的模型端点。
+- **没有 Git AI 模型中转服务器。** 受限长度的 Commit Diff、草稿及仓库提示（记录的分支、任务编号、常用 scope）会直接发送到你配置的模型端点，不发送历史消息原文。
 - **支持本地推理。** 不希望代码离开设备时可以使用 Ollama。
 - **凭据不会进入仓库。** 持久化 API Key 只能保存在用户级配置中，也支持环境变量。
 - **运行状态不会进入工作区。** 状态、日志与 AI 历史保存在用户缓存目录，仓库覆盖项使用 `.git/config`。
@@ -242,6 +243,23 @@ git-ai config test
 | `explain` | `false` | 增加一段简短正文说明改动原因 |
 | `prompt_template` | 空 | 使用 `{{.Diff}}`、`{{.Hint}}` 与 `{{.Language}}` 自定义生成 |
 
+### 仓库上下文
+
+内置 Prompt 会参考记录的分支名、`PROJ-123` 或 `#123` 形式的任务编号，以及目标提交之前最近 20 个第一父链祖先中提取的最多 5 个常用 Conventional Commit scope。后续新提交、当前检出的分支和暂存文件不会影响这些提示。显式格式、语言、Commitlint 规则与实际 Diff 优先；这些提示不会授权自动关闭任务或新增 trailer。
+
+已有自定义 Prompt 保持原样。需要上下文时，可主动使用 `{{.Branch}}`、`{{.Tickets}}`、`{{.CommonScopes}}` 或 `{{.RepositoryContext}}`；最后一个变量包含完整的受限提示块。任务编号与 scope 是列表，可用 Go 模板的 `range` 遍历。
+
+### 模型列表缓存
+
+```bash
+git-ai config models                 # 优先使用七天内的缓存
+git-ai config models --refresh       # 请求刷新列表
+git-ai config models --offline       # 只读缓存，不访问网络
+git-ai config models --offline --json
+```
+
+缓存位于操作系统用户缓存目录，按 Provider、端点和凭据哈希隔离，不在列表文件中保存原始端点或密钥。网络异常、超时、限流及服务端故障可回退旧列表，并标记过期；认证失败和无效响应不会被缓存掩盖。JSON 新增 `source`（`network`、`cache` 或 `stale-cache`）、`fetched_at` 及适用时的 `stale`，保留已有模型字段兼容性。`--refresh` 和 `--offline` 不能同时使用。
+
 署名默认关闭。运行 `git-ai config set commit_attribution compact` 仅为当前仓库开启（加 `--global` 可全局开启），AI 润色成功后会在原有 trailer 末尾追加：
 
 ```text
@@ -256,6 +274,8 @@ Polished-by: Git AI <https://codegg.org/git-ai/>
 
 | 命令 | 作用 |
 |:--|:--|
+| `git-ai setup` | 交互配置全局模型设置，确认后保存 |
+| `git-ai config models` | 获取模型列表，支持 `--refresh`、`--offline` 与 `--json` |
 | `git-ai status` | 查看 `idle`、`polishing`、`pushing` 或 `failed` 状态 |
 | `git-ai retry` | 在后台安全重试当前 Commit |
 | `git-ai undo` | 恢复原始草稿消息 |
@@ -315,7 +335,7 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 <details>
 <summary><strong>Git AI 会把整个仓库发给模型吗？</strong></summary>
 <br />
-不会。它只把已记录 Commit 的受限 Diff 和草稿发送到你配置的端点。不允许代码离开本机时请使用 Ollama。
+不会。它把已记录 Commit 的受限 Diff、草稿及仓库提示（分支、任务编号、常用 scope）发送到你配置的端点，不发送历史消息原文。不允许代码离开本机时请使用 Ollama。
 </details>
 
 <details>

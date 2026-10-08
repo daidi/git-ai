@@ -1,13 +1,17 @@
 {
   "name": "git-ai-update-proxy",
   "version": "1.0.0",
-  "description": "Cloudflare Worker proxy for git-ai CLI updates",
+  "description": "Git AI release proxy and active installation metrics",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "login": "wrangler login"
+    "login": "wrangler login",
+    "test": "node --test worker.test.js",
+    "stats": "node stats.js"
   },
   "devDependencies": {
+    "miniflare": "4.20260410.0",
     "wrangler": "^4.0.0"
-  }
+  },
+  "type": "module"
 }

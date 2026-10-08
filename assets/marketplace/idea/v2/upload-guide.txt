@@ -1,0 +1,64 @@
+Git AI · IDEA Marketplace 截图 v2
+2026-10-09
+
+交付内容
+三张 1920 × 1200、RGB、无透明通道的 PNG，统一 16:10。
+真实 IntelliJ IDEA 深色界面占画面主体，每张只有一句英文标题。
+首图为真实界面加提交对比说明层；对比文字来自实际记录，不是虚构案例。
+本次只制作本地素材和描述草稿，没有上传或修改线上 Marketplace 页面。
+
+按此顺序上传 png/ 中的文件
+01-ai-commit-messages.png
+标题：Commit now. Keep coding.
+说明：AI commit messages for IntelliJ IDEA. Commit a quick draft and let Git AI polish it in the background.
+
+02-ai-commit-history.png
+标题：Every AI commit, in view.
+说明：Inspect AI-polished commits in the native Git AI history tool window.
+
+03-native-git-ai-controls.png
+标题：Retry. Undo. Stay in control.
+说明：Retry generation, undo polishing, cancel active work, or skip AI from IntelliJ IDEA.
+
+来源与处理
+原图由本机 IntelliJ IDEA 原生界面采集，界面语言为简体中文。
+采集时插件列表显示已安装 Git AI 1.3.0；本组不展示后续版本更新的设置页面。
+raw/ 保存原始 JPEG；source/ 保存可编辑 SVG；render.cjs 可重新生成 PNG。
+处理仅包含取景、缩放、标题与首图说明层；没有重绘原生控件或修改提交数据。
+首图的说明层不是插件自身弹窗。实际记录为提交 8343449：
+Original Draft: c
+Final Message: feat(i18n): add internationalization support for Git AI plugin
+该内容同时通过 CLI 历史和原生 AI Authorship Note 核对。
+
+上传位置
+https://plugins.jetbrains.com/plugin/31221-git-ai
+使用插件管理界面的 Plugin Screenshots 区域，上传三张 PNG。
+ZIP 仅供一次下载，SVG、原图、预览拼图不属于正式上传文件。
+
+可配合使用的英文描述草稿
+
+Git AI is an AI commit message generator for IntelliJ IDEA and compatible JetBrains IDEs.
+Commit a quick draft, then keep coding while your configured model polishes the message
+in the background. Use Conventional Commits, Gitmoji, plain text, or subject and body.
+
+The native Git AI tool window lets you inspect AI history, retry generation, restore
+your original draft, cancel active polishing, or skip AI. Connect an OpenAI-compatible
+API, Anthropic, Google, or a local Ollama model, and choose your output language and style.
+
+Polishing uses the recorded commit tree and parents. The recorded ref is updated only
+if it has not moved; model failures leave the original commit unchanged.
+
+SEO 与展示
+描述自然包含 AI commit message generator、IntelliJ IDEA、Conventional Commits、
+Gitmoji、Ollama、JetBrains IDEs。标签选择后台已有且与功能相关的 Git、版本控制、AI 项。
+文件名用于素材管理，不宣称影响搜索排名。截图用于解释价值和帮助下载决策；
+未验证搜索排名或下载转化的变化，也没有加入虚构评分、用户数或时间节省数据。
+
+官方规范参考
+https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#screenshots
+建议至少 1200 × 760、统一比例、文字清晰、展示实际 IDE 界面，允许叠加说明。
+https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description
+
+重新生成
+安装 Node.js 与 sharp 后运行 node render.cjs。
+字体为 Avenir Next 与 Menlo；上传时直接使用已导出的 PNG 可保持当前效果。

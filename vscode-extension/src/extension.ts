@@ -10,12 +10,21 @@ import { SettingsPanel } from './settingsPanel';
 import { checkAndPromptInstall, autoInitialize } from './installer';
 import { checkForCliUpdate } from './updateChecker';
 import { resolveRepositoryRoot, selectRepository } from './repositorySelection';
+import { clientSource } from './clientSource';
 
 let stateWatcher: StateWatcher | undefined;
 let statusBar: StatusBarManager | undefined;
 let logViewer: LogViewer | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+    // A fixed label lets hooks in newly created integrated terminals identify
+    // editor forks without forwarding installation paths or IPC variables.
+    const setTerminalSource = () => {
+        context.environmentVariableCollection.persistent = false;
+        context.environmentVariableCollection.replace('GIT_AI_CLIENT', clientSource(vscode.env.appName));
+    };
+    if (vscode.workspace.isTrusted) { setTerminalSource(); }
+    context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(setTerminalSource));
     if (vscode.workspace.isTrusted) {
         // Executable discovery, downloads, and Git hook changes are disabled in
         // Restricted Mode. The user must explicitly trust the workspace first.

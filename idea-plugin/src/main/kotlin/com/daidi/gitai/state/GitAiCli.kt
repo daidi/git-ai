@@ -1,6 +1,7 @@
 package com.daidi.gitai.state
 
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.io.ByteArrayOutputStream
@@ -155,6 +156,8 @@ object GitAiCli {
                 .directory(File(workingDir))
                 .redirectErrorStream(false)
             processBuilder.environment().putAll(env)
+            processBuilder.environment()["GIT_AI_CLIENT"] =
+                GitAiClientSource.fromProductCode(ApplicationInfo.getInstance().build.productCode)
             val process = processBuilder.start()
 
             val executor = AppExecutorUtil.getAppExecutorService()

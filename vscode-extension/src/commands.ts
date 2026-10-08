@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { clientSource } from './clientSource';
 import * as cp from 'child_process';
 import { LogViewer } from './logViewer';
 import { notifyInfo, notifyError, notifyWarning } from './notifications';
@@ -204,7 +205,7 @@ export class CommandManager {
         extraEnv?: Record<string, string>,
     ): Promise<{ success: boolean; output: string; error: string }> {
         return new Promise((resolve) => {
-            const env = { ...process.env, ...extraEnv };
+            const env = { ...process.env, GIT_AI_CLIENT: clientSource(vscode.env.appName), ...extraEnv };
             const proc = cp.spawn(cmd, args, {
                 cwd: this.workspaceRoot,
                 env,

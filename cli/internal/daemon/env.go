@@ -4,6 +4,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/daidi/git-ai/cli/internal/clientinfo"
 )
 
 // SanitizedEnv returns a minimal environment suitable for the detached daemon.
@@ -49,7 +51,8 @@ func SanitizedEnv() []string {
 		"PATHEXT":      true,
 
 		// Locale
-		"LANG": true,
+		"LANG":         true,
+		"DO_NOT_TRACK": true,
 
 		// SSH agent — needed for SSH-based remotes.
 		"SSH_AUTH_SOCK": true,
@@ -86,6 +89,9 @@ func SanitizedEnv() []string {
 		if idx := strings.IndexByte(e, '='); idx >= 0 {
 			key = e[:idx]
 		}
+		if key == "GIT_AI_CLIENT" || (runtime.GOOS == "windows" && strings.EqualFold(key, "GIT_AI_CLIENT")) {
+			continue // Replaced below with a normalized label.
+		}
 
 		if environmentKeyAllowed(key, allowedExact) {
 			env = append(env, e)
@@ -106,6 +112,7 @@ func SanitizedEnv() []string {
 
 	// Prevent Git from prompting on a non-existent terminal.
 	env = append(env, "GIT_TERMINAL_PROMPT=0")
+	env = append(env, "GIT_AI_CLIENT="+clientinfo.Detect())
 
 	return env
 }

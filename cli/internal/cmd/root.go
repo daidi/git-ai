@@ -55,12 +55,14 @@ It works asynchronously via post-commit hooks and supports deferred push.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		isHook := hasCommandAncestor(cmd, "hook")
 		isStatus := cmd.Name() == "status"
-		showUpdateNotice = !isHook && !isStatus
+		// Model discovery (especially --offline) and setup have explicit network
+		// controls; do not perform an unrelated update check after either one.
+		showUpdateNotice = !isHook && !isStatus && cmd.Name() != "setup" && cmd != configModelsCmd
 
 		// Config commands may run outside a repository, but when invoked inside one
 		// they still need the repository root for local overrides. Discover it on a
 		// best-effort basis instead of marking the whole command tree as git-free.
-		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai" || cmd.Name() == "update"
+		skipGit := cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "git-ai" || cmd.Name() == "update" || cmd.Name() == "setup"
 		isConfig := false
 		for c := cmd; c != nil; c = c.Parent() {
 			if c.Name() == "config" {

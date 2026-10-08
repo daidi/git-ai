@@ -213,7 +213,7 @@ Vì thông điệp là một phần của đối tượng commit, lần hoàn th
 
 ### Quyền riêng tư và quyền sở hữu cục bộ
 
-- **Không có máy chủ chuyển tiếp Git AI.** Commit diff có giới hạn và bản nháp đi thẳng đến endpoint mô hình bạn cấu hình.
+- **Không có trung gian mô hình Git AI.** Commit diff có giới hạn, bản nháp và gợi ý repository (nhánh, mã nhiệm vụ và scope phổ biến) đi thẳng đến endpoint mô hình, không gửi nguyên văn các thông điệp lịch sử.
 - **Hỗ trợ suy luận cục bộ.** Dùng Ollama khi code phải ở lại trên máy.
 - **Thông tin xác thực không nằm trong repository.** Khóa API lưu bền chỉ ở cấp người dùng; biến môi trường cũng được hỗ trợ.
 - **Trạng thái nằm ngoài worktree.** Trạng thái, log và lịch sử AI ở cache người dùng; tùy chỉnh repository dùng `.git/config`.
@@ -316,7 +316,7 @@ Có. Dùng `git-ai log`, `git-ai retry`, `git-ai undo` hoặc điều khiển t�
 <details>
 <summary><strong>Git AI có gửi toàn bộ repository đến mô hình không?</strong></summary>
 <br />
-Không. Công cụ chỉ gửi biểu diễn có giới hạn của commit diff đã ghi và bản nháp đến endpoint đã chọn. Dùng Ollama để suy luận cục bộ.
+Không. Công cụ gửi commit diff có giới hạn, bản nháp và gợi ý repository (nhánh, mã nhiệm vụ và scope phổ biến), không gửi nguyên văn các thông điệp lịch sử. Dùng Ollama để suy luận cục bộ.
 </details>
 
 <details>

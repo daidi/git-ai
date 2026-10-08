@@ -130,19 +130,20 @@ macOS、Linux 與 Windows 的 AMD64/ARM64 預先編譯檔案、校驗值、`.deb
 IDE 使用者只要開啟 Git AI 設定、連接模型，並接受一次性的儲存庫初始化提示。獨立 CLI 使用者可以執行：
 
 ```bash
+# 互動設定 Provider、隱藏輸入的金鑰、模型、格式與語言
+git-ai setup
+
 # 每個儲存庫執行一次，安裝可組合 Hook
 cd your-project
 git-ai init
-
-# 預設端點是 DeepSeek；請替換成自己的金鑰
-git-ai config set api_key "sk-..." --global
-git-ai config test
 
 # 之後繼續使用原本的 Git 指令
 git commit -m "fix login"
 ```
 
 日常使用到這裡就完成了。需要查看進度時執行 `git-ai status`；否則 Git AI 會安靜地待在背景。
+
+精靈提供模型探索與連線測試，確認後才儲存全域設定；取消或測試失敗都不變更設定。它不會安裝 Hook 或修改儲存庫覆寫項。自動化指令碼請繼續使用 `git-ai config set`。
 
 希望模型完全在本機執行？Ollama 不需要 API Key：
 
@@ -202,7 +203,7 @@ Commit Message 是 Git Commit 物件的一部分，因此潤飾成功後會產�
 
 ### 隱私與本機所有權
 
-- **沒有 Git AI 中繼伺服器。** 受限長度的 Commit Diff 與草稿會直接傳送到你設定的模型端點。
+- **沒有 Git AI 模型中繼伺服器。** 受限長度的 Commit Diff、草稿與儲存庫提示（記錄的分支、任務編號、常用 scope）會直接傳送到你設定的模型端點，不傳送歷史訊息原文。
 - **支援本機推論。** 不希望程式碼離開裝置時可以使用 Ollama。
 - **憑證不會進入儲存庫。** 持久化 API Key 僅限使用者層級，也支援環境變數。
 - **執行狀態不會進入工作樹。** 狀態、日誌與 AI 歷史保存在使用者快取目錄，儲存庫覆寫項使用 `.git/config`。
@@ -242,12 +243,31 @@ git-ai config test
 | `explain` | `false` | 增加簡短正文說明變更原因 |
 | `prompt_template` | 空 | 使用 `{{.Diff}}`、`{{.Hint}}` 與 `{{.Language}}` 自訂產生內容 |
 
+### 儲存庫上下文
+
+內建 Prompt 會參考記錄的分支名稱、`PROJ-123` 或 `#123` 形式的任務編號，以及目標提交之前最近 20 個第一父鏈祖先中提取的最多 5 個常用 Conventional Commit scope。後續新提交、目前檢出的分支與暫存檔案不影響提示。明確設定的格式、語言、Commitlint 規則與實際 Diff 優先；提示不會授權自動關閉任務或新增 trailer。
+
+既有自訂 Prompt 維持原樣。需要上下文時，可主動使用 `{{.Branch}}`、`{{.Tickets}}`、`{{.CommonScopes}}` 或 `{{.RepositoryContext}}`；最後一個變數包含完整的受限提示區塊。任務編號與 scope 是清單，可用 Go 範本的 `range` 逐項讀取。
+
+### 模型清單快取
+
+```bash
+git-ai config models                 # 優先使用七天內的快取
+git-ai config models --refresh       # 請求更新清單
+git-ai config models --offline       # 只讀快取，不存取網路
+git-ai config models --offline --json
+```
+
+快取位於作業系統使用者快取目錄，依 Provider、端點與憑據雜湊隔離，不在清單檔案中儲存原始端點或金鑰。網路異常、逾時、限流與伺服器故障可退回舊清單並標記過期；驗證失敗與無效回應不會被快取掩蓋。JSON 新增 `source`（`network`、`cache` 或 `stale-cache`）、`fetched_at` 及適用時的 `stale`，保留既有模型欄位相容性。`--refresh` 與 `--offline` 不能同時使用。
+
 設定優先順序為：`GIT_AI_*` 環境變數 → `.git/config` 儲存庫覆寫項 → 作業系統使用者設定 → 預設值。API Key 只能儲存在使用者層級；工作樹中的舊 `.git-ai.json` 會被忽略，避免複製的儲存庫把使用者憑證重新導向不可信端點。
 
 ## 常用指令
 
 | 指令 | 作用 |
 |:--|:--|
+| `git-ai setup` | 互動設定全域模型選項，確認後儲存 |
+| `git-ai config models` | 取得模型清單，支援 `--refresh`、`--offline` 與 `--json` |
 | `git-ai status` | 檢視 `idle`、`polishing`、`pushing` 或 `failed` 狀態 |
 | `git-ai retry` | 在背景安全重試目前的 Commit |
 | `git-ai undo` | 還原原始草稿訊息 |
@@ -307,7 +327,7 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 <details>
 <summary><strong>Git AI 會把整個儲存庫傳給模型嗎？</strong></summary>
 <br />
-不會。它只把已記錄 Commit 的受限 Diff 與草稿傳送到你設定的端點。不允許程式碼離開本機時請使用 Ollama。
+不會。它把已記錄 Commit 的受限 Diff、草稿與儲存庫提示（分支、任務編號、常用 scope）傳送到你設定的端點，不傳送歷史訊息原文。不允許程式碼離開本機時請使用 Ollama。
 </details>
 
 <details>

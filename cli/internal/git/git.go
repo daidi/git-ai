@@ -3,6 +3,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // ErrRefMoved means the target reference no longer points at the commit that
@@ -203,6 +205,34 @@ func GetRecentCommitSHAs(limit int) (string, error) {
 		return "", errors.New("invalid commit history limit")
 	}
 	return runGitLimited(128<<10, "log", "-n", fmt.Sprintf("%d", limit), "--format=%H")
+}
+
+// GetAncestorSubjects reads at most twenty first-parent subjects preceding the
+// exact recorded commit. A newer HEAD, branch checkout, or staged edit cannot
+// influence this context. History is optional, bounded and cancellation-aware.
+func GetAncestorSubjects(ctx context.Context, sha string) ([]string, error) {
+	if len(sha) != 40 && len(sha) != 64 {
+		return nil, errors.New("expected a full commit object ID")
+	}
+	for _, char := range sha {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", char) {
+			return nil, errors.New("invalid commit object ID")
+		}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	out, err := runGitLimitedContext(ctx, 32<<10, "--no-replace-objects", "log", "--no-show-signature", "--no-decorate", "--first-parent", "-n", "21", "--format=%s%x00", sha, "--")
+	if err != nil {
+		return nil, err
+	}
+	parts := strings.Split(out, "\x00")
+	subjects := make([]string, 0, 20)
+	for _, part := range parts[1:] {
+		if subject := strings.TrimSpace(part); subject != "" && len(subject) <= 512 {
+			subjects = append(subjects, subject)
+		}
+	}
+	return subjects, nil
 }
 
 // GetDiff returns the diff introduced by a given commit SHA.
@@ -459,7 +489,11 @@ func runGit(args ...string) (string, error) {
 }
 
 func runGitLimited(maxBytes int64, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	return runGitLimitedContext(context.Background(), maxBytes, args...)
+}
+
+func runGitLimitedContext(ctx context.Context, maxBytes int64, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return "", err

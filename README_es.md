@@ -213,7 +213,7 @@ Como el mensaje forma parte del objeto commit, una mejora correcta crea un SHA n
 
 ### Privacidad y control local
 
-- **Sin servidor intermediario de Git AI.** El diff acotado y el borrador van directamente al endpoint configurado.
+- **Sin intermediario de modelos de Git AI.** El diff acotado, el borrador y las pistas del repositorio (rama, referencias de tareas y scopes habituales) van directamente al endpoint configurado, sin los mensajes históricos originales.
 - **Inferencia local disponible.** Usa Ollama si el código debe permanecer en tu equipo.
 - **Credenciales fuera de repositorios.** Las claves persistidas son solo de usuario; también se admiten variables de entorno.
 - **Estado fuera del árbol de trabajo.** Estado, logs e historial de IA viven en la caché del usuario; los ajustes del repositorio usan `.git/config`.
@@ -316,7 +316,7 @@ Sí. Usa `git-ai log`, `git-ai retry` y `git-ai undo`, o los controles equivalen
 <details>
 <summary><strong>¿Git AI envía todo mi repositorio a un modelo?</strong></summary>
 <br />
-No. Envía una representación acotada del diff registrado y el borrador al endpoint elegido. Usa Ollama para inferencia local.
+No. Envía el diff registrado acotado, el borrador y pistas del repositorio (rama, referencias de tareas y scopes habituales), no los mensajes históricos originales. Usa Ollama para inferencia local.
 </details>
 
 <details>

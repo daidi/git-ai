@@ -217,7 +217,7 @@ Oleh sebab mesej commit Git ialah sebahagian daripada objek commit, penggilapan 
 
 ### Privasi dan pemilikan setempat
 
-- **Tiada pelayan geganti Git AI.** Diff commit terhad dan mesej draf dihantar terus ke titik akhir model yang anda konfigurasikan.
+- **Tiada geganti model Git AI.** Diff commit terhad, draf dan petunjuk repositori (cabang, rujukan tugasan dan scope lazim) dihantar terus ke titik akhir model anda, tanpa teks asal mesej sejarah.
 - **Inferens setempat disokong.** Gunakan Ollama apabila kod tidak boleh meninggalkan mesin anda.
 - **Kelayakan kekal di luar repositori.** Kunci API tersimpan hanya pada aras pengguna; pemboleh ubah persekitaran turut disokong.
 - **Keadaan masa jalan kekal di luar pepohon kerja.** Keadaan, log dan sejarah AI berada dalam cache pengguna; penggantian repositori menggunakan `.git/config`.
@@ -336,7 +336,7 @@ Ya. Gunakan <code>git-ai log</code>, <code>git-ai retry</code> dan <code>git-ai 
 <details>
 <summary><strong>Adakah Git AI menghantar seluruh repositori saya kepada model?</strong></summary>
 <br />
-Tidak. Ia menghantar perwakilan terhad bagi diff commit yang direkodkan bersama mesej draf kepada titik akhir yang anda konfigurasikan. Pilih Ollama untuk inferens setempat apabila kod tidak boleh meninggalkan mesin anda.
+Tidak. Ia menghantar diff commit terhad, draf dan petunjuk repositori (cabang, rujukan tugasan dan scope lazim), bukan teks asal mesej sejarah. Pilih Ollama untuk inferens setempat apabila kod tidak boleh meninggalkan mesin anda.
 </details>
 
 <details>

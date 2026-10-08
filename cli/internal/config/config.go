@@ -46,6 +46,7 @@ type Config struct {
 	MaxDiffTokens     int    `json:"max_diff_tokens,omitempty"`
 	LogLevel          string `json:"log_level,omitempty"`
 	CheckUpdate       *bool  `json:"check_update,omitempty"`
+	UsageTelemetry    *bool  `json:"usage_telemetry,omitempty"`
 	Explain           *bool  `json:"explain,omitempty"`
 }
 
@@ -62,6 +63,9 @@ func (c *Config) ExplainEnabled() bool { return c.Explain != nil && *c.Explain }
 // intentionally leave this unset so they can inherit another layer.
 func (c *Config) SmartSkipEnabled() bool { return c.SmartSkip != nil && *c.SmartSkip }
 
+// UsageTelemetryEnabled is a user-level preference; repositories cannot enable it.
+func (c *Config) UsageTelemetryEnabled() bool { return c.UsageTelemetry != nil && *c.UsageTelemetry }
+
 // Defaults returns a Config with default values.
 func Defaults() *Config {
 	return &Config{
@@ -76,6 +80,7 @@ func Defaults() *Config {
 		MaxDiffTokens:     8000,
 		LogLevel:          "info",
 		CheckUpdate:       boolPtr(true),
+		UsageTelemetry:    boolPtr(true),
 		Explain:           boolPtr(false),
 	}
 }
@@ -206,6 +211,20 @@ func SetGlobal(key, value string) error {
 	return updateGlobal(func(cfg *Config) error { return SetValue(cfg, key, value) })
 }
 
+// SetGlobalValues applies a setup transaction while retaining unrelated values
+// changed by another CLI/IDE during an interactive wizard. Validation failures
+// leave the existing configuration untouched.
+func SetGlobalValues(values map[string]string) error {
+	return updateGlobal(func(cfg *Config) error {
+		for key, value := range values {
+			if err := SetValue(cfg, key, value); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // UnsetGlobal removes one user-level value.
 func UnsetGlobal(key string) error {
 	return updateGlobal(func(cfg *Config) error { return UnsetValue(cfg, key) })
@@ -213,7 +232,19 @@ func UnsetGlobal(key string) error {
 
 // ReplaceGlobal atomically replaces the complete user layer.
 func ReplaceGlobal(cfg *Config) error {
-	return withGlobalLock(func(path string) error { return Save(cfg, path) })
+	return withGlobalLock(func(path string) error {
+		// Older IDE settings forms do not know this preference. Saving one must
+		// never silently undo an opt-out. Explicit reset/unset still clears it.
+		copy := *cfg
+		if copy.UsageTelemetry == nil {
+			existing, err := LoadScope("", ScopeGlobal)
+			if err != nil {
+				return err
+			}
+			copy.UsageTelemetry = existing.UsageTelemetry
+		}
+		return Save(&copy, path)
+	})
 }
 
 func updateGlobal(change func(*Config) error) error {
@@ -252,6 +283,9 @@ func SetLocal(repoRoot, key, value string) error {
 	if key == "api_key" {
 		return errors.New("api_key is user-level only; use --global so secrets are never stored in a repository")
 	}
+	if key == "usage_telemetry" {
+		return errors.New("usage_telemetry is user-level only; use --global")
+	}
 	probe := &Config{}
 	if err := SetValue(probe, key, value); err != nil {
 		return err
@@ -280,6 +314,9 @@ func UnsetLocal(repoRoot, key string) error {
 func ReplaceLocal(repoRoot string, cfg *Config) error {
 	if repoRoot == "" {
 		return errors.New("not inside a Git repository")
+	}
+	if cfg.UsageTelemetry != nil {
+		return errors.New("usage_telemetry is user-level only; use --global")
 	}
 	if err := runGitConfig(repoRoot, "--remove-section", "git-ai"); err != nil && !isGitConfigMissing(err) {
 		return err
@@ -399,6 +436,12 @@ func SetValue(cfg *Config, key, value string) error {
 			return fmt.Errorf("invalid check_update value: %s", value)
 		}
 		cfg.CheckUpdate = boolPtr(v)
+	case "usage_telemetry":
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid usage_telemetry value: %s", value)
+		}
+		cfg.UsageTelemetry = boolPtr(v)
 	case "explain":
 		v, err := strconv.ParseBool(value)
 		if err != nil {
@@ -460,6 +503,8 @@ func UnsetValue(cfg *Config, key string) error {
 		cfg.LogLevel = ""
 	case "check_update":
 		cfg.CheckUpdate = nil
+	case "usage_telemetry":
+		cfg.UsageTelemetry = nil
 	case "explain":
 		cfg.Explain = nil
 	default:
@@ -527,6 +572,9 @@ func Values(cfg *Config) map[string]string {
 	if cfg.CheckUpdate != nil {
 		values["check_update"] = strconv.FormatBool(*cfg.CheckUpdate)
 	}
+	if cfg.UsageTelemetry != nil {
+		values["usage_telemetry"] = strconv.FormatBool(*cfg.UsageTelemetry)
+	}
 	if cfg.Explain != nil {
 		values["explain"] = strconv.FormatBool(*cfg.Explain)
 	}
@@ -537,7 +585,7 @@ func ValidKeys() []string {
 	return []string{
 		"api_key", "model", "base_url", "provider", "language", "ui_language",
 		"push_policy", "message_format", "commit_attribution", "prompt_template", "smart_skip", "max_diff_tokens",
-		"log_level", "check_update", "explain",
+		"log_level", "check_update", "usage_telemetry", "explain",
 	}
 }
 
@@ -591,6 +639,9 @@ func mergeConfig(dst, src *Config) {
 	if src.CheckUpdate != nil {
 		dst.CheckUpdate = boolPtr(*src.CheckUpdate)
 	}
+	if src.UsageTelemetry != nil {
+		dst.UsageTelemetry = boolPtr(*src.UsageTelemetry)
+	}
 	if src.Explain != nil {
 		dst.Explain = boolPtr(*src.Explain)
 	}
@@ -606,12 +657,16 @@ func applyEnvOverrides(cfg *Config) {
 		"smart_skip":         "GIT_AI_SMART_SKIP",
 		"commit_attribution": "GIT_AI_COMMIT_ATTRIBUTION",
 		"max_diff_tokens":    "GIT_AI_MAX_DIFF_TOKENS", "check_update": "GIT_AI_CHECK_UPDATE",
-		"explain": "GIT_AI_EXPLAIN",
+		"explain":         "GIT_AI_EXPLAIN",
+		"usage_telemetry": "GIT_AI_USAGE_TELEMETRY",
 	}
 	for key, name := range env {
 		if value, ok := os.LookupEnv(name); ok && value != "" {
 			_ = SetValue(cfg, key, value)
 		}
+	}
+	if os.Getenv("DO_NOT_TRACK") == "1" {
+		cfg.UsageTelemetry = boolPtr(false)
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
+	"unicode"
 
 	"github.com/daidi/git-ai/cli/internal/config"
 )
@@ -22,6 +24,9 @@ type ModelCatalog struct {
 	Provider     string      `json:"provider"`
 	CurrentModel string      `json:"current_model,omitempty"`
 	Models       []ModelInfo `json:"models"`
+	Source       string      `json:"source,omitempty"`
+	FetchedAt    time.Time   `json:"fetched_at"`
+	Stale        bool        `json:"stale,omitempty"`
 }
 
 type modelListResponse struct {
@@ -40,6 +45,10 @@ type modelListResponse struct {
 // ListModels fetches a bounded provider model catalog without sending prompts,
 // diffs, or repository data.
 func ListModels(ctx context.Context, cfg *config.Config) (ModelCatalog, error) {
+	return ListModelsWithOptions(ctx, cfg, ModelListOptions{})
+}
+
+func fetchModels(ctx context.Context, cfg *config.Config) (ModelCatalog, error) {
 	endpoint, headers := modelEndpoint(cfg)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -68,6 +77,9 @@ func ListModels(ctx context.Context, cfg *config.Config) (ModelCatalog, error) {
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return ModelCatalog{}, &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned a malformed model list", Err: err}
 	}
+	if payload.Data == nil && payload.Models == nil {
+		return ModelCatalog{}, &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned no model list"}
+	}
 
 	seen := make(map[string]bool)
 	models := make([]ModelInfo, 0, len(payload.Data)+len(payload.Models))
@@ -93,7 +105,17 @@ func ListModels(ctx context.Context, cfg *config.Config) (ModelCatalog, error) {
 		appendModel(model.Name, model.DisplayName)
 	}
 	sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
+	for _, model := range models {
+		if !validModelInfo(model) {
+			return ModelCatalog{}, &ProviderError{Kind: ErrorInvalidResponse, Message: "provider returned invalid model metadata"}
+		}
+	}
 	return ModelCatalog{Provider: cfg.Provider, CurrentModel: cfg.Model, Models: models}, nil
+}
+
+func validModelInfo(model ModelInfo) bool {
+	return model.ID != "" && len(model.ID) <= 1024 && len(model.DisplayName) <= 1024 &&
+		!strings.ContainsFunc(model.ID+model.DisplayName, unicode.IsControl)
 }
 
 func modelEndpoint(cfg *config.Config) (string, map[string]string) {

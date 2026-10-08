@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	configGlobal bool
-	configScope  string
-	configJSON   bool
+	configGlobal  bool
+	configScope   string
+	configJSON    bool
+	modelsRefresh bool
+	modelsOffline bool
 )
 
 var configCmd = &cobra.Command{
@@ -214,7 +216,7 @@ var configModelsCmd = &cobra.Command{
 		}
 		ctx, cancel := context.WithTimeout(cmd.Context(), 35*time.Second)
 		defer cancel()
-		catalog, err := ai.ListModels(ctx, cfg)
+		catalog, err := ai.ListModelsWithOptions(ctx, cfg, ai.ModelListOptions{Refresh: modelsRefresh, Offline: modelsOffline})
 		if err != nil {
 			return fmt.Errorf("list provider models: %w", err)
 		}
@@ -222,6 +224,9 @@ var configModelsCmd = &cobra.Command{
 			encoder := json.NewEncoder(cmd.OutOrStdout())
 			encoder.SetEscapeHTML(false)
 			return encoder.Encode(catalog)
+		}
+		if catalog.Stale {
+			cmd.PrintErrln("Using a stale cached model list; availability may have changed. Use --refresh to retry discovery.")
 		}
 		for _, model := range catalog.Models {
 			marker := " "
@@ -242,6 +247,9 @@ func init() {
 	configListCmd.Flags().StringVar(&configScope, "scope", "merged", "Scope: merged, global, or local")
 	configListCmd.Flags().BoolVar(&configJSON, "json", false, "Print JSON")
 	configModelsCmd.Flags().BoolVar(&configJSON, "json", false, "Print JSON")
+	configModelsCmd.Flags().BoolVar(&modelsRefresh, "refresh", false, "Refresh the cached provider model list")
+	configModelsCmd.Flags().BoolVar(&modelsOffline, "offline", false, "Use the cached model list without network access")
+	configModelsCmd.MarkFlagsMutuallyExclusive("refresh", "offline")
 	configReplaceCmd.Flags().StringVar(&configScope, "scope", "", "Scope: global or local")
 	configResetCmd.Flags().StringVar(&configScope, "scope", "", "Scope: global or local")
 	configCmd.AddCommand(configSetCmd, configUnsetCmd, configGetCmd, configListCmd, configSchemaCmd, configModelsCmd, configReplaceCmd, configResetCmd, configTestCmd)

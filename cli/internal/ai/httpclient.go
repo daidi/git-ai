@@ -101,6 +101,17 @@ func newProviderHTTPClient() *http.Client {
 	}
 }
 
+// ValidateEndpoint validates an explicitly entered service URL without
+// including any part of it in errors. Setup rejects embedded credentials and
+// query/fragment components rather than displaying or reusing them.
+func ValidateEndpoint(raw string) error {
+	endpoint, err := url.Parse(raw)
+	if err != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+		return &ProviderError{Kind: ErrorModel, Message: "configured provider endpoint is invalid; use a base URL without credentials, query or fragment"}
+	}
+	return validateProviderURL(endpoint)
+}
+
 func validateProviderURL(endpoint *url.URL) error {
 	if endpoint == nil || endpoint.Host == "" || endpoint.User != nil {
 		return &ProviderError{Kind: ErrorModel, Message: "configured provider endpoint is invalid"}

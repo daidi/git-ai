@@ -7,3 +7,11 @@ compatibility_date = "2024-04-14"
 routes = [
   { pattern = "git-ai.codegg.org", custom_domain = true }
 ]
+
+[triggers]
+crons = ["15 3 * * *"]
+
+# Add the production binding with the ID returned by:
+# npx wrangler d1 create git-ai-usage --binding USAGE_DB --update-config
+# Apply migrations before deploying; see README.md.
+# USAGE_ADMIN_TOKEN must be set with `wrangler secret put`, never in this file.

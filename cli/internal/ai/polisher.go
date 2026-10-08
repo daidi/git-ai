@@ -28,6 +28,13 @@ func PolishWithLogger(diff, originalMsg, repoRoot string, cfg *config.Config, lo
 
 // PolishWithLoggerContext performs polishing with cancellation-aware retries.
 func PolishWithLoggerContext(ctx context.Context, diff, originalMsg, repoRoot string, cfg *config.Config, logger *log.Logger) (string, error) {
+	return PolishWithRepositoryContext(ctx, diff, originalMsg, repoRoot, cfg, logger, RepositoryContext{})
+}
+
+// PolishWithRepositoryContext adds snapshot-bound hints to the built-in prompt.
+// Custom templates opt in via Branch, Tickets, CommonScopes or RepositoryContext;
+// existing custom prompts and the standalone eval harness remain unchanged.
+func PolishWithRepositoryContext(ctx context.Context, diff, originalMsg, repoRoot string, cfg *config.Config, logger *log.Logger, repositoryContext RepositoryContext) (string, error) {
 	if cfg.Provider != "ollama" && cfg.APIKey == "" {
 		return "", &ProviderError{Kind: ErrorAuthentication, Message: "provider API key is not configured"}
 	}
@@ -55,13 +62,21 @@ func PolishWithLoggerContext(ctx context.Context, diff, originalMsg, repoRoot st
 			logger.Printf("failed to parse prompt_template: %v, falling back to default", err)
 		} else {
 			ctx := struct {
-				Hint     string
-				Diff     string
-				Language string
+				Hint              string
+				Diff              string
+				Language          string
+				Branch            string
+				Tickets           []string
+				CommonScopes      []string
+				RepositoryContext string
 			}{
-				Hint:     promptOriginal,
-				Diff:     trimmedDiff,
-				Language: cfg.Language,
+				Hint:              promptOriginal,
+				Diff:              trimmedDiff,
+				Language:          cfg.Language,
+				Branch:            repositoryContext.Branch,
+				Tickets:           repositoryContext.Tickets,
+				CommonScopes:      repositoryContext.CommonScopes,
+				RepositoryContext: repositoryContext.prompt(),
 			}
 
 			var buf strings.Builder
@@ -84,6 +99,10 @@ func PolishWithLoggerContext(ctx context.Context, diff, originalMsg, repoRoot st
 
 	sysProm = SystemPrompt(format, cfg.Language, cfg.ExplainEnabled(), commitlintConfig)
 	userProm = UserPrompt(promptOriginal, trimmedDiff)
+	if hints := repositoryContext.prompt(); hints != "" {
+		sysProm += "\n" + repositoryContextPolicy
+		userProm += hints
+	}
 
 PromptsReady:
 

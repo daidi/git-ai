@@ -213,7 +213,7 @@ Poiché il messaggio fa parte dell’oggetto commit, un perfezionamento riuscito
 
 ### Privacy e controllo locale
 
-- **Nessun relay Git AI.** Il diff limitato e la bozza vanno direttamente all’endpoint configurato.
+- **Nessun relay di modelli Git AI.** Il diff limitato, la bozza e gli indizi del repository (branch, riferimenti ai ticket e scope comuni) vanno direttamente all’endpoint configurato, senza i messaggi storici originali.
 - **Inferenza locale.** Usa Ollama quando il codice deve restare sul computer.
 - **Credenziali fuori dai repository.** Le chiavi persistenti sono solo a livello utente; sono supportate anche le variabili d’ambiente.
 - **Stato fuori dal worktree.** Stato, log e cronologia IA stanno nella cache utente; le eccezioni del repository usano `.git/config`.
@@ -316,7 +316,7 @@ Sì. Usa `git-ai log`, `git-ai retry` e `git-ai undo`, oppure i controlli equiva
 <details>
 <summary><strong>Git AI invia tutto il repository a un modello?</strong></summary>
 <br />
-No. Invia una rappresentazione limitata del diff registrato e la bozza all’endpoint scelto. Ollama consente l’inferenza locale.
+No. Invia il diff registrato limitato, la bozza e gli indizi del repository (branch, riferimenti ai ticket e scope comuni), non i messaggi storici originali. Ollama consente l’inferenza locale.
 </details>
 
 <details>

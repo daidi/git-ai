@@ -213,7 +213,7 @@ Da die Nachricht Teil des Commit-Objekts ist, erzeugt eine erfolgreiche Optimier
 
 ### Datenschutz und lokale Datenhoheit
 
-- **Kein Git-AI-Relay.** Der begrenzte Commit-Diff und der Entwurf gehen direkt an deinen konfigurierten Modellendpunkt.
+- **Kein Git-AI-Modell-Relay.** Begrenzter Commit-Diff, Entwurf und Repository-Hinweise (Branch, Ticketreferenzen und häufige Scopes) gehen direkt an deinen Modellendpunkt, nicht die ursprünglichen historischen Nachrichten.
 - **Lokale Inferenz.** Mit Ollama kann der Code auf deinem Rechner bleiben.
 - **Keine Zugangsdaten im Repository.** Gespeicherte API-Schlüssel sind ausschließlich benutzerweit; Umgebungsvariablen werden unterstützt.
 - **Laufzeitdaten außerhalb des Worktrees.** Status, Logs und KI-Verlauf liegen im Nutzer-Cache; Repository-Overrides in `.git/config`.
@@ -318,7 +318,7 @@ Ja. Nutze `git-ai log`, `git-ai retry` und `git-ai undo` oder die entsprechenden
 <details>
 <summary><strong>Sendet Git AI mein gesamtes Repository an ein Modell?</strong></summary>
 <br />
-Nein. Nur eine begrenzte Darstellung des aufgezeichneten Commit-Diffs und der Entwurf gehen an deinen Endpunkt. Mit Ollama bleibt der Code lokal.
+Nein. Eine begrenzte Darstellung des aufgezeichneten Commit-Diffs, der Entwurf und Repository-Hinweise (Branch, Ticketreferenzen und häufige Scopes) gehen an deinen Endpunkt, nicht die ursprünglichen historischen Nachrichten. Mit Ollama bleibt der Code lokal.
 </details>
 
 <details>

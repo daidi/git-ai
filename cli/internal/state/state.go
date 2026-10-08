@@ -136,6 +136,10 @@ func canonicalPath(path string) string {
 	return filepath.Clean(path)
 }
 
+// RuntimeCacheDir returns the external, user-owned cache root shared by CLI
+// caches. It must never be derived from repository configuration.
+func RuntimeCacheDir() string { return runtimeBaseDir() }
+
 func runtimeBaseDir() string {
 	if override := os.Getenv(stateDirEnv); override != "" {
 		return override

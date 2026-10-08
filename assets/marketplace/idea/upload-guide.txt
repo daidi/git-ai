@@ -1,0 +1,79 @@
+Git AI — JetBrains Marketplace 展示素材
+制作日期：2026-10-08
+
+素材性质
+4 张英文功能介绍图（informational slides），不是 IDEA 实拍截图。
+所有功能均依据当前项目代码与 idea-plugin/README.md 核对。
+示例提交消息仅说明工作流，不代表实际模型输出、性能测试或用户案例。
+当前 IDEA 窗口控制多次超时，因此本次未采集实拍，也未上传或修改线上 Marketplace 页面。
+
+规格
+PNG / RGB / 无透明通道 / 1600 × 1000 / 16:10。
+满足页面提示的建议最低分辨率 1200 × 760。
+所有图片使用同一比例。source/ 包含可编辑 SVG，render.cjs 是生成脚本。
+index.html 是本地预览页。文件名中的关键词用于方便管理，不宣称影响搜索排名。
+
+上传顺序（png/ 目录）
+01-git-ai-async-commit-messages.png
+核心价值：Commit now. Keep coding. 展示从草稿到 Conventional Commit 的例子。
+
+02-git-ai-native-controls-history.png
+原生功能：Status、AI History、Productivity、Logs，以及 Retry / Undo / Cancel / Skip。
+
+03-git-ai-providers-commit-styles.png
+适配能力：模型提供商、Ollama 本地模型与四种消息格式。
+
+04-git-ai-recorded-commit-safety.png
+可靠性：使用记录下来的提交，保留 tree / parents，仅在目标 ref 未移动时应用替换。
+
+正式图库建议
+JetBrains 允许在截图之外添加功能介绍图。这组图可直接作为 Media 素材上传，
+建议在 01 后增加一张真实 IDEA 主界面，在 03 后增加一张真实 Tools → Git AI 设置界面。
+实拍使用默认 IDE 主题，展示插件区域，关闭无关窗口，确保不出现密钥和私人信息。
+不要把此套介绍图称为真实 IDE 截图。
+
+上传位置
+https://plugins.jetbrains.com/plugin/31221-git-ai
+进入该插件的管理界面 → Media → Plugin Screenshots，按数字顺序上传 PNG。
+不要上传 SVG、生成脚本或整个 ZIP 到截图字段。
+
+建议配合使用的英文描述（可复制，尚未发布）
+
+AI commit messages, polished after commit.
+
+Git AI is an AI commit message generator for IntelliJ IDEA and compatible JetBrains IDEs.
+Commit a quick draft, then keep coding while your configured model polishes the message
+in the background. Choose Conventional Commits, Gitmoji, plain text, or subject and body.
+
+Use the native Git AI Tool Window to follow progress, inspect AI history, retry generation,
+restore your original draft, or cancel active polishing. With the queue push policy,
+eligible pushes wait until polishing finishes.
+
+Connect an OpenAI-compatible API, Anthropic, Google, or a local Ollama model. Configure
+your provider, output language, and message format in Settings / Preferences → Tools → Git AI.
+Cloud providers require your own API key; Ollama supports local inference.
+
+Polishing uses the exact recorded commit tree and parents. It updates the recorded ref
+only if it has not moved. A model failure leaves your original commit unchanged.
+
+主要关键词已自然包含在描述中：AI commit message generator、IntelliJ IDEA、
+Conventional Commits、Gitmoji、Ollama、JetBrains IDEs。
+标签只选择后台实际存在、且与 Git / 版本控制 / AI / 开发效率相关的项目。
+避免关键词堆砌、虚构评分、用户数、时间节省数据或下载量保证。
+
+SEO 与转化的区别
+描述与相关标签帮助用户理解和发现插件；截图主要帮助用户判断功能是否适合自己。
+本次完成的是展示素材与描述草稿，没有验证搜索排名或下载转化提升。
+
+官方依据（2026-10-08 查阅）
+https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#screenshots
+官方建议至少 1200 × 760、统一比例、文字清楚，允许叠加说明与补充介绍图。
+https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description
+描述应简洁、英文优先，自然使用相关 SEO 关键词，避免堆砌。
+https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#tags
+选择与功能相关的可用标签。
+
+重新生成
+需要 Node.js 和 sharp；安装依赖后运行 node render.cjs。
+SVG 文本使用 Avenir Next 与 Menlo。不同系统若缺少字体，渲染可能变化。
+本次交付的 PNG 已在 macOS 检查，上传时优先使用 PNG 成品。

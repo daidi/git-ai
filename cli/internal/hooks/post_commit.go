@@ -238,7 +238,18 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 		}
 	}
 
-	polished, err := ai.PolishWithLoggerContext(ctx, diff, snapshot.OriginalMsg, repoRoot, cfg, logger)
+	subjects, contextErr := git.GetAncestorSubjects(ctx, snapshot.LastSHA)
+	if contextErr != nil {
+		// Never log commit subjects or Git stderr. Optional hints must not turn
+		// shallow/unavailable history into a failed polishing operation.
+		logger.Print("ancestor context unavailable; proceeding without history hints")
+	}
+	repositoryContext := ai.BuildRepositoryContext(snapshot.TargetRef, subjects)
+	// Only real polishing attempts count as activity. Reporting runs alongside
+	// the model request and is never part of the foreground commit or ref update.
+	waitForUsage := telemetry.StartUsage(ctx, cfg.UsageTelemetryEnabled())
+	defer waitForUsage()
+	polished, err := ai.PolishWithRepositoryContext(ctx, diff, snapshot.OriginalMsg, repoRoot, cfg, logger, repositoryContext)
 	if err != nil {
 		failure := ai.DescribeError(err)
 		markOperationFailure(mgr, operationID, state.OperationError{Code: failure.Code, Category: failure.Category, Message: failure.Message, Retryable: failure.Retryable, OccurredAt: time.Now().Unix()})

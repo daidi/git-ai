@@ -213,7 +213,7 @@ Git AI는 백그라운드에서 무조건적인 `git commit --amend`를 **실행
 
 ### 개인정보 보호와 로컬 소유권
 
-- **Git AI 중계 서버 없음.** 제한된 commit diff와 초안이 설정한 모델 endpoint로 직접 전송됩니다.
+- **Git AI 모델 중계 서버 없음.** 제한된 commit diff, 초안, 저장소 힌트(브랜치, 작업 번호, 자주 쓰는 scope)가 설정한 모델 endpoint로 직접 전송됩니다. 과거 메시지 원문은 전송하지 않습니다.
 - **로컬 추론 지원.** 코드가 컴퓨터 밖으로 나가면 안 될 때 Ollama를 사용할 수 있습니다.
 - **저장소에 자격 증명 없음.** 저장되는 API 키는 사용자 범위뿐이며 환경 변수도 지원합니다.
 - **worktree 밖의 실행 상태.** 상태, 로그, AI 기록은 사용자 캐시에 있고 저장소별 설정은 `.git/config`를 사용합니다.
@@ -316,7 +316,7 @@ code --install-extension git-ai-async-commit-polisher.git-ai
 <details>
 <summary><strong>Git AI가 저장소 전체를 모델에 보내나요?</strong></summary>
 <br />
-아니요. 기록된 commit diff의 제한된 표현과 초안만 설정한 endpoint로 보냅니다. 로컬 추론에는 Ollama를 사용하세요.
+아니요. 기록된 commit diff의 제한된 표현, 초안, 저장소 힌트(브랜치, 작업 번호, 자주 쓰는 scope)를 설정한 endpoint로 보내며 과거 메시지 원문은 보내지 않습니다. 로컬 추론에는 Ollama를 사용하세요.
 </details>
 
 <details>

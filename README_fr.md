@@ -213,7 +213,7 @@ Un message faisant partie de l’objet commit, une amélioration réussie crée 
 
 ### Confidentialité et maîtrise locale
 
-- **Aucun serveur relais Git AI.** Le diff borné et le brouillon vont directement au point d’accès que vous configurez.
+- **Aucun relais de modèles Git AI.** Le diff borné, le brouillon et les indications du dépôt (branche, références de tickets et scopes fréquents) vont directement au point d’accès configuré, sans les messages historiques bruts.
 - **Inférence locale disponible.** Utilisez Ollama pour garder le code sur votre machine.
 - **Identifiants hors des dépôts.** Les clés persistées sont uniquement au niveau utilisateur ; les variables d’environnement sont aussi prises en charge.
 - **État hors du répertoire de travail.** État, journaux et historique IA résident dans le cache utilisateur ; les réglages du dépôt utilisent `.git/config`.
@@ -318,7 +318,7 @@ Oui. Utilisez `git-ai log`, `git-ai retry` et `git-ai undo`, ou les contrôles c
 <details>
 <summary><strong>Git AI envoie-t-il tout mon dépôt à un modèle ?</strong></summary>
 <br />
-Non. Seuls une représentation bornée du diff enregistré et le brouillon sont envoyés au point d’accès configuré. Ollama permet une inférence locale.
+Non. Le diff enregistré borné, le brouillon et les indications du dépôt (branche, références de tickets et scopes fréquents) sont envoyés au point d’accès configuré, pas les messages historiques bruts. Ollama permet une inférence locale.
 </details>
 
 <details>

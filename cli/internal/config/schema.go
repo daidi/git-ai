@@ -57,6 +57,7 @@ func Schema() ConfigSchema {
 			{Key: "max_diff_tokens", Type: "integer", Default: defaults.MaxDiffTokens, Minimum: intPointer(1), Maximum: intPointer(100_000), Description: "Maximum approximate diff tokens sent to the provider"},
 			{Key: "log_level", Type: "string", Default: defaults.LogLevel, Enum: []string{"error", "info", "debug"}, Description: "Diagnostic log verbosity"},
 			{Key: "check_update", Type: "boolean", Default: defaults.CheckUpdate != nil && *defaults.CheckUpdate, Description: "Check for new Git AI releases"},
+			{Key: "usage_telemetry", Type: "boolean", GlobalOnly: true, Default: defaults.UsageTelemetryEnabled(), Description: "Send a random installation ID, IDE/terminal label, and daily polishing activity; no code, paths, messages, or credentials"},
 			{Key: "explain", Type: "boolean", Default: defaults.ExplainEnabled(), Description: "Append a short explanation of why the change was made"},
 		},
 		Providers: []ProviderSchema{

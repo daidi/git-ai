@@ -213,7 +213,7 @@ Karena pesan adalah bagian dari objek commit, penyempurnaan yang berhasil mengha
 
 ### Privasi dan kepemilikan lokal
 
-- **Tanpa server perantara Git AI.** Commit diff terbatas dan draf dikirim langsung ke endpoint model yang Anda atur.
+- **Tanpa perantara model Git AI.** Commit diff terbatas, draf, dan petunjuk repository (branch, referensi tugas, dan scope umum) dikirim langsung ke endpoint model Anda, tanpa teks asli pesan historis.
 - **Mendukung inferensi lokal.** Gunakan Ollama ketika kode harus tetap di komputer.
 - **Kredensial di luar repository.** API key tersimpan hanya pada tingkat pengguna; environment variable juga didukung.
 - **Status di luar worktree.** Status, log, dan riwayat AI berada di cache pengguna; pengaturan repository menggunakan `.git/config`.
@@ -316,7 +316,7 @@ Bisa. Gunakan `git-ai log`, `git-ai retry`, `git-ai undo`, atau kontrol yang ses
 <details>
 <summary><strong>Apakah Git AI mengirim seluruh repository ke model?</strong></summary>
 <br />
-Tidak. Hanya representasi terbatas dari commit diff yang direkam dan draf yang dikirim ke endpoint pilihan Anda. Gunakan Ollama untuk inferensi lokal.
+Tidak. Commit diff tercatat yang dibatasi, draf, dan petunjuk repository (branch, referensi tugas, dan scope umum) dikirim ke endpoint Anda, bukan teks asli pesan historis. Gunakan Ollama untuk inferensi lokal.
 </details>
 
 <details>

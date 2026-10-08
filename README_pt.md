@@ -213,7 +213,7 @@ Como a mensagem faz parte do objeto commit, uma melhoria bem-sucedida cria um SH
 
 ### Privacidade e controle local
 
-- **Sem servidor intermediário do Git AI.** O diff limitado e o rascunho vão direto para o endpoint configurado.
+- **Sem intermediário de modelos do Git AI.** O diff limitado, o rascunho e as pistas do repositório (branch, referências de tarefas e scopes comuns) vão direto ao endpoint configurado, sem as mensagens históricas originais.
 - **Inferência local.** Use Ollama quando o código precisar ficar no seu computador.
 - **Credenciais fora dos repositórios.** Chaves persistidas existem apenas no nível do usuário; variáveis de ambiente também são aceitas.
 - **Estado fora da árvore de trabalho.** Status, logs e histórico de IA ficam no cache do usuário; ajustes do repositório usam `.git/config`.
@@ -316,7 +316,7 @@ Sim. Use `git-ai log`, `git-ai retry` e `git-ai undo`, ou os controles equivalen
 <details>
 <summary><strong>O Git AI envia meu repositório inteiro a um modelo?</strong></summary>
 <br />
-Não. Ele envia uma representação limitada do diff registrado e o rascunho ao endpoint escolhido. Use Ollama para inferência local.
+Não. Ele envia o diff registrado limitado, o rascunho e pistas do repositório (branch, referências de tarefas e scopes comuns), não as mensagens históricas originais. Use Ollama para inferência local.
 </details>
 
 <details>

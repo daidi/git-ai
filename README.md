@@ -145,19 +145,20 @@ Prebuilt binaries are available for macOS, Linux, and Windows on AMD64 and ARM64
 IDE users can open Git AI settings, connect a model, and accept the one-time repository initialization prompt. For the standalone CLI:
 
 ```bash
+# Configure provider, hidden API key, model, format and language
+git-ai setup
+
 # Run once in each repository to install the composable hooks
 cd your-project
 git-ai init
-
-# The default endpoint is DeepSeek; replace the placeholder with your key
-git-ai config set api_key "sk-..." --global
-git-ai config test
 
 # Keep using Git exactly as before
 git commit -m "fix login"
 ```
 
 That is the complete daily workflow. Use `git-ai status` when you want visibility; otherwise Git AI stays out of the way.
+
+The wizard offers model discovery and a connection test, then saves global settings only after confirmation. Canceling or a failed test leaves configuration unchanged. It does not install hooks or modify repository overrides. For scripts, use `git-ai config set` instead.
 
 Prefer a local model? No API key is required for Ollama:
 
@@ -217,7 +218,7 @@ Because a Git commit message is part of the commit object, a successful polish c
 
 ### Privacy and local ownership
 
-- **No Git AI relay server.** The bounded commit diff and draft message go directly to the model endpoint you configure.
+- **No Git AI model relay.** The bounded commit diff, draft message, and repository hints (recorded branch, ticket references, and common scopes) go directly to the model endpoint you configure. Raw historical messages are not sent.
 - **Local inference is supported.** Use Ollama when code must stay on your machine.
 - **Credentials stay out of repositories.** Persisted API keys are user-level only; environment variables are also supported.
 - **Runtime state stays out of the worktree.** State, logs, and AI history live in the user cache; repository overrides use `.git/config`.
@@ -259,6 +260,23 @@ Useful behavior and output options:
 | `explain` | `false` | Add a short body explaining why the change was made |
 | `prompt_template` | empty | Customize generation with `{{.Diff}}`, `{{.Hint}}`, and `{{.Language}}` |
 
+### Repository context
+
+Built-in prompts use the recorded branch name, ticket references such as `PROJ-123` or `#123`, and up to five common Conventional Commit scopes derived from the target commit's twenty most recent first-parent ancestors. Newer commits, the current checkout, and staged files do not influence these hints. Explicit format, language, Commitlint rules, and the actual diff take priority. Hints never authorize automatic issue-closing actions or new trailers.
+
+Existing custom prompts are unchanged. To opt in, use `{{.Branch}}`, `{{.Tickets}}`, `{{.CommonScopes}}`, or `{{.RepositoryContext}}`; the latter provides the complete bounded hints block. Ticket and scope variables are lists and support Go template `range`.
+
+### Cached model discovery
+
+```bash
+git-ai config models                 # Reuse a catalog for up to seven days
+git-ai config models --refresh       # Request a fresh catalog
+git-ai config models --offline       # Read cache only; never access the network
+git-ai config models --offline --json
+```
+
+Catalogs live in the OS user cache, isolated by provider, endpoint, and credential hash; raw endpoints and credentials are not stored in catalog files. A transient network, timeout, rate-limit, or server failure can return the last catalog with a stale warning. Authentication and malformed-response errors are never hidden by a cache fallback. JSON adds `source` (`network`, `cache`, or `stale-cache`), `fetched_at`, and `stale` when applicable; existing model fields remain compatible. `--refresh` and `--offline` are mutually exclusive.
+
 Attribution is optional and disabled by default. Enable it for just this repository with `git-ai config set commit_attribution compact` (add `--global` for all repositories). Successful AI polishing appends this trailer after existing metadata:
 
 ```text
@@ -285,6 +303,7 @@ API keys are user-level only. Legacy `.git-ai.json` files in a worktree are igno
 
 | Command | What it does |
 |:--|:--|
+| `git-ai setup` | Interactively configure global model settings, then confirm saving |
 | `git-ai status` | Show `idle`, `polishing`, `pushing`, or `failed` state |
 | `git-ai retry` | Retry the current commit safely in the background |
 | `git-ai undo` | Restore the original draft message |
@@ -346,7 +365,7 @@ Yes. Use <code>git-ai log</code>, <code>git-ai retry</code>, and <code>git-ai un
 <details>
 <summary><strong>Does Git AI send my whole repository to a model?</strong></summary>
 <br />
-No. It sends a bounded representation of the recorded commit diff plus the draft message to your configured endpoint. Choose Ollama for local inference when no code should leave your machine.
+No. It sends a bounded representation of the recorded commit diff, the draft, and repository hints (branch, ticket references, and common scopes) to your configured endpoint, not raw historical messages. Choose Ollama for local inference when no code should leave your machine.
 </details>
 
 <details>

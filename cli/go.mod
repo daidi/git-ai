@@ -7,6 +7,7 @@ require (
 	github.com/gofrs/flock v0.13.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/mod v0.35.0
+	golang.org/x/term v0.46.0
 )
 
 require (
@@ -23,5 +24,5 @@ require (
 	github.com/sergeymakinen/go-ico v1.0.0-beta.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
