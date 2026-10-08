@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Git AI ロゴ — 非同期 AI Git コミットメッセージジェネレーター" />
+  <img src="assets/icon.png" width="112" height="112" alt="Git AI ロゴ — 非同期 AI Git コミットメッセージジェネレーター" />
 </p>
 
 <h1 align="center">Git AI — 非同期 AI コミットメッセージジェネレーター</h1>

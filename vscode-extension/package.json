@@ -7,7 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/daidi/git-ai"
+    "url": "https://github.com/daidi/git-ai",
+    "directory": "vscode-extension"
+  },
+  "vsce": {
+    "baseContentUrl": "https://github.com/daidi/git-ai/blob/main/vscode-extension",
+    "baseImagesUrl": "https://raw.githubusercontent.com/daidi/git-ai/main/vscode-extension"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -168,8 +173,8 @@
         "id": "git-ai.scmMenu",
         "label": "%submenu.gitai%",
         "icon": {
-          "light": "resources/icon.svg",
-          "dark": "resources/icon.svg"
+          "light": "resources/icon-light.svg",
+          "dark": "resources/icon-dark.svg"
         }
       }
     ],

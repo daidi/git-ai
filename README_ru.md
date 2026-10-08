@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Логотип Git AI — асинхронный ИИ-генератор сообщений Git-коммитов" />
+  <img src="assets/icon.png" width="112" height="112" alt="Логотип Git AI — асинхронный ИИ-генератор сообщений Git-коммитов" />
 </p>
 
 <h1 align="center">Git AI — Асинхронный ИИ-генератор сообщений коммитов</h1>

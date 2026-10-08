@@ -1,0 +1,11 @@
+Built-in image_gen; selected concept A. The generated raster is git-ai-master.png.
+PNG exports preserve the generated alpha and use 256px (product/marketplaces),
+180px (touch icon), and 32px (favicon). IDE SVGs are optical adaptations of the
+approved G silhouette; 16px versions widen the diagonal opening.
+
+Use case: logo-brand / precise-object-edit.
+The input is a three-concept Git AI logo board. The user has chosen A, the LEFTMOST concept.
+Create the final standalone production app icon by faithfully extracting and refining ONLY concept A.
+Preserve its exact identity: violet rounded-square tile; a bold white custom geometric G with rounded corners, an open horizontal upper-right mouth, and the distinctive diagonal negative-space cut through the bottom-right connection. Match the proportions and silhouette of A closely. Keep the restrained violet gradient and very subtle lavender shading in the white mark visible in the reference. Front-facing, perfectly square, clean, sharp edges. No redesign, no alternative letterform, no star or node symbols.
+Output one high-resolution square icon, preferably 1024 by 1024. The rounded square occupies 87.5% of canvas width and height and is centered, with equal TRANSPARENT margins on all four sides and transparent rounded-corner cutouts. Inside the rounded purple tile, retain the generous mark padding from the reference. Outside tile must be actual alpha transparency, no white matte or checkerboard painted into image.
+NO text, no "A", no wordmark, no presentation board, no comparison, no shadows outside tile. Just the final approved A app icon.

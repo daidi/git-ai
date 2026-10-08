@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Logo Git AI — pembuat pesan Git commit asinkron dengan AI" />
+  <img src="assets/icon.png" width="112" height="112" alt="Logo Git AI — pembuat pesan Git commit asinkron dengan AI" />
 </p>
 
 <h1 align="center">Git AI — Pembuat pesan commit asinkron dengan AI</h1>

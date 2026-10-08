@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/daidi/git-ai/main/assets/icon.png" width="112" alt="Git AI — asynchronous AI commit message generator for JetBrains IDEs" />
+  <img src="../assets/icon.png" width="112" height="112" alt="Git AI — asynchronous AI commit message generator for JetBrains IDEs" />
 </p>
 
 <h1 align="center">Git AI for JetBrains IDEs</h1>

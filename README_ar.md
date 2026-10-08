@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="شعار Git AI — مولّد غير متزامن لرسائل Git Commit بالذكاء الاصطناعي" />
+  <img src="assets/icon.png" width="112" height="112" alt="شعار Git AI — مولّد غير متزامن لرسائل Git Commit بالذكاء الاصطناعي" />
 </p>
 
 <h1 align="center">Git AI — مولّد غير متزامن لرسائل Commit بالذكاء الاصطناعي</h1>

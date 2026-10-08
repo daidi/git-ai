@@ -76,15 +76,23 @@ button {
     flex: 0 0 40px;
     place-items: center;
     margin-top: 2px;
-    color: var(--vscode-button-foreground);
-    background: var(--vscode-button-background);
-    border: 1px solid color-mix(in srgb, var(--vscode-button-background) 78%, var(--vscode-foreground));
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #9254F6, #6B34EE 45%, #4D24C3);
+    border: 1px solid transparent;
     border-radius: var(--git-ai-radius-md);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vscode-button-foreground) 16%, transparent);
 }
 
-.brand-mark .codicon {
-    font-size: 20px;
+.brand-mark svg {
+    display: block;
+    width: 26px;
+    height: 26px;
+}
+
+.vscode-high-contrast .brand-mark,
+.vscode-high-contrast-light .brand-mark {
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    border-color: var(--vscode-contrastBorder, var(--vscode-foreground));
 }
 
 h1,

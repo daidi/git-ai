@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Logotipo de Git AI — generador asíncrono de mensajes de commit con IA" />
+  <img src="assets/icon.png" width="112" height="112" alt="Logotipo de Git AI — generador asíncrono de mensajes de commit con IA" />
 </p>
 
 <h1 align="center">Git AI — Generador asíncrono de mensajes de commit con IA</h1>

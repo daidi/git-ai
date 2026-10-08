@@ -380,7 +380,7 @@ export class SettingsPanel {
     <div class="page-shell">
         <header class="page-header">
             <div class="brand-lockup">
-                <span class="brand-mark" aria-hidden="true"><i class="codicon codicon-git-commit"></i></span>
+                <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" focusable="false"><path d="M6.8 2.75H18.3a3.35 3.35 0 0 1 3.35 3.35v.35a.45.45 0 0 1-.45.45H8a1.9 1.9 0 0 0-1.9 1.9v6.4A1.9 1.9 0 0 0 8 17.1h4.9a.8.8 0 0 1 .57.24l3.1 3.12a.45.45 0 0 1-.32.77H6.8A4.8 4.8 0 0 1 2 16.43V7.55a4.8 4.8 0 0 1 4.8-4.8Z"/><path d="M11.55 10.3h8.8A1.65 1.65 0 0 1 22 11.95v5.75a3.53 3.53 0 0 1-3.53 3.53h-.17a.45.45 0 0 1-.45-.45v-3.42a.8.8 0 0 0-.24-.57l-2.86-2.86a.65.65 0 0 0-.92 0l-.14.14a.65.65 0 0 1-.46.19h-1.68A1.45 1.45 0 0 1 10.1 12.8v-1.05a1.45 1.45 0 0 1 1.45-1.45Z"/></svg></span>
                 <div>
                     <h1>${this.escapeHtml(t('settings.title'))}</h1>
                     <p class="subtitle">${this.escapeHtml(t('settings.subtitle'))}</p>

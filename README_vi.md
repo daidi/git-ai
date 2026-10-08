@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Logo Git AI — trình tạo thông điệp Git commit bất đồng bộ bằng AI" />
+  <img src="assets/icon.png" width="112" height="112" alt="Logo Git AI — trình tạo thông điệp Git commit bất đồng bộ bằng AI" />
 </p>
 
 <h1 align="center">Git AI — Trình tạo thông điệp commit bất đồng bộ bằng AI</h1>

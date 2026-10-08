@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Git AI 标志——异步 AI Git Commit Message 生成器" />
+  <img src="assets/icon.png" width="112" height="112" alt="Git AI 标志——异步 AI Git Commit Message 生成器" />
 </p>
 
 <h1 align="center">Git AI — 异步 AI Git Commit Message 生成器</h1>

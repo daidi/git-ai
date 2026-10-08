@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="Git AI 로고 — 비동기 AI Git 커밋 메시지 생성기" />
+  <img src="assets/icon.png" width="112" height="112" alt="Git AI 로고 — 비동기 AI Git 커밋 메시지 생성기" />
 </p>
 
 <h1 align="center">Git AI — 비동기 AI 커밋 메시지 생성기</h1>

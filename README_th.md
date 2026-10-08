@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" alt="โลโก้ Git AI — เครื่องมือ AI สร้างข้อความ Git commit แบบอะซิงโครนัส" />
+  <img src="assets/icon.png" width="112" height="112" alt="โลโก้ Git AI — เครื่องมือ AI สร้างข้อความ Git commit แบบอะซิงโครนัส" />
 </p>
 
 <h1 align="center">Git AI — เครื่องมือ AI สร้างข้อความ commit แบบอะซิงโครนัส</h1>

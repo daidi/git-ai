@@ -43,6 +43,7 @@
     <resource-bundle>messages.GitAiBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <iconMapper mappingFile="GitAiIconMappings.json"/>
         <!-- Startup activity to begin state watching -->
         <postStartupActivity
                 implementation="com.daidi.gitai.GitAiStartupActivity"/>
