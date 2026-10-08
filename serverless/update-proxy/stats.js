@@ -1,7 +1,19 @@
-// Pass the read-only summary credential through the environment, never a URL.
-const token = process.env.USAGE_ADMIN_TOKEN;
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+// Keep the read-only credential outside the repository and out of URLs.
+const tokenPath = join(homedir(), ".config", "git-ai-admin", "usage-admin-token");
+let token = process.env.USAGE_ADMIN_TOKEN;
+if (!token) {
+  try {
+    token = readFileSync(tokenPath, "utf8").trim();
+  } catch {
+    // Report the setup requirement below without printing credentials.
+  }
+}
 if (!token || token.length < 32) {
-  console.error("Set USAGE_ADMIN_TOKEN to the secret configured on the Worker.");
+  console.error(`Set USAGE_ADMIN_TOKEN or save the Worker secret in ${tokenPath}.`);
   process.exitCode = 1;
 } else {
   try {

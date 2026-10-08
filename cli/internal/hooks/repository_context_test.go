@@ -64,7 +64,7 @@ func TestDaemonContextRemainsBoundToRecordedCommitAfterBranchMoves(t *testing.T)
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := runDaemon(mgr, operationID); err != nil {
+	if err := runDaemon(mgr, operationID, "dev"); err != nil {
 		t.Fatal(err)
 	}
 	select {

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,7 +22,7 @@ func TestUsageDisabledDoesNotCreateIdentifier(t *testing.T) {
 			dir := filepath.Join(t.TempDir(), "config")
 			t.Setenv("GIT_AI_CONFIG_DIR", dir)
 			t.Setenv("DO_NOT_TRACK", doNotTrack)
-			StartUsage(context.Background(), doNotTrack == "1")()
+			StartUsage(context.Background(), doNotTrack == "1", "1.4.2")()
 			if _, err := os.Stat(dir); !os.IsNotExist(err) {
 				t.Fatalf("disabled telemetry touched disk: %v", err)
 			}
@@ -38,7 +39,7 @@ func TestUsageConcurrentDedupAndUTCDateRollover(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 			t.Error(err)
 		}
-		if len(event) != 3 || event["source"] != "cli" || event["event"] != "polish_started" || len(event["installation_id"]) != 32 {
+		if len(event) != 4 || event["cli_version"] != "1.4.2" || event["source"] != "cli" || event["event"] != "polish_started" || len(event["installation_id"]) != 32 {
 			t.Errorf("unexpected payload fields: %#v", event)
 		}
 		if receivedID != "" && receivedID != event["installation_id"] {
@@ -58,7 +59,7 @@ func TestUsageConcurrentDedupAndUTCDateRollover(t *testing.T) {
 		wg.Go(func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			if err := reportUsage(ctx, newUsageClient(), server.URL, path, "cli", now); err != nil {
+			if err := reportUsage(ctx, newUsageClient(), server.URL, path, "cli", "1.4.2", now); err != nil {
 				t.Error(err)
 			}
 		})
@@ -67,13 +68,13 @@ func TestUsageConcurrentDedupAndUTCDateRollover(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatalf("concurrent reports = %d, want 1", calls.Load())
 	}
-	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", now.In(time.FixedZone("CST", 8*3600))); err != nil {
+	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", "1.4.2", now.In(time.FixedZone("CST", 8*3600))); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 1 {
 		t.Fatal("local timezone triggered duplicate")
 	}
-	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", now.Add(2*time.Minute)); err != nil {
+	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", "1.4.2", now.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 2 {
@@ -100,7 +101,7 @@ func TestUsageFailureRetriesHourlyWithoutChangingID(t *testing.T) {
 	defer server.Close()
 	path := filepath.Join(t.TempDir(), "usage.json")
 	now := time.Date(2026, 10, 8, 10, 0, 0, 0, time.UTC)
-	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", now); err == nil {
+	if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", "1.4.2", now); err == nil {
 		t.Fatal("503 marked as success")
 	}
 	before, err := readUsageState(path)
@@ -108,7 +109,7 @@ func TestUsageFailureRetriesHourlyWithoutChangingID(t *testing.T) {
 		t.Fatalf("failed attempt marked as sent: %v", err)
 	}
 	for _, elapsed := range []time.Duration{30 * time.Minute, time.Hour, 2 * time.Hour} {
-		if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", now.Add(elapsed)); err != nil {
+		if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", "1.4.2", now.Add(elapsed)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -131,7 +132,7 @@ func TestUsageBoundedAndDoesNotFollowRedirects(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 		start := time.Now()
-		err := reportUsage(ctx, newUsageClient(), server.URL, filepath.Join(t.TempDir(), "usage.json"), "cli", time.Now())
+		err := reportUsage(ctx, newUsageClient(), server.URL, filepath.Join(t.TempDir(), "usage.json"), "cli", "1.4.2", time.Now())
 		if err == nil || time.Since(start) > time.Second {
 			t.Fatalf("request was not bounded: %v", err)
 		}
@@ -147,7 +148,7 @@ func TestUsageBoundedAndDoesNotFollowRedirects(t *testing.T) {
 			http.Redirect(w, r, target.URL, http.StatusTemporaryRedirect)
 		}))
 		defer server.Close()
-		err := reportUsage(context.Background(), newUsageClient(), server.URL, filepath.Join(t.TempDir(), "usage.json"), "cli", time.Now())
+		err := reportUsage(context.Background(), newUsageClient(), server.URL, filepath.Join(t.TempDir(), "usage.json"), "cli", "1.4.2", time.Now())
 		if err == nil || leaked.Load() {
 			t.Fatal("installation identifier followed a redirect")
 		}
@@ -156,11 +157,11 @@ func TestUsageBoundedAndDoesNotFollowRedirects(t *testing.T) {
 
 func TestUsageCorruptStateIsPreserved(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "usage.json")
-	for _, data := range []string{`{broken`, `{"installation_id":"invalid"}`, string(make([]byte, 4097))} {
+	for _, data := range []string{`{broken`, `{"installation_id":"invalid"}`, string(make([]byte, maxUsageStateBytes+1))} {
 		if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := reportUsage(context.Background(), newUsageClient(), "http://unused.invalid", path, "cli", time.Now()); err == nil {
+		if err := reportUsage(context.Background(), newUsageClient(), "http://unused.invalid", path, "cli", "1.4.2", time.Now()); err == nil {
 			t.Fatal("invalid state was accepted")
 		}
 		got, err := os.ReadFile(path)
@@ -184,7 +185,7 @@ func TestUsageSameInstallationCanReportEachIDEOncePerDay(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "usage.json")
 	now := time.Now()
 	for _, source := range []string{"vscode", "cursor", "vscode", "cursor"} {
-		if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, source, now); err != nil {
+		if err := reportUsage(context.Background(), newUsageClient(), server.URL, path, source, "1.4.2", now); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -193,5 +194,70 @@ func TestUsageSameInstallationCanReportEachIDEOncePerDay(t *testing.T) {
 	}
 	if events[0]["source"] != "vscode" || events[1]["source"] != "cursor" {
 		t.Fatal("IDE sources were not recorded")
+	}
+}
+
+func TestUsageUpgradeReportsSameDayAndRetriesFailedNewVersion(t *testing.T) {
+	var versions []string
+	const installationID = "0123456789abcdef0123456789abcdef"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var event map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+			t.Error(err)
+		}
+		if event["installation_id"] != installationID {
+			t.Error("upgrade changed the installation identifier")
+		}
+		versions = append(versions, event["cli_version"])
+		if len(versions) == 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	path := filepath.Join(t.TempDir(), "usage.json")
+	now := time.Date(2026, 10, 8, 10, 0, 0, 0, time.UTC)
+	// A pre-version client already reported today; upgrading must still report.
+	if err := saveUsageState(path, usageState{InstallationID: installationID, Sources: map[string]usageSourceState{
+		"cli": {LastSentDay: now.Format(time.DateOnly), LastAttempt: now},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range []struct {
+		version string
+		elapsed time.Duration
+		wantErr bool
+		calls   int
+	}{
+		{"v1.4.1", 0, false, 1},
+		{"1.4.1", time.Minute, false, 1},
+		{"1.4.2", 2 * time.Minute, true, 2},
+		{"1.4.2", 30 * time.Minute, false, 2},
+		{"1.4.2", 62 * time.Minute, false, 3},
+		{"1.4.2", 63 * time.Minute, false, 3},
+	} {
+		err := reportUsage(context.Background(), newUsageClient(), server.URL, path, "cli", step.version, now.Add(step.elapsed))
+		if (err != nil) != step.wantErr || len(versions) != step.calls {
+			t.Fatalf("version=%s elapsed=%s: err=%v calls=%d, want err=%t calls=%d", step.version, step.elapsed, err, len(versions), step.wantErr, step.calls)
+		}
+	}
+	if strings.Join(versions, ",") != "1.4.1,1.4.2,1.4.2" {
+		t.Fatalf("unexpected version payloads: %v", versions)
+	}
+}
+
+func TestUsageVersionAllowlist(t *testing.T) {
+	for input, want := range map[string]string{
+		"1.4.2": "1.4.2", " v1.4.2 ": "1.4.2", "dev": "dev", "(devel)": "dev",
+		"1.5.0-rc.1+build.2":               "1.5.0-rc.1+build.2",
+		"v1.4.2-0.20261008000000-deadbeef": "1.4.2-0.20261008000000-deadbeef",
+		"":                                 "unknown", "unknown": "unknown", "/private/build/path": "unknown",
+		"1.2": "unknown", "1.2.3\nprivate": "unknown", "1.2.3-": "unknown",
+		"1.2.3-" + strings.Repeat("a", 59): "unknown",
+	} {
+		if got := normalizeUsageVersion(input); got != want {
+			t.Errorf("normalizeUsageVersion(%q) = %q, want %q", input, got, want)
+		}
 	}
 }

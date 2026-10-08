@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -21,6 +23,9 @@ import (
 
 const usageEndpoint = "https://git-ai.codegg.org/v1/usage"
 const usageTimeout = 2 * time.Second
+const maxUsageStateBytes = 8192
+
+var usageVersionPattern = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$`)
 
 type usageState struct {
 	InstallationID string                      `json:"installation_id"`
@@ -28,14 +33,16 @@ type usageState struct {
 }
 
 type usageSourceState struct {
-	LastSentDay string    `json:"last_sent_day,omitempty"`
-	LastAttempt time.Time `json:"last_attempt,omitempty"`
+	LastSentDay        string    `json:"last_sent_day,omitempty"`
+	LastSentVersion    string    `json:"last_sent_version,omitempty"`
+	LastAttempt        time.Time `json:"last_attempt,omitempty"`
+	LastAttemptVersion string    `json:"last_attempt_version,omitempty"`
 }
 
 // StartUsage reports one daily activity asynchronously from the polishing
 // daemon. The returned function joins the bounded request before daemon exit;
 // neither errors nor response bodies are logged or affect the Git operation.
-func StartUsage(ctx context.Context, enabled bool) func() {
+func StartUsage(ctx context.Context, enabled bool, cliVersion string) func() {
 	if !enabled || os.Getenv("DO_NOT_TRACK") == "1" || ctx.Err() != nil {
 		return func() {}
 	}
@@ -45,7 +52,7 @@ func StartUsage(ctx context.Context, enabled bool) func() {
 		defer close(done)
 		defer cancel()
 		path := filepath.Join(filepath.Dir(config.GlobalConfigPath()), "usage.json")
-		_ = reportUsage(ctx, newUsageClient(), usageEndpoint, path, clientinfo.Detect(), time.Now())
+		_ = reportUsage(ctx, newUsageClient(), usageEndpoint, path, clientinfo.Detect(), cliVersion, time.Now())
 	}()
 	return func() { <-done }
 }
@@ -59,7 +66,18 @@ func newUsageClient() *http.Client {
 	}
 }
 
-func reportUsage(ctx context.Context, client *http.Client, endpoint, path, source string, now time.Time) error {
+func normalizeUsageVersion(version string) string {
+	version = strings.TrimPrefix(strings.TrimSpace(version), "v")
+	if version == "dev" || version == "(devel)" {
+		return "dev"
+	}
+	if len(version) <= 64 && usageVersionPattern.MatchString(version) {
+		return version
+	}
+	return "unknown"
+}
+
+func reportUsage(ctx context.Context, client *http.Client, endpoint, path, source, cliVersion string, now time.Time) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -80,18 +98,20 @@ func reportUsage(ctx context.Context, client *http.Client, endpoint, path, sourc
 	}
 	day := now.UTC().Format(time.DateOnly)
 	source = clientinfo.Normalize(source)
+	cliVersion = normalizeUsageVersion(cliVersion)
 	if state.Sources == nil {
 		state.Sources = make(map[string]usageSourceState)
 	}
 	activity := state.Sources[source]
-	if activity.LastSentDay == day {
+	if activity.LastSentDay == day && activity.LastSentVersion == cliVersion {
 		return nil
 	}
 	// Failed/offline attempts may retry on a later polish, at most hourly.
-	if activity.LastAttempt.UTC().Format(time.DateOnly) == day && now.Sub(activity.LastAttempt) < time.Hour {
+	if activity.LastAttemptVersion == cliVersion && activity.LastAttempt.UTC().Format(time.DateOnly) == day && now.Sub(activity.LastAttempt) < time.Hour {
 		return nil
 	}
 	activity.LastAttempt = now.UTC()
+	activity.LastAttemptVersion = cliVersion
 	state.Sources[source] = activity
 	if err := saveUsageState(path, state); err != nil {
 		return err
@@ -101,7 +121,8 @@ func reportUsage(ctx context.Context, client *http.Client, endpoint, path, sourc
 		InstallationID string `json:"installation_id"`
 		Event          string `json:"event"`
 		Source         string `json:"source"`
-	}{state.InstallationID, "polish_started", source})
+		CLIVersion     string `json:"cli_version"`
+	}{state.InstallationID, "polish_started", source, cliVersion})
 	if err != nil {
 		return err
 	}
@@ -120,6 +141,7 @@ func reportUsage(ctx context.Context, client *http.Client, endpoint, path, sourc
 		return fmt.Errorf("usage service returned status %d", resp.StatusCode)
 	}
 	activity.LastSentDay = day
+	activity.LastSentVersion = cliVersion
 	state.Sources[source] = activity
 	return saveUsageState(path, state)
 }
@@ -138,7 +160,7 @@ func readUsageState(path string) (usageState, error) {
 	if err != nil {
 		return state, err
 	}
-	if !info.Mode().IsRegular() || info.Size() > 4096 {
+	if !info.Mode().IsRegular() || info.Size() > maxUsageStateBytes {
 		return state, errors.New("invalid usage state file")
 	}
 	data, err := os.ReadFile(path)

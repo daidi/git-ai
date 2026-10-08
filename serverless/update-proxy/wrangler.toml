@@ -11,7 +11,10 @@ routes = [
 [triggers]
 crons = ["15 3 * * *"]
 
-# Add the production binding with the ID returned by:
-# npx wrangler d1 create git-ai-usage --binding USAGE_DB --update-config
-# Apply migrations before deploying; see README.md.
 # USAGE_ADMIN_TOKEN must be set with `wrangler secret put`, never in this file.
+
+[[d1_databases]]
+binding = "USAGE_DB"
+database_name = "git-ai-usage"
+database_id = "db98720b-638c-4560-8eac-936899a3fe14"
+migrations_dir = "migrations"

@@ -15,25 +15,41 @@ let db;
 before(async () => {
   mf = new Miniflare({
     modules: true, scriptPath: "worker.js", compatibilityDate: "2024-04-14",
-    fetchMock, d1Databases: ["USAGE_DB"], bindings: { USAGE_ADMIN_TOKEN: token },
+    fetchMock, d1Databases: ["USAGE_DB", "MIGRATION_DB"], bindings: { USAGE_ADMIN_TOKEN: token },
   });
   db = await mf.getD1Database("USAGE_DB");
   await db.exec((await readFile("migrations/0001_daily_activity.sql", "utf8")).replace(/\n/g, " "));
+  await db.exec((await readFile("migrations/0002_cli_version.sql", "utf8")).replace(/\n/g, " "));
 });
 after(async () => { await mf?.dispose(); });
 beforeEach(async () => { await db.prepare("DELETE FROM daily_activity").run(); });
-const event = id => ({ installation_id: id.repeat(32), event: "polish_started", source: "vscode" });
+const event = id => ({ installation_id: id.repeat(32), event: "polish_started", source: "vscode", cli_version: "1.4.2" });
 const send = value => mf.dispatchFetch(`${origin}/v1/usage`, {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value),
 });
 const summary = () => mf.dispatchFetch(`${origin}/v1/usage/summary`, { headers: { Authorization: `Bearer ${token}` } });
-const seed = async (ago, id, source = "cli") => db.prepare("INSERT INTO daily_activity VALUES (?, ?, ?)").bind(day(ago), id.repeat(64), source).run();
+const seed = async (ago, id, source = "cli", version = "unknown") => db.prepare("INSERT INTO daily_activity VALUES (?, ?, ?, ?)").bind(day(ago), id.repeat(64), source, version).run();
+
+test("version migration preserves old rows and supports inserts from the previous Worker", async () => {
+  const legacyDb = await mf.getD1Database("MIGRATION_DB");
+  await legacyDb.exec((await readFile("migrations/0001_daily_activity.sql", "utf8")).replace(/\n/g, " "));
+  await legacyDb.prepare("INSERT INTO daily_activity VALUES (?, ?, ?)").bind(day(), "a".repeat(64), "vscode").run();
+  await legacyDb.exec((await readFile("migrations/0002_cli_version.sql", "utf8")).replace(/\n/g, " "));
+  assert.deepEqual((await legacyDb.prepare("SELECT * FROM daily_activity").all()).results, [
+    { day: day(), installation_hash: "a".repeat(64), source: "vscode", cli_version: "unknown" },
+  ]);
+  for (const id of ["a", "b"]) {
+    await legacyDb.prepare("INSERT INTO daily_activity (day, installation_hash, source) VALUES (?, ?, ?) ON CONFLICT DO NOTHING")
+      .bind(day(), id.repeat(64), "vscode").run();
+  }
+  assert.equal((await legacyDb.prepare("SELECT COUNT(*) AS n FROM daily_activity WHERE cli_version = 'unknown'").first()).n, 2);
+});
 
 test("concurrent reports deduplicate and store only a hash and UTC day", async () => {
   const responses = await Promise.all(Array.from({ length: 12 }, () => send(event("a"))));
   assert.ok(responses.every(response => response.status === 204));
   const { results } = await db.prepare("SELECT * FROM daily_activity").all();
-  assert.deepEqual(results, [{ day: day(), source: "vscode", installation_hash: createHash("sha256").update("a".repeat(32)).digest("hex") }]);
+  assert.deepEqual(results, [{ day: day(), source: "vscode", cli_version: "1.4.2", installation_hash: createHash("sha256").update("a".repeat(32)).digest("hex") }]);
   assert.equal(responses[0].headers.get("Cache-Control"), "no-store");
 });
 
@@ -63,6 +79,7 @@ test("empty database returns zero and a complete daily series", async () => {
   const result = await (await summary()).json();
   assert.deepEqual([result.dau, result.wau, result.mau], [0, 0, 0]);
   assert.ok(result.daily.every(row => row.active_installations === 0));
+  assert.deepEqual(result.by_cli_version, []);
 });
 
 test("one installation in multiple IDEs counts once overall and once in each IDE", async () => {
@@ -88,6 +105,52 @@ test("summary requires a configured secret and rejects missing or incorrect auth
   }
   const request = new Request(`${origin}/v1/usage/summary`);
   assert.equal((await worker.fetch(request, {}, {})).status, 503);
+});
+
+test("legacy reports without version or source are accepted as unknown", async () => {
+  const base = { event: "polish_started" };
+  for (const value of [
+    { ...base, installation_id: "a".repeat(32) },
+    { ...base, installation_id: "b".repeat(32), source: "cursor" },
+    { ...base, installation_id: "c".repeat(32), cli_version: "dev" },
+  ]) {
+    assert.equal((await send(value)).status, 204);
+  }
+  const result = await (await summary()).json();
+  assert.equal(result.dau, 3);
+  assert.deepEqual(result.by_cli_version, [
+    { cli_version: "dev", dau: 1, wau: 1, mau: 1 },
+    { cli_version: "unknown", dau: 2, wau: 2, mau: 2 },
+  ]);
+});
+
+test("version cohorts deduplicate across IDEs and upgrades do not inflate overall activity", async () => {
+  for (const version of ["1.4.1", "1.4.2", "1.4.2"]) {
+    assert.equal((await send({ ...event("a"), cli_version: version })).status, 204);
+  }
+  await seed(0, "b", "cli", "1.4.2");
+  await seed(6, "b", "cursor", "1.4.2");
+  await seed(7, "c", "cli", "1.4.1");
+  await seed(29, "c", "cursor", "1.4.1");
+  await seed(30, "d", "cli", "1.4.1");
+  await seed(-1, "e", "cli", "1.4.1");
+  const result = await (await summary()).json();
+  assert.deepEqual([result.dau, result.wau, result.mau], [2, 2, 3]);
+  assert.equal(result.daily[29].active_installations, 2);
+  assert.deepEqual(result.by_source.find(row => row.source === "vscode"), { source: "vscode", dau: 1, wau: 1, mau: 1 });
+  assert.deepEqual(result.by_cli_version, [
+    { cli_version: "1.4.1", dau: 1, wau: 1, mau: 2 },
+    { cli_version: "1.4.2", dau: 2, wau: 2, mau: 2 },
+  ]);
+});
+
+test("only bounded version labels are accepted", async () => {
+  for (const version of ["1.5.0-rc.1+build.2", "1.4.2-0.20261008000000-deadbeef", "dev", "unknown"]) {
+    assert.equal((await send({ ...event("a"), cli_version: version })).status, 204);
+  }
+  for (const version of [null, 142, {}, [], "", "v1.4.2", "1.2", "/private/build/path", "1.2.3\n", "1.2.3-", "1.2.3-" + "a".repeat(59)]) {
+    assert.equal((await send({ ...event("a"), cli_version: version })).status, 400);
+  }
 });
 
 test("invalid, sensitive, or oversized payloads are not stored", async () => {

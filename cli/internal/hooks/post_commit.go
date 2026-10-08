@@ -27,7 +27,7 @@ import (
 // RunPostCommit is called by the post-commit hook. Foreground execution records
 // the exact target commit before returning; daemon execution only operates on
 // that recorded target and operation id.
-func RunPostCommit(isDaemon bool, operationID string) error {
+func RunPostCommit(isDaemon bool, operationID, cliVersion string) error {
 	if os.Getenv("GIT_AI_INTERNAL") == "true" || os.Getenv("GIT_AI_SKIP") == "true" {
 		return nil
 	}
@@ -47,7 +47,7 @@ func RunPostCommit(isDaemon bool, operationID string) error {
 		return err
 	}
 	if isDaemon {
-		return runDaemon(mgr, operationID)
+		return runDaemon(mgr, operationID, cliVersion)
 	}
 	return runForeground(mgr, "", true)
 }
@@ -194,7 +194,7 @@ func normalizedCommitMessage(message string) string {
 	return strings.TrimSpace(strings.ReplaceAll(message, "\r\n", "\n"))
 }
 
-func runDaemon(mgr *state.Manager, operationID string) error {
+func runDaemon(mgr *state.Manager, operationID, cliVersion string) error {
 	if operationID == "" {
 		return errors.New("daemon operation id is required")
 	}
@@ -247,7 +247,7 @@ func runDaemon(mgr *state.Manager, operationID string) error {
 	repositoryContext := ai.BuildRepositoryContext(snapshot.TargetRef, subjects)
 	// Only real polishing attempts count as activity. Reporting runs alongside
 	// the model request and is never part of the foreground commit or ref update.
-	waitForUsage := telemetry.StartUsage(ctx, cfg.UsageTelemetryEnabled())
+	waitForUsage := telemetry.StartUsage(ctx, cfg.UsageTelemetryEnabled(), cliVersion)
 	defer waitForUsage()
 	polished, err := ai.PolishWithRepositoryContext(ctx, diff, snapshot.OriginalMsg, repoRoot, cfg, logger, repositoryContext)
 	if err != nil {

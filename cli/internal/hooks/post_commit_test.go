@@ -25,7 +25,7 @@ func TestRunPostCommitKeepsValidMessageWithoutStartingOperation(t *testing.T) {
 	}
 	wantSHA := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
 
-	if err := RunPostCommit(false, ""); err != nil {
+	if err := RunPostCommit(false, "", "dev"); err != nil {
 		t.Fatal(err)
 	}
 	if got := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD")); got != wantSHA {
@@ -141,7 +141,7 @@ func TestRunPostCommitAlwaysSkipsAutosquashMessages(t *testing.T) {
 			commitPostCommitFixture(t, repo, "fixture.txt", "fixture\n", message)
 			wantSHA := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD"))
 
-			if err := RunPostCommit(false, ""); err != nil {
+			if err := RunPostCommit(false, "", "dev"); err != nil {
 				t.Fatal(err)
 			}
 			if got := strings.TrimSpace(postCommitGit(t, repo, "rev-parse", "HEAD")); got != wantSHA {

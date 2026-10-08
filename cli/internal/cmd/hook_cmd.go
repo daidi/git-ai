@@ -23,7 +23,7 @@ var hookPostCommitCmd = &cobra.Command{
 	Use:   "post-commit",
 	Short: "Handle post-commit hook",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return hooks.RunPostCommit(hookDaemon, hookOperationID)
+		return hooks.RunPostCommit(hookDaemon, hookOperationID, version)
 	},
 }
 

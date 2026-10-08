@@ -14,10 +14,11 @@ configuration directory.
   today plus the preceding 6 and 29 days respectively. All boundaries use UTC;
   today is partial. They are not the sum of daily counts.
 - The CLI sends exactly `installation_id` (128 random bits encoded as hex),
-  `event: "polish_started"`, and `source` (a fixed IDE/terminal label). It sends no
+  `event: "polish_started"`, `source` (a fixed IDE/terminal label), and `cli_version`
+  (the version of the CLI binary doing the polishing). It sends no
   code, paths, commit contents, credentials, account IDs, model names, or local
   productivity records.
-- D1 stores only the SHA-256 installation hash, source label, and server UTC date.
+- D1 stores only the SHA-256 installation hash, source label, CLI version, and server UTC date.
   The daily primary key deduplicates concurrent reports and retries. A scheduled job
   deletes rows older than the latest 35 UTC dates. Cloudflare handles network
   metadata such as source IP under its own platform settings; this application
@@ -49,6 +50,19 @@ without forwarded hints may remain unknown. Users can explicitly set
 `GIT_AI_CLIENT=cli` (or a supported product label); arbitrary values map to
 `unknown`. No repository-level attribution setting is used.
 
+## CLI versions
+
+`by_cli_version` includes DAU/WAU/MAU for each reported CLI version. Release builds
+use their build version, `go install` builds use the recorded module version, and
+local development builds report `dev`. Only bounded version labels are accepted;
+unrecognized CLI build labels become `unknown`. This field does not identify the
+IDE application version or the separately installed plugin version.
+
+Older reporters can omit `cli_version`; those events and pre-migration rows are
+grouped under `unknown`. An installation that uses two CLI versions within a
+window counts in both version groups, but only once in the overall total and in
+each IDE group. Do not add version groups together to calculate total users.
+
 ## User controls
 
 Usage reporting is **enabled by default**. Disable it before the next polish:
@@ -72,8 +86,9 @@ out under retention. Local `telemetry.json` productivity data stays local.
 
 Reporting runs alongside the model request in the already detached daemon with
 a two-second deadline, without redirects or logging payloads. Successful reports
-are suppressed per source for the rest of the local UTC day; failed attempts
-can retry at most hourly per source on another polish. Offline events are not
+are suppressed per source and current CLI version for the rest of the local UTC
+day. Switching versions allows a fresh report that day; failed attempts can
+retry at most hourly for the same source and version on another polish. Offline events are not
 queued or backfilled.
 The server uses receipt time, so requests crossing midnight or devices with
 incorrect clocks can shift/miss a daily observation.
@@ -119,6 +134,10 @@ the existing release route continues to work.
    npx wrangler d1 migrations apply git-ai-usage --remote
    ```
 
+   Apply migrations before every Worker upgrade. `0002_cli_version.sql` preserves
+   existing activity as version `unknown` and keeps inserts from the previous
+   Worker compatible while deployment is in progress.
+
 3. Generate a strong random admin token (at least 32 characters), store it in your
    password manager, and paste it into Wrangler's secret prompt:
 
@@ -135,7 +154,9 @@ the existing release route continues to work.
 
 ## Read the counts
 
-Export `USAGE_ADMIN_TOKEN` from your password manager in your shell, then run:
+Save the admin token in `~/.config/git-ai-admin/usage-admin-token` with file
+permissions `0600`, or export `USAGE_ADMIN_TOKEN` in your shell to override it.
+The credential stays outside this repository. After this one-time setup, run:
 
 ```sh
 npm run stats
@@ -143,7 +164,7 @@ npm run stats
 
 This calls `GET https://git-ai.codegg.org/v1/usage/summary` with a Bearer header and
 prints `dau`, `wau`, `mau`, their exact UTC windows, 30 daily observations, and
-`by_source` counts.
+`by_source` and `by_cli_version` counts.
 Only aggregates are exposed, with `Cache-Control: no-store`. A zero means no
 accepted event in that window, not that all existing users have stopped using
 Git AI. Check deployment, uptake of the new CLI, and opt-outs before interpreting
