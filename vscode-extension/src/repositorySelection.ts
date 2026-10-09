@@ -10,7 +10,7 @@ function gitRoot(folder: vscode.WorkspaceFolder): Promise<string | undefined> {
             'git',
             ['rev-parse', '--show-toplevel'],
             { cwd: folder.uri.fsPath, timeout: 5_000, windowsHide: true },
-            (error, stdout) => resolve(error ? undefined : stdout.trim() || undefined),
+            (error, stdout) => resolve(error || !stdout.trim() ? undefined : path.normalize(stdout.trim())),
         );
     });
 }
@@ -27,11 +27,17 @@ export function preferredRepositoryRoot(
     persisted: string | undefined,
     activeFile: string | undefined,
 ): string | undefined {
-    if (persisted && roots.includes(persisted)) return persisted;
+    const saved = persisted && roots.find(root => path.relative(root, persisted) === '');
+    if (saved) return saved;
     if (activeFile) {
         const match = roots
-            .filter(root => activeFile === root || activeFile.startsWith(root + path.sep))
-            .sort((left, right) => right.length - left.length)[0];
+            .filter(root => {
+                // Git may return forward slashes on Windows, while Uri.fsPath
+                // uses backslashes. Relative paths handle both and drive roots.
+                const relative = path.relative(root, activeFile);
+                return relative === '' || (relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative));
+            })
+            .sort((left, right) => path.resolve(right).length - path.resolve(left).length)[0];
         if (match) return match;
     }
     return roots[0];
