@@ -134,7 +134,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-Для установки из исходного кода требуется Go 1.26.6 или новее. В [GitHub Releases](https://github.com/daidi/git-ai/releases) доступны бинарники для macOS, Linux и Windows на AMD64 и ARM64, контрольные суммы и пакеты `.deb` и `.rpm`.
+Для установки из исходного кода требуется Go 1.26.9 или новее. В [GitHub Releases](https://github.com/daidi/git-ai/releases) доступны бинарники для macOS, Linux и Windows на AMD64 и ARM64, контрольные суммы и пакеты `.deb` и `.rpm`.
 
 ## Быстрый старт
 

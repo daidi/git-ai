@@ -26,6 +26,7 @@
     <change-notes><![CDATA[
         <h3>1.4.2</h3>
         <ul>
+            <li>Coordinate the 1.4.2 release with VS Code and a CLI rebuilt with Go 1.26.9 security fixes.</li>
             <li>Detect incompatible CLI settings protocols independently of optional update checks and show persistent recovery notifications.</li>
             <li>Show the selected CLI version and path in Settings, with explicit retry, check-for-updates, and update actions.</li>
             <li>Reject legacy help output and malformed configuration safely, preventing JSON error dialogs and accidental settings overwrites.</li>

@@ -134,7 +134,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-การติดตั้งจาก source ต้องใช้ Go 1.26.6 ขึ้นไป [GitHub Releases](https://github.com/daidi/git-ai/releases) มี binary สำหรับ macOS, Linux และ Windows บน AMD64/ARM64 พร้อม checksum และแพ็กเกจ `.deb` กับ `.rpm`
+การติดตั้งจาก source ต้องใช้ Go 1.26.9 ขึ้นไป [GitHub Releases](https://github.com/daidi/git-ai/releases) มี binary สำหรับ macOS, Linux และ Windows บน AMD64/ARM64 พร้อม checksum และแพ็กเกจ `.deb` กับ `.rpm`
 
 ## เริ่มต้นอย่างรวดเร็ว
 

@@ -134,7 +134,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-소스 설치에는 Go 1.26.6 이상이 필요합니다. [GitHub Releases](https://github.com/daidi/git-ai/releases)에서 macOS, Linux, Windows용 AMD64/ARM64 바이너리와 체크섬, `.deb`, `.rpm` 패키지를 제공합니다.
+소스 설치에는 Go 1.26.9 이상이 필요합니다. [GitHub Releases](https://github.com/daidi/git-ai/releases)에서 macOS, Linux, Windows용 AMD64/ARM64 바이너리와 체크섬, `.deb`, `.rpm` 패키지를 제공합니다.
 
 ## 빠른 시작
 

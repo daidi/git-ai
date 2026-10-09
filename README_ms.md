@@ -136,7 +136,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-Pemasangan daripada sumber memerlukan Go 1.26.6 atau lebih baharu.
+Pemasangan daripada sumber memerlukan Go 1.26.9 atau lebih baharu.
 
 Fail binari prabina tersedia untuk macOS, Linux dan Windows pada AMD64 serta ARM64. Lihat [GitHub Releases](https://github.com/daidi/git-ai/releases) untuk arkib, jumlah semak, pakej `.deb` dan `.rpm`.
 

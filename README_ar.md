@@ -134,7 +134,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-يتطلب التثبيت من المصدر Go 1.26.6 أو أحدث. توفّر [GitHub Releases](https://github.com/daidi/git-ai/releases) ملفات جاهزة لـ macOS وLinux وWindows على AMD64 وARM64، مع checksums وحزم `.deb` و`.rpm`.
+يتطلب التثبيت من المصدر Go 1.26.9 أو أحدث. توفّر [GitHub Releases](https://github.com/daidi/git-ai/releases) ملفات جاهزة لـ macOS وLinux وWindows على AMD64 وARM64، مع checksums وحزم `.deb` و`.rpm`.
 
 ## البدء السريع
 

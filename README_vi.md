@@ -134,7 +134,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-Cài từ mã nguồn cần Go 1.26.6 trở lên. [GitHub Releases](https://github.com/daidi/git-ai/releases) cung cấp binary macOS, Linux và Windows cho AMD64/ARM64, checksum cùng gói `.deb` và `.rpm`.
+Cài từ mã nguồn cần Go 1.26.9 trở lên. [GitHub Releases](https://github.com/daidi/git-ai/releases) cung cấp binary macOS, Linux và Windows cho AMD64/ARM64, checksum cùng gói `.deb` và `.rpm`.
 
 ## Bắt đầu nhanh
 

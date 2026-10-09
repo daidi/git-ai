@@ -9,7 +9,7 @@ Developers write a fast, raw commit message (`git commit -m "fix"`). A detached 
 ## 🏗️ Monorepo Architecture
 The application consists of three decoupled components. IDE integrations query the CLI, and the CLI alone owns persistence:
 
-1. **`cli/` (Go 1.26.6+)**
+1. **`cli/` (Go 1.26.9+)**
    - **Role:** The core engine. It acts as both the lightweight CLI interface and the background daemon.
    - **Key Logic:** Handles Git hooks (`post-commit`, `pre-push`), daemon detachment, LLM prompt engineering, operation locking, and compare-and-swap Git ref updates.
 2. **`idea-plugin/` (Kotlin / IntelliJ Platform SDK V2)**

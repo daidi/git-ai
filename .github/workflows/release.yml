@@ -25,10 +25,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Require all release credentials
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          [[ -n "$VSCE_PAT" && -n "$OVSX_PAT" && -n "$PUBLISH_TOKEN" && -n "$CERTIFICATE_CHAIN" && -n "$PRIVATE_KEY" && -n "$TAP_GITHUB_TOKEN" ]] || {
+            echo 'Required release credentials are missing; nothing was published.' >&2
+            exit 1
+          }
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.6'
+          go-version: '1.26.9'
           cache: false
 
       - name: Test CLI
@@ -55,6 +69,19 @@ jobs:
       - name: Install VS Code dependencies
         working-directory: vscode-extension
         run: npm ci --ignore-scripts
+
+      - name: Require synchronized plugin and release versions
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
+          const manifest = require('./vscode-extension/package.json');
+          const lock = require('./vscode-extension/package-lock.json');
+          const idea = fs.readFileSync('idea-plugin/gradle.properties', 'utf8').match(/^pluginVersion=(.+)$/m)?.[1];
+          if (!/^\d+\.\d+\.\d+$/.test(version) || [manifest.version, lock.version, lock.packages[''].version, idea].some(v => v !== version)) {
+            throw new Error('CLI release tag and both plugin versions must match');
+          }
+          NODE
 
       - name: Test VS Code extension
         working-directory: vscode-extension
@@ -109,7 +136,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.6'
+          go-version: '1.26.9'
           cache: false
 
       - name: Run GoReleaser
@@ -158,15 +185,15 @@ jobs:
 
       - name: Publish to VS Code Marketplace
         run: |
-          if [ -z "$VSCE_PAT" ]; then echo "VSCE_PAT is not configured; skipping Marketplace publish"; exit 0; fi
-          npx --no-install vsce publish --packagePath *.vsix -p "$VSCE_PAT"
+          test -n "$VSCE_PAT"
+          npx --no-install vsce publish --packagePath *.vsix
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX Registry
         run: |
-          if [ -z "$OVSX_PAT" ]; then echo "OVSX_PAT is not configured; skipping Open VSX publish"; exit 0; fi
-          npx --no-install ovsx publish --packagePath *.vsix -p "$OVSX_PAT"
+          test -n "$OVSX_PAT"
+          npx --no-install ovsx publish --packagePath *.vsix
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
@@ -236,7 +263,7 @@ jobs:
 
       - name: Publish to JetBrains Marketplace
         run: |
-          if [ -z "$PUBLISH_TOKEN" ]; then echo "PUBLISH_TOKEN is not configured; skipping Marketplace publish"; exit 0; fi
+          test -n "$PUBLISH_TOKEN"
           ./gradlew publishPlugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}

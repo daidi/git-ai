@@ -8,7 +8,7 @@
 - Protect unsaved drafts, prevent concurrent installation/saves, and retain Restricted Mode safeguards.
 - Match Windows Git and editor paths correctly when selecting a nested repository; run VS Code tests on Windows, macOS, and Linux.
 - Synchronize recovery labels across all 16 UI languages and gate both plugin releases on tests, packaging, and JetBrains compatibility verification.
-- This plugin-only maintenance release continues to use the compatible 1.4.1 CLI; it does not require a new CLI release.
+- Release the CLI and both IDE plugins together as 1.4.2; rebuild the CLI with Go 1.26.9 to address the standard-library vulnerabilities detected by the release scan.
 
 ## 1.4.1
 

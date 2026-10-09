@@ -136,7 +136,7 @@ iwr https://raw.githubusercontent.com/daidi/git-ai/main/install.ps1 -useb | iex
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
-Installing from source requires Go 1.26.6 or later.
+Installing from source requires Go 1.26.9 or later.
 
 Prebuilt binaries are available for macOS, Linux, and Windows on AMD64 and ARM64. See [GitHub Releases](https://github.com/daidi/git-ai/releases) for archives, checksums, `.deb`, and `.rpm` packages.
 

@@ -110,7 +110,7 @@ brew install daidi/tap/git-ai
 # macOS / Linux 驗證安裝指令碼
 curl -fsSL https://raw.githubusercontent.com/daidi/git-ai/main/install.sh | bash
 
-# 從原始碼安裝（需要 Go 1.26.6+）
+# 從原始碼安裝（需要 Go 1.26.9+）
 go install github.com/daidi/git-ai/cli/cmd/git-ai@latest
 ```
 
