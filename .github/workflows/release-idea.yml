@@ -1,0 +1,119 @@
+name: Release JetBrains Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Plugin version already committed in idea-plugin/gradle.properties'
+        required: true
+        type: string
+      revision:
+        description: 'Full commit SHA to publish (must match the selected main revision)'
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+# Serialize with the full release workflow, which publishes the same plugin.
+concurrency:
+  group: git-ai-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: JetBrains — Verify, sign and publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: idea-plugin
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate exact release revision and version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+          EXPECTED_REVISION: ${{ inputs.revision }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_REVISION" ]]
+          actual_version="$(sed -n 's/^pluginVersion=//p' gradle.properties)"
+          [[ "$actual_version" == "$EXPECTED_VERSION" ]]
+
+      - name: Require publishing credentials
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          [[ -n "$PUBLISH_TOKEN" && -n "$CERTIFICATE_CHAIN" && -n "$PRIVATE_KEY" ]] || {
+            echo 'Marketplace token or signing material is missing; nothing was published.' >&2
+            exit 1
+          }
+
+      - name: Set up JDK
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-disabled: true
+
+      - name: Check translation key coverage
+        run: bash ../scripts/check-i18n-coverage.sh
+
+      - name: Test, build and verify supported IDEs
+        run: ./gradlew test buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin --console=plain
+
+      - name: Prepare signing material
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          certificate_chain_file="$RUNNER_TEMP/git-ai-certificate-chain.pem"
+          private_key_file="$RUNNER_TEMP/git-ai-private-key.pem"
+          printf '%s' "$CERTIFICATE_CHAIN" > "$certificate_chain_file"
+          printf '%s' "$PRIVATE_KEY" > "$private_key_file"
+          {
+            echo "CERTIFICATE_CHAIN_FILE=$certificate_chain_file"
+            echo "PRIVATE_KEY_FILE=$private_key_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Sign and verify plugin archive
+        env:
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin verifyPluginSignature --no-configuration-cache --console=plain
+
+      - name: Save signed release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: git-ai-idea-${{ inputs.version }}-signed
+          path: idea-plugin/build/distributions/*-signed.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish to JetBrains Marketplace
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew publishPlugin --no-configuration-cache --console=plain
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/git-ai-certificate-chain.pem" "$RUNNER_TEMP/git-ai-private-key.pem"

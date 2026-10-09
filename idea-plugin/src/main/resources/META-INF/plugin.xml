@@ -24,6 +24,15 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h3>1.4.2</h3>
+        <ul>
+            <li>Detect incompatible CLI settings protocols independently of optional update checks and show persistent recovery notifications.</li>
+            <li>Show the selected CLI version and path in Settings, with explicit retry, check-for-updates, and update actions.</li>
+            <li>Reject legacy help output and malformed configuration safely, preventing JSON error dialogs and accidental settings overwrites.</li>
+            <li>Cache successful update checks for 24 hours, retry failed checks after a 15-minute backoff, and let manual checks bypass both delays.</li>
+            <li>Keep CLI installation explicit, prevent concurrent installations, and reload settings after a successful update.</li>
+            <li>Refresh the Git AI icon and synchronize all supported translations.</li>
+        </ul>
         <h3>1.4.1</h3>
         <ul>
             <li>Replace the deprecated DynamicBundle constructor with the recommended delegation API, retaining IntelliJ IDEA 2024.1 compatibility.</li>
