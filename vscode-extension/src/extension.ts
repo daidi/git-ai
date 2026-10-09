@@ -7,8 +7,8 @@ import { StatusTreeProvider } from './statusTree';
 import { ActionsWebviewProvider } from './actionsWebview';
 import { HistoryTreeProvider } from './historyTree';
 import { SettingsPanel } from './settingsPanel';
-import { checkAndPromptInstall, autoInitialize } from './installer';
-import { checkForCliUpdate } from './updateChecker';
+import { autoInitialize } from './installer';
+import { CliUpdateService } from './cliUpdateService';
 import { resolveRepositoryRoot, selectRepository } from './repositorySelection';
 import { clientSource } from './clientSource';
 
@@ -25,23 +25,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     };
     if (vscode.workspace.isTrusted) { setTerminalSource(); }
     context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(setTerminalSource));
-    if (vscode.workspace.isTrusted) {
-        // Executable discovery, downloads, and Git hook changes are disabled in
-        // Restricted Mode. The user must explicitly trust the workspace first.
-        void checkAndPromptInstall();
-        void checkForCliUpdate(context);
-    }
+    const updates = new CliUpdateService(context.globalState);
+    context.subscriptions.push(updates);
 
     context.subscriptions.push(vscode.commands.registerCommand('git-ai.selectRepository', () => selectRepository(context)));
 
     const workspaceRoot = await resolveRepositoryRoot(context);
+    if (vscode.workspace.isTrusted) void updates.checkOnStartup(workspaceRoot);
     if (!workspaceRoot) {
         return;
     }
     if (vscode.workspace.isTrusted) { void autoInitialize(workspaceRoot); }
     context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(() => {
-        void checkAndPromptInstall();
-        void checkForCliUpdate(context);
+        void updates.checkOnStartup(workspaceRoot);
         void autoInitialize(workspaceRoot);
     }));
 
@@ -74,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('git-ai.forcePush', () => commands.forcePush()),
         vscode.commands.registerCommand('git-ai.showLogs', () => commands.showLogs()),
         vscode.commands.registerCommand('git-ai.openConfig', () => {
-            SettingsPanel.show(context.extensionUri, workspaceRoot);
+            SettingsPanel.show(context.extensionUri, workspaceRoot, updates);
         }),
         vscode.commands.registerCommand('git-ai.uninstall', () => commands.uninstall()),
         vscode.commands.registerCommand('git-ai.config.test', () => commands.testConfig()),

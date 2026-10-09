@@ -764,3 +764,12 @@ body.vscode-reduce-motion *::after {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
 }
+.cli-health {
+    margin: 16px 0;
+    padding: 12px;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    overflow-wrap: anywhere;
+}
+.cli-health p { margin: 4px 0 8px; }
+.cli-actions { display: flex; flex-wrap: wrap; gap: 8px; }

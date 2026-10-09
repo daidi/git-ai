@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import cliMessages from './cliMessages.json';
 
 // ── I18N ──────────────────────────────────────────────
 
@@ -867,7 +868,8 @@ function getBaseLang(): string {
 export function t(key: string, ...args: string[]): string {
     const lang = getBaseLang();
     const dictionary = TRANSLATIONS[lang] || TRANSLATIONS['en'];
-    let str = dictionary[key] || TRANSLATIONS['en'][key] || key;
+    const cli: Record<string, Record<string, string>> = cliMessages;
+    let str = cli[lang]?.[key] || dictionary[key] || cli.en[key] || TRANSLATIONS['en'][key] || key;
     args.forEach((arg, i) => {
         str = str.replace(`{${i}}`, arg);
     });

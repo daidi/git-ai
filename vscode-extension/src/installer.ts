@@ -13,9 +13,18 @@ import { t } from './i18n';
 const MAX_ARCHIVE_BYTES = 150 * 1024 * 1024;
 const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_BINARY_BYTES = 100 * 1024 * 1024;
+let installation: Promise<boolean> | undefined;
 
 export function getExecutableCandidates(binary: string): string[] {
-    if (binary !== 'git-ai') { return [binary]; }
+    const executable = (candidate: string) => {
+        try {
+            fs.accessSync(candidate, os.platform() === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
+            return fs.statSync(candidate).isFile();
+        } catch { return false; }
+    };
+    const onPath = (name: string) => (process.env.PATH || '').split(path.delimiter)
+        .filter(directory => path.isAbsolute(directory)).map(directory => path.join(directory, name)).filter(executable);
+    if (binary !== 'git-ai') return [path.isAbsolute(binary) ? binary : onPath(binary)[0] || binary];
     const exeName = os.platform() === 'win32' ? 'git-ai.exe' : 'git-ai';
     const homeDir = os.homedir();
     const commonPaths = [
@@ -26,7 +35,7 @@ export function getExecutableCandidates(binary: string): string[] {
         path.join(homeDir, '.cargo', 'bin', exeName),
         `/usr/bin/${exeName}`,
     ];
-    return [...new Set([...commonPaths.filter(candidate => fs.existsSync(candidate)), binary])];
+    return [...new Set([...commonPaths.filter(executable), ...onPath(exeName), binary])];
 }
 
 export function getExecutablePath(binary: string): string {
@@ -50,7 +59,7 @@ function promptInstall(): void {
     const options = [t('installer.download'), ...(isMac ? [t('installer.homebrew')] : []), t('installer.go'), t('installer.cancel')];
     void vscode.window.showWarningMessage(t('installer.missing'), ...options).then(selection => {
         if (!selection || selection === t('installer.cancel')) { notifyWarning(t('installer.skipped')); return; }
-        if (selection === t('installer.download')) { void installCliAuto(); return; }
+        if (selection === t('installer.download')) { void installCliUpdate(); return; }
         const terminal = vscode.window.createTerminal(t('installer.terminal'));
         terminal.show();
         if (selection === t('installer.homebrew')) { terminal.sendText('brew install daidi/tap/git-ai'); }
@@ -93,6 +102,8 @@ async function installCliAuto(showResultNotification = true): Promise<boolean> {
                 if (os.platform() !== 'win32') { fs.chmodSync(extracted, 0o755); }
                 await execFile(extracted, ['--version'], undefined, 5000);
 
+                if (!vscode.workspace.isTrusted) { throw new Error('Workspace is no longer trusted'); }
+
                 const binFolder = path.join(os.homedir(), '.git-ai', 'bin');
                 fs.mkdirSync(binFolder, { recursive: true, mode: 0o700 });
                 const destination = path.join(binFolder, exeName);
@@ -102,6 +113,7 @@ async function installCliAuto(showResultNotification = true): Promise<boolean> {
                     fs.copyFileSync(extracted, staged);
                     if (os.platform() !== 'win32') { fs.chmodSync(staged, 0o755); }
                     await execFile(staged, ['--version'], undefined, 5000);
+                    if (!vscode.workspace.isTrusted) { throw new Error('Workspace is no longer trusted'); }
                     try {
                         fs.renameSync(staged, destination);
                     } catch {
@@ -139,7 +151,9 @@ async function installCliAuto(showResultNotification = true): Promise<boolean> {
 }
 
 export async function installCliUpdate(showResultNotification = true): Promise<boolean> {
-    return installCliAuto(showResultNotification);
+    if (installation) { notifyWarning(t('settings.cli.busy')); return false; }
+    installation = installCliAuto(showResultNotification);
+    try { return await installation; } finally { installation = undefined; }
 }
 
 function verifyChecksum(fileName: string, contents: Buffer, checksums: string): void {

@@ -1,10 +1,10 @@
-name: Release JetBrains Plugin
+name: Release IDE Plugins
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Plugin version already committed in idea-plugin/gradle.properties'
+        description: 'Matching plugin version committed in both IDE manifests'
         required: true
         type: string
       revision:
@@ -18,14 +18,14 @@ env:
 permissions:
   contents: read
 
-# Serialize with the full release workflow, which publishes the same plugin.
+# Serialize with the full release workflow, which publishes both plugins too.
 concurrency:
   group: git-ai-release
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: JetBrains — Verify, sign and publish
+    name: Both IDEs — Verify, package and publish
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -49,18 +49,37 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "$EXPECTED_REVISION" ]]
           actual_version="$(sed -n 's/^pluginVersion=//p' gradle.properties)"
           [[ "$actual_version" == "$EXPECTED_VERSION" ]]
+          node -e 'const p = require("../vscode-extension/package.json"); const l = require("../vscode-extension/package-lock.json"); if ([p.version, l.version, l.packages[""].version].some(v => v !== process.env.EXPECTED_VERSION)) process.exit(1);'
 
       - name: Require publishing credentials
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
           set -euo pipefail
-          [[ -n "$PUBLISH_TOKEN" && -n "$CERTIFICATE_CHAIN" && -n "$PRIVATE_KEY" ]] || {
+          [[ -n "$PUBLISH_TOKEN" && -n "$CERTIFICATE_CHAIN" && -n "$PRIVATE_KEY" && -n "$VSCE_PAT" && -n "$OVSX_PAT" ]] || {
             echo 'Marketplace token or signing material is missing; nothing was published.' >&2
             exit 1
           }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install VS Code dependencies
+        working-directory: vscode-extension
+        run: npm ci --ignore-scripts
+
+      - name: Test and package VS Code extension
+        working-directory: vscode-extension
+        run: |
+          npm test
+          npx --no-install vsce package --no-dependencies
 
       - name: Set up JDK
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
@@ -100,15 +119,36 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin verifyPluginSignature --no-configuration-cache --console=plain
 
-      - name: Save signed release artifact
+      # No marketplace upload is allowed before BOTH packages pass all checks.
+      - name: Save both verified release artifacts
+        id: artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: git-ai-idea-${{ inputs.version }}-signed
-          path: idea-plugin/build/distributions/*-signed.zip
+          name: git-ai-plugins-${{ inputs.version }}
+          path: |
+            idea-plugin/build/distributions/*-signed.zip
+            vscode-extension/*.vsix
           if-no-files-found: error
           retention-days: 30
 
+      # Registries are independent: attempt each after the common gate even if
+      # another registry fails. Any failed upload still fails the workflow.
+      - name: Publish to VS Code Marketplace
+        if: ${{ !cancelled() && steps.artifacts.outcome == 'success' }}
+        working-directory: vscode-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --no-install vsce publish --packagePath *.vsix
+
+      - name: Publish to Open VSX Registry
+        if: ${{ !cancelled() && steps.artifacts.outcome == 'success' }}
+        working-directory: vscode-extension
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --no-install ovsx publish --packagePath *.vsix
+
       - name: Publish to JetBrains Marketplace
+        if: ${{ !cancelled() && steps.artifacts.outcome == 'success' }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}

@@ -16,6 +16,8 @@
     var persisted = vscode.getState() || {};
     var currentScope = persisted.scope === 'project' ? 'project' : 'global';
     var initialSnapshots = {};
+    var hostBusy = initialData.busy === true;
+    var configLoaded = initialData.loaded === true;
 
     function fieldElements(prefix) {
         return Array.prototype.slice.call(
@@ -138,7 +140,7 @@
             if (!control) {
                 return;
             }
-            control.disabled = hasPrompt;
+            control.disabled = hasPrompt || hostBusy || !configLoaded;
             control.title = hasPrompt ? String(initialData.disabledHint || '') : '';
             var field = control.closest('.field');
             if (field) field.classList.toggle('is-disabled', hasPrompt);
@@ -166,11 +168,15 @@
 
         var saveButton = pane.querySelector('[data-action="save"]');
         var testButton = pane.querySelector('[data-action="test"]');
-        if (saveButton) saveButton.disabled = !dirty || !valid;
-        if (testButton) testButton.disabled = anyDirty || !valid;
+        if (saveButton) saveButton.disabled = hostBusy || !configLoaded || !dirty || !valid;
+        if (testButton) testButton.disabled = hostBusy || !configLoaded || anyDirty || !valid;
+        var resetButton = pane.querySelector('[data-action="reset"]');
+        if (resetButton) resetButton.disabled = hostBusy || !configLoaded;
     }
 
     function persistState() {
+        if (!configLoaded) return;
+        vscode.postMessage({ command: 'draftState', dirty: prefixes.some(isDirty) });
         vscode.setState({
             scope: currentScope,
             scrollY: window.scrollY,
@@ -224,6 +230,7 @@
     }
 
     function setBusy(scope, action, active) {
+        hostBusy = active;
         var pane = document.getElementById('pane-' + scope);
         if (!pane) return;
         Array.prototype.slice.call(pane.querySelectorAll('[data-action]')).forEach(function (button) {
@@ -274,6 +281,7 @@
     });
 
     function submitAction(action, scope) {
+        if (hostBusy || !configLoaded) return;
         var pane = document.getElementById('pane-' + scope);
         var form = pane ? pane.querySelector('form') : null;
         if ((action === 'save' || action === 'test') && form && !form.reportValidity()) {
@@ -281,6 +289,7 @@
         }
         var prefix = scope === 'global' ? 'g' : 'p';
         setBusy(scope, action, true);
+        updateControls();
         if (action === 'save' || action === 'reset') {
             vscode.setState({
                 scope: scope,
@@ -334,9 +343,22 @@
 
     document.addEventListener('click', function (event) {
         var target = event.target && event.target.closest
-            ? event.target.closest('[data-tab], [data-action], [data-secret-toggle]')
+            ? event.target.closest('[data-tab], [data-action], [data-secret-toggle], [data-cli-action]')
             : null;
         if (!target) return;
+        var cliAction = target.getAttribute('data-cli-action');
+        if (cliAction) {
+            if (hostBusy) return;
+            if (cliAction !== 'cliCheck' && prefixes.some(isDirty)) {
+                var feedback = document.getElementById('cli-update-status');
+                if (feedback) feedback.textContent = initialData.unsavedHint || '';
+                return;
+            }
+            hostBusy = true;
+            updateControls();
+            vscode.postMessage({ command: cliAction });
+            return;
+        }
 
         var tab = target.getAttribute('data-tab');
         if (tab) {
@@ -383,8 +405,18 @@
 
     window.addEventListener('message', function (event) {
         var message = event.data || {};
+        if (message.command === 'cliState') {
+            hostBusy = message.busy === true;
+            configLoaded = message.loaded === true;
+            var health = document.getElementById('cli-health');
+            var updateStatus = document.getElementById('cli-update-status');
+            if (health) health.textContent = message.health || '';
+            if (updateStatus) updateStatus.textContent = message.updateStatus || '';
+            updateControls();
+        }
         if (message.command === 'actionState' && message.scope && message.action) {
             setBusy(message.scope, message.action, message.active === true);
+            updateControls();
             if (message.active !== true) {
                 prefixes.forEach(updateActionState);
                 persistState();
@@ -394,12 +426,25 @@
 
     window.addEventListener('scroll', persistState, { passive: true });
 
+    function updateControls() {
+        prefixes.forEach(function (prefix) {
+            fieldElements(prefix).forEach(function (control) { control.disabled = hostBusy || !configLoaded; });
+            updatePromptDependencies(prefix);
+            updateActionState(prefix);
+        });
+        Array.prototype.slice.call(document.querySelectorAll('[data-cli-action]')).forEach(function (button) {
+            button.disabled = hostBusy;
+        });
+    }
+
     prefixes.forEach(function (prefix) {
         updatePromptDependencies(prefix);
         updateSummary(prefix);
         updateActionState(prefix);
     });
     switchTab(currentScope, false);
+    updateControls();
+    vscode.postMessage({ command: 'ready' });
     if (typeof persisted.scrollY === 'number') {
         window.requestAnimationFrame(function () {
             window.scrollTo(0, persisted.scrollY);

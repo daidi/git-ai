@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.2
+
+- Aligned VS Code and JetBrains CLI health checks and recovery: selected version/path, retry, manual update check, and explicit installation.
+- Reject legacy CLI help output and malformed settings without exposing response contents or overwriting configuration with defaults.
+- Check local protocol compatibility even when update checks are disabled; cache successful release checks for 24 hours and failures for 15 minutes, with manual bypass.
+- Protect unsaved drafts, prevent concurrent installation/saves, and retain Restricted Mode safeguards.
+- Synchronize recovery labels across all 16 UI languages and gate both plugin releases on tests, packaging, and JetBrains compatibility verification.
+- This plugin-only maintenance release continues to use the compatible 1.4.1 CLI; it does not require a new CLI release.
+
 ## 1.4.1
 
 - Fixed the JetBrains plugin's deprecated `DynamicBundle` constructor usage while retaining IntelliJ IDEA 2024.1 compatibility.

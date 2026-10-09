@@ -56,9 +56,9 @@ jobs:
         working-directory: vscode-extension
         run: npm ci --ignore-scripts
 
-      - name: Compile VS Code extension
+      - name: Test VS Code extension
         working-directory: vscode-extension
-        run: npm run compile
+        run: npm test
 
       - name: Package VS Code extension
         working-directory: vscode-extension
@@ -77,7 +77,7 @@ jobs:
 
       - name: Build and verify IntelliJ plugin
         working-directory: idea-plugin
-        run: ./gradlew buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
+        run: ./gradlew test buildPlugin verifyPluginProjectConfiguration verifyPluginStructure verifyPlugin
 
       - name: Check translation key coverage
         run: bash scripts/check-i18n-coverage.sh

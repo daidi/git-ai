@@ -1,33 +1,15 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
 import * as crypto from 'crypto';
-import { isSettingsProtocolMismatch } from './cliCompatibility';
 import { notifyError, notifyInfo } from './notifications';
 import { t } from './i18n';
-import { getExecutableCandidates, getExecutablePath, installCliUpdate } from './installer';
-
-/** Shape returned by `git-ai config list --json`. */
-interface GitAiConfig {
-    api_key?: string;
-    model?: string;
-    base_url?: string;
-    provider?: string;
-    language?: string;
-    ui_language?: string;
-    push_policy?: string;
-    message_format?: string;
-    commit_attribution?: string;
-    prompt_template?: string;
-    smart_skip?: boolean;
-    max_diff_tokens?: number;
-    log_level?: string;
-    check_update?: boolean;
-    explain?: boolean;
-    api_key_configured?: boolean;
-}
+import { cliRuntime, CliRuntime, runSettingsCli, selectedCli } from './cliSettings';
+import { CliUpdateService, updateMessage } from './cliUpdateService';
+import { parseConfig, parseSchema, parseModels, SettingsProtocolError } from './settingsProtocol';
+import type { GitAiConfig, ConfigSchema, ConfigFieldSchema } from './settingsProtocol';
 
 interface SettingsMessage {
-    command: 'save' | 'reset' | 'testConfig' | 'load';
+    command: 'save' | 'reset' | 'testConfig' | 'load' | 'cliRetry' | 'cliCheck' | 'cliUpdate' | 'draftState' | 'ready';
+    dirty?: boolean;
     scope?: 'global' | 'project';
     data?: GitAiConfig & { install_hook?: boolean };
 }
@@ -39,26 +21,6 @@ interface FieldOptions {
     configured?: boolean;
     multiline?: boolean;
     suggestions?: boolean;
-}
-
-interface ConfigFieldSchema {
-    key: string;
-    type: 'string' | 'boolean' | 'integer';
-    default?: string | number | boolean;
-    enum?: string[];
-    minimum?: number;
-    maximum?: number;
-}
-
-interface ConfigSchema {
-    version: number;
-    fields: ConfigFieldSchema[];
-    providers: Array<{ id: string; default_base_url: string; default_model: string }>;
-}
-
-interface ModelCatalog {
-    provider: string;
-    models: Array<{ id: string; display_name?: string }>;
 }
 
 const DEFAULTS: Required<GitAiConfig> = {
@@ -88,14 +50,21 @@ const DEFAULTS: Required<GitAiConfig> = {
  */
 export class SettingsPanel {
     private static currentPanel: SettingsPanel | undefined;
-    private static compatibilityRepair: Promise<boolean> | undefined;
     private readonly panel: vscode.WebviewPanel;
     private readonly workspaceRoot: string;
     private readonly extensionUri: vscode.Uri;
     private readonly disposables: vscode.Disposable[] = [];
     private schema: ConfigSchema | undefined;
+    private configLoaded = false;
+    private disposed = false;
+    private generation = 0;
+    private busy = false;
+    private dirty = false;
+    private runtime?: CliRuntime;
+    private health = t('settings.loading');
+    private updateStatus = '';
 
-    private constructor(panel: vscode.WebviewPanel, workspaceRoot: string, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel, workspaceRoot: string, extensionUri: vscode.Uri, private readonly updates: CliUpdateService) {
         this.panel = panel;
         this.workspaceRoot = workspaceRoot;
         this.extensionUri = extensionUri;
@@ -111,10 +80,10 @@ export class SettingsPanel {
             this.disposables,
         );
 
-        void this.refresh().catch(error => notifyError(error instanceof Error ? error.message : String(error)));
+        void this.refresh();
     }
 
-    static show(extensionUri: vscode.Uri, workspaceRoot: string): void {
+    static show(extensionUri: vscode.Uri, workspaceRoot: string, updates: CliUpdateService): void {
         if (!vscode.workspace.isTrusted) {
             notifyError('Git AI settings are disabled in Restricted Mode.');
             return;
@@ -137,10 +106,12 @@ export class SettingsPanel {
             },
         );
 
-        SettingsPanel.currentPanel = new SettingsPanel(panel, workspaceRoot, extensionUri);
+        SettingsPanel.currentPanel = new SettingsPanel(panel, workspaceRoot, extensionUri, updates);
     }
 
     private dispose(): void {
+        this.disposed = true;
+        this.generation++;
         SettingsPanel.currentPanel = undefined;
         for (const disposable of this.disposables) {
             disposable.dispose();
@@ -151,11 +122,11 @@ export class SettingsPanel {
 
     private async readConfig(scope: 'global' | 'local' | 'merged'): Promise<GitAiConfig> {
         const output = await this.runGitAi(['config', 'list', '--scope', scope, '--json']);
-        return JSON.parse(output) as GitAiConfig;
+        return parseConfig(output);
     }
 
     private async readSchema(): Promise<ConfigSchema> {
-        return JSON.parse(await this.runGitAi(['config', 'schema'])) as ConfigSchema;
+        return parseSchema(await this.runGitAi(['config', 'schema']));
     }
 
     private async writeConfig(scope: 'global' | 'local', config: GitAiConfig): Promise<void> {
@@ -175,6 +146,22 @@ export class SettingsPanel {
     // ── Webview messages ──────────────────────────────────
 
     private async handleMessage(message: SettingsMessage): Promise<void> {
+        if (this.disposed || !message || !vscode.workspace.isTrusted) return;
+        if (message.command === 'draftState') { this.dirty = message.dirty === true; return; }
+        if (message.command === 'ready') {
+            await this.postCliState();
+            if (this.configLoaded) void this.refreshModels(this.generation);
+            return;
+        }
+        if (this.busy) return;
+        if (['load', 'cliRetry', 'cliCheck', 'cliUpdate'].includes(message.command)) {
+            await this.handleCliAction(message.command);
+            return;
+        }
+        if (!['save', 'reset', 'testConfig'].includes(message.command)) return;
+        if (!this.configLoaded) { notifyError(t('settings.cli.unavailable')); return; }
+        if (message.command === 'testConfig' && this.dirty) { notifyError(t('settings.test.unsaved')); return; }
+        this.busy = true;
         const scope = message.scope === 'project' ? 'project' : 'global';
         const cliScope = scope === 'project' ? 'local' : 'global';
         const scopeName = scope === 'project' ? t('settings.tab.project') : t('settings.tab.global');
@@ -182,10 +169,9 @@ export class SettingsPanel {
         await this.postActionState(scope, action, true);
 
         try {
+            // Re-negotiate immediately before writes in case the CLI was replaced.
+            await this.readSchema();
             switch (message.command) {
-                case 'load':
-                    await this.refresh();
-                    break;
                 case 'save': {
                     if (!message.data) {
                         return;
@@ -228,33 +214,65 @@ export class SettingsPanel {
                     break;
             }
         } catch (error) {
-            notifyError(error instanceof Error ? error.message : String(error));
+            if (this.disposed) return;
+            if (error instanceof SettingsProtocolError) {
+                this.configLoaded = false;
+                this.health = t('settings.cli.incompatible');
+                await this.postCliState();
+            }
+            notifyError(t(error instanceof SettingsProtocolError ? 'settings.cli.incompatible' : 'settings.cli.unavailable'));
         } finally {
+            this.busy = false;
             await this.postActionState(scope, action, false);
+            await this.postCliState();
         }
     }
 
     private postActionState(scope: string, action: string, active: boolean): Thenable<boolean> {
+        if (this.disposed) return Promise.resolve(false);
         return this.panel.webview.postMessage({ command: 'actionState', scope, action, active });
     }
 
     private async refresh(): Promise<void> {
-        const [global, project, mergedConfig, hookState, schema] = await Promise.all([
-            this.readConfig('global'),
-            this.readConfig('local'),
-            this.readConfig('merged'),
-            this.isHookInstalled(),
-            this.readSchema(),
-        ]);
-        this.schema = schema;
-        const merged = { ...this.schemaDefaults(), ...mergedConfig };
-        this.panel.webview.html = this.getHtml(global, project, merged, hookState);
-        void this.refreshModels();
+        if (this.disposed || !vscode.workspace.isTrusted) return;
+        const generation = ++this.generation;
+        this.busy = true;
+        this.configLoaded = false;
+        this.health = t('settings.loading');
+        this.updateStatus = '';
+        this.panel.webview.html = this.getHtml({}, {}, DEFAULTS, false);
+        try {
+            this.runtime = await cliRuntime();
+            const schema = await this.readSchema();
+            const [global, project, mergedConfig, hookState] = await Promise.all([
+                this.readConfig('global'),
+                this.readConfig('local'),
+                this.readConfig('merged'),
+                this.isHookInstalled(),
+            ]);
+            if (this.disposed || generation !== this.generation) return;
+            this.schema = schema;
+            this.configLoaded = true;
+            this.health = t('settings.cli.compatible', String(schema.version));
+            this.updates.clearHealth();
+            const merged = { ...this.schemaDefaults(), ...mergedConfig };
+            this.panel.webview.html = this.getHtml(global, project, merged, hookState);
+        } catch (error) {
+            if (this.disposed || generation !== this.generation) return;
+            this.health = t(error instanceof SettingsProtocolError ? 'settings.cli.incompatible' : 'settings.cli.unavailable');
+            this.panel.webview.html = this.getHtml({}, {}, DEFAULTS, false);
+        } finally {
+            if (!this.disposed && generation === this.generation) {
+                this.busy = false;
+                await this.postCliState();
+            }
+        }
     }
 
-    private async refreshModels(): Promise<void> {
+    private async refreshModels(generation: number): Promise<void> {
         try {
-            const catalog = JSON.parse(await this.runGitAi(['config', 'models', '--json'])) as ModelCatalog;
+            const catalog = parseModels(await this.runGitAi(['config', 'models', '--json']));
+            if (this.disposed || generation !== this.generation) return;
             await this.panel.webview.postMessage({ command: 'modelCatalog', catalog });
         } catch {
             // Discovery is optional: users can always type a custom model ID.
@@ -289,59 +307,33 @@ export class SettingsPanel {
     }
 
     private async runGitAi(args: string[], input?: string): Promise<string> {
-        if (!vscode.workspace.isTrusted) {
-            throw new Error('Git AI is disabled in Restricted Mode.');
-        }
-        const configured = vscode.workspace.getConfiguration('git-ai').get<string>('binaryPath') || 'git-ai';
-        for (const binary of getExecutableCandidates(configured)) {
-            try {
-                return await this.runCommand(binary, args, input);
-            } catch (error) {
-                if (!isSettingsProtocolMismatch(error)) { throw error; }
-            }
-        }
-
-        if (configured !== 'git-ai') {
-            throw new Error(t('settings.cli.incompatible'));
-        }
-        SettingsPanel.compatibilityRepair ??= installCliUpdate(false);
-        if (!await SettingsPanel.compatibilityRepair) {
-            throw new Error(t('settings.cli.incompatible'));
-        }
-
-        try {
-            return await this.runCommand(getExecutablePath(configured), args, input);
-        } catch (error) {
-            if (isSettingsProtocolMismatch(error)) {
-                throw new Error(t('settings.cli.incompatible'));
-            }
-            throw error;
-        }
+        if (this.disposed) throw new Error('settings.cli.unavailable');
+        return runSettingsCli(this.runtime?.path || selectedCli(), args, this.workspaceRoot, input);
     }
 
-    private runCommand(binary: string, args: string[], input?: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const child = cp.execFile(
-                binary,
-                args,
-                {
-                    cwd: this.workspaceRoot,
-                    timeout: 30_000,
-                    windowsHide: true,
-                    maxBuffer: 5 * 1024 * 1024,
-                },
-                (error, stdout, stderr) => {
-                    if (error) {
-                        reject(new Error(stderr.trim() || error.message));
-                        return;
-                    }
-                    resolve(stdout.trim());
-                },
-            );
-            if (input !== undefined) {
-                child.stdin?.end(input);
+    private async handleCliAction(command: string): Promise<void> {
+        if (command !== 'cliCheck' && this.dirty) { notifyError(t('settings.test.unsaved')); return; }
+        if (command === 'load' || command === 'cliRetry') { await this.refresh(); return; }
+        this.busy = true;
+        this.updateStatus = t('settings.loading');
+        await this.postCliState();
+        try {
+            const info = await cliRuntime();
+            if (this.disposed) return;
+            if (command === 'cliCheck') {
+                this.updateStatus = updateMessage(await this.updates.check(info, true), info);
+            } else if (command === 'cliUpdate') {
+                if (await this.updates.install(info)) { await this.refresh(); return; }
+                this.updateStatus = t(info.managed ? 'settings.cli.unavailable' : 'settings.cli.customPath');
             }
-        });
+        } catch { this.updateStatus = t('settings.cli.checkFailed'); }
+        finally { this.busy = false; await this.postCliState(); }
+    }
+
+    private postCliState(): Thenable<boolean> {
+        if (this.disposed) return Promise.resolve(false);
+        return this.panel.webview.postMessage({ command: 'cliState', busy: this.busy,
+            loaded: this.configLoaded, health: this.health, updateStatus: this.updateStatus });
     }
 
     // ── HTML ──────────────────────────────────────────────
@@ -363,6 +355,9 @@ export class SettingsPanel {
             apiKeyConfigured: global.api_key_configured === true,
             apiKeyLabel: t('settings.field.apiKey'),
             disabledHint: t('settings.hint.disabledTemplate'),
+            loaded: this.configLoaded,
+            busy: this.busy,
+            unsavedHint: t('settings.test.unsaved'),
         });
 
         return /* html */ `<!DOCTYPE html>
@@ -386,14 +381,24 @@ export class SettingsPanel {
                     <p class="subtitle">${this.escapeHtml(t('settings.subtitle'))}</p>
                 </div>
             </div>
+            <section class="cli-health" aria-live="polite">
+                <p>${this.escapeHtml(t('settings.cli.details', this.runtime?.version || '—', this.runtime?.path || '—'))}</p>
+                <p id="cli-health">${this.escapeHtml(this.health)}</p>
+                <p id="cli-update-status">${this.escapeHtml(this.updateStatus)}</p>
+                <div class="cli-actions">
+                    <button class="btn btn-quiet" type="button" data-cli-action="cliRetry">${this.escapeHtml(t('settings.cli.retry'))}</button>
+                    <button class="btn btn-quiet" type="button" data-cli-action="cliCheck">${this.escapeHtml(t('settings.cli.check'))}</button>
+                    <button class="btn btn-primary" type="button" data-cli-action="cliUpdate">${this.escapeHtml(t('notification.updateNow'))}</button>
+                </div>
+            </section>
             <div class="scope-tabs" role="tablist" aria-label="${this.escapeAttr(t('settings.title'))}">
                 ${this.renderTab('global', 'globe', t('settings.tab.global'), t('settings.badge.shared'), true)}
                 ${this.renderTab('project', 'folder', t('settings.tab.project'), t('settings.badge.override'), false)}
             </div>
         </header>
 
-        ${this.renderGlobalPane(global)}
-        ${this.renderProjectPane(project, merged, hookState, global.api_key_configured === true)}
+        ${this.configLoaded ? this.renderGlobalPane(global) : ''}
+        ${this.configLoaded ? this.renderProjectPane(project, merged, hookState, global.api_key_configured === true) : ''}
     </div>
 
     <script id="settings-data" type="application/json">${initialData}</script>
